@@ -1,0 +1,29 @@
+name: Build Silkey for Windows
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.309.0
+          cache: true
+      - name: Build installer and verify native runtime
+        shell: pwsh
+        run: ./scripts/build-silkey-windows.ps1
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Silkey-Windows-x64
+          path: src-tauri/target/release/bundle/nsis/*setup.exe
+          if-no-files-found: error
+          retention-days: 14
