@@ -4,8 +4,8 @@
   "mirrors": [],
   "models": [
     {
-      "id": "handy-computer/parakeet-unified-en-0.6b-gguf",
-      "revision": "7e948f21b7bdbac698d3318db9d350f1096f3b6c",
+      "id": "Litovation/parakeet-unified-en-0.6b-gguf",
+      "revision": "f9a1a14d847fc9f838b5bb4ed08b272a7c3319c2",
       "slug": "parakeet-unified-en-0.6b",
       "name": "Parakeet Unified EN 0.6B",
       "architecture": "parakeet",
@@ -69,8 +69,8 @@
       "recommended_rank": 1
     },
     {
-      "id": "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf",
-      "revision": "6d44e540bc31b0de1dbe174a3cea87f53a7f22fb",
+      "id": "Litovation/nemotron-3.5-asr-streaming-0.6b-gguf",
+      "revision": "d94ef19df8f36591c2baefc5049faf2ae57b9b1c",
       "slug": "nemotron-3.5-asr-streaming-0.6b",
       "name": "Nemotron Streaming 3.5",
       "architecture": "parakeet",
@@ -161,8 +161,8 @@
       "recommended_rank": 2
     },
     {
-      "id": "handy-computer/canary-180m-flash-gguf",
-      "revision": "b147f9dc52b59f0998e410540a84727bd86457fd",
+      "id": "Litovation/canary-180m-flash-gguf",
+      "revision": "70730ee27d29449a0758838bf7166e21b8eb3d26",
       "slug": "canary-180m-flash",
       "name": "Canary 180M Flash",
       "architecture": "canary",
@@ -229,8 +229,8 @@
       "recommended_rank": 3
     },
     {
-      "id": "handy-computer/cohere-transcribe-03-2026-gguf",
-      "revision": "dfa4adebb64f3076b7b6b90b721275cc069cb421",
+      "id": "Litovation/cohere-transcribe-03-2026-gguf",
+      "revision": "88f26eb03dc25f0d44c629b72e2dba684d223083",
       "slug": "cohere-transcribe-03-2026",
       "name": "Cohere Transcribe",
       "architecture": "cohere_asr",
@@ -307,8 +307,8 @@
       "recommended_rank": 4
     },
     {
-      "id": "handy-computer/whisper-medium-gguf",
-      "revision": "ec78f06fded51aa82cde751678b78f76f78c8b7f",
+      "id": "Litovation/whisper-medium-gguf",
+      "revision": "c884fbd94a7f243c0d75a17caf989e9a47681ec9",
       "slug": "whisper-medium",
       "name": "Whisper Medium",
       "architecture": "whisper",

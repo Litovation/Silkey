@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import SilktoneWordmark from "./icons/SilktoneWordmark";
+import LitovationLogo from "./icons/LitovationLogo";
 import { useSettings } from "../hooks/useSettings";
 import {
   GeneralSettings,
@@ -101,7 +102,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="flex flex-col w-48 h-full border-e border-mid-gray/20 items-center px-2">
-      <SilktoneWordmark withVersion width={150} className="mx-4 mt-5 mb-4 text-text" />
+      <div className="flex flex-col items-start gap-1.5 mx-4 mt-5 mb-4 text-text">
+        <SilktoneWordmark withVersion width={150} />
+        <div className="flex items-center gap-1.5 ps-1 opacity-80">
+          <span className="text-[11px] leading-none text-mid-gray">
+            {t("sidebar.by")}
+          </span>
+          <LitovationLogo width={64} />
+        </div>
+      </div>
       <div className="flex flex-col w-full items-center gap-1 pt-3 border-t border-mid-gray/20">
         {availableSections.map((section) => {
           const Icon = section.icon;
