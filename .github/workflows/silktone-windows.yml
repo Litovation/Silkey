@@ -1,7 +1,7 @@
-name: Build Silkey for Windows
+name: Build Silktone for Windows
 on:
   push:
-    branches: [main]
+    branches: [main, "silktone-*"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,11 +19,11 @@ jobs:
           cache: true
       - name: Build installer and verify native runtime
         shell: pwsh
-        run: ./scripts/build-silkey-windows.ps1
+        run: ./scripts/build-silktone-windows.ps1
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: Silkey-Windows-x64
+          name: Silktone-Windows-x64
           path: src-tauri/target/release/bundle/nsis/*setup.exe
           if-no-files-found: error
           retention-days: 14

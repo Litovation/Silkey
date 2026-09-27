@@ -6,7 +6,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 if ($env:VULKAN_SDK) { $env:PATH = "$env:VULKAN_SDK\Bin;$env:PATH" }
 foreach ($tool in @('bun', 'cargo', 'cmake', 'glslc', 'vcpkg')) {
   if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
-    throw "Missing $tool. See SILKEY-README.md or use the GitHub Windows workflow."
+    throw "Missing $tool. See BUILD.md or use the GitHub Windows workflow."
   }
 }
 
@@ -20,10 +20,10 @@ $archDir = Join-Path $vsRoot "VC/Redist/MSVC/$redistVersion/x64"
 $crt = Get-ChildItem $archDir -Directory -Filter 'Microsoft.VC*.CRT' | Sort-Object Name | Select-Object -Last 1
 $omp = Get-ChildItem $archDir -Directory -Filter 'Microsoft.VC*.OpenMP' | Sort-Object Name | Select-Object -Last 1
 if (-not $crt -or -not $omp) { throw 'The Visual Studio CRT/OpenMP redistributable is missing.' }
-$env:HANDY_VC_REDIST_DIRS = "$($crt.FullName);$($omp.FullName)"
+$env:SILKTONE_VC_REDIST_DIRS = "$($crt.FullName);$($omp.FullName)"
 
 # Upstream's baseline ONNX runtime avoids an AVX2 startup requirement.
-$depsDir = Join-Path $repoRoot '.silkey-build'
+$depsDir = Join-Path $repoRoot '.silktone-build'
 New-Item -ItemType Directory -Path $depsDir -Force | Out-Null
 $ortVersion = '1.24.2'
 $ortLib = Join-Path $depsDir "onnxruntime-win-x64-$ortVersion/lib"

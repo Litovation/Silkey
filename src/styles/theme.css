@@ -1,18 +1,18 @@
-/* Silkey colors: neutral surfaces with restrained orange accents. */
+/* Silktone colors: deep green-black surfaces, green UI accents, pink brand mark. */
 
 :root {
   /* Palette source of truth. Each themed color is defined once as a
      light/dark pair; the active tokens below and the `data-theme` overrides
      in App.css reference these, so a hex value lives in exactly one place. */
-  --light-color-text: #0f0f0f;
-  --light-color-background: #fbfbfb;
-  --light-color-logo-primary: #c94700;
-  --light-color-logo-stroke: #32251f;
+  --light-color-text: #0c150e;
+  --light-color-background: #f6f9f7;
+  --light-color-logo-primary: #1e8f58;
+  --light-color-logo-stroke: #0c150e;
 
-  --dark-color-text: #fbfbfb;
-  --dark-color-background: #2c2b29;
-  --dark-color-logo-primary: #ff7831;
-  --dark-color-logo-stroke: #ffe3d2;
+  --dark-color-text: #eef4f0;
+  --dark-color-background: #0f1813;
+  --dark-color-logo-primary: #2fd592;
+  --dark-color-logo-stroke: #d9f7e8;
 
   /* Semantic status colors. First used by SecureInputWarning; intended to
      replace the ad-hoc yellow-500/red-500 usages (e.g. ui/Alert.tsx) over
@@ -23,7 +23,9 @@
   --dark-color-error: #f87171;
 
   /* Tokens that do not change between light and dark */
-  --color-background-ui: #c94700;
+  --color-background-ui: #1f8a55;
+  /* Brand pink from the stylized k mark. */
+  --color-brand-pink: #f650ae;
   --color-text-stroke: #f6f6f6;
   --color-mid-gray: #808080;
 
@@ -52,7 +54,7 @@
  * Explicit theme override, driven by the `theme` setting via
  * `document.documentElement.dataset.theme`. When set, the higher-specificity
  * attribute selectors win over the `prefers-color-scheme` media query above,
- * so a user can keep Handy light or dark regardless of the OS setting.
+ * so a user can keep Silktone light or dark regardless of the OS setting.
  * `system` (or no attribute) leaves the OS in charge.
  *
  * Lives here (not in App.css) so every window that imports the shared palette —

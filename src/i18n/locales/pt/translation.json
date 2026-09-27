@@ -101,7 +101,7 @@
     },
     "permissions": {
       "title": "Permissões Necessárias",
-      "description": "O Silkey precisa de algumas permissões para funcionar corretamente.",
+      "description": "O Silktone precisa de algumas permissões para funcionar corretamente.",
       "microphone": {
         "title": "Acesso ao Microfone",
         "description": "Necessário para ouvir sua voz para transcrição."
@@ -161,7 +161,7 @@
     "general": {
       "title": "Geral",
       "shortcut": {
-        "title": "Atalhos do Silkey",
+        "title": "Atalhos do Silktone",
         "description": "Configure atalhos de teclado para iniciar a gravação de voz para texto",
         "loading": "Carregando atalhos...",
         "none": "Nenhum atalho configurado",
@@ -226,7 +226,7 @@
       "searchPlaceholder": "Buscar modelos por nome…",
       "rescan": {
         "label": "Reescanear",
-        "tooltip": "Reescaneia em busca de modelos adicionados à pasta de modelos ou ao cache do Hugging Face fora do Silkey"
+        "tooltip": "Reescaneia em busca de modelos adicionados à pasta de modelos ou ao cache do Hugging Face fora do Silktone"
       }
     },
     "sound": {
@@ -293,11 +293,11 @@
       },
       "autostart": {
         "label": "Iniciar na Inicialização",
-        "description": "Iniciar automaticamente o Silkey quando você fizer login no seu computador."
+        "description": "Iniciar automaticamente o Silktone quando você fizer login no seu computador."
       },
       "showTrayIcon": {
         "label": "Mostrar ícone na bandeja",
-        "description": "Exibir o ícone do Silkey na bandeja do sistema."
+        "description": "Exibir o ícone do Silktone na bandeja do sistema."
       },
       "overlay": {
         "style": {
@@ -492,8 +492,8 @@
       },
       "updateChecks": {
         "label": "Verificar Atualizações",
-        "description": "Verificar automaticamente novas versões do Silkey",
-        "lockedDescription": "Desativado pela configuração do sistema (SILKEY_DISABLE_UPDATER)"
+        "description": "Verificar automaticamente novas versões do Silktone",
+        "lockedDescription": "Desativado pela configuração do sistema (SILKTONE_DISABLE_UPDATER)"
       },
       "soundTheme": {
         "label": "Tema de Som",
@@ -570,7 +570,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Diagnóstico do teclado",
-        "description": "Verifica se os eventos de teclado chegam ao Silkey. Apenas a contagem de eventos é registrada — nunca quais teclas você pressiona.",
+        "description": "Verifica se os eventos de teclado chegam ao Silktone. Apenas a contagem de eventos é registrada — nunca quais teclas você pressiona.",
         "run": "Executar diagnóstico de 10 s",
         "running": "Ouvindo… pressione seu atalho algumas vezes (ex.: Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -584,7 +584,7 @@
         "mouse": "Mouse",
         "verdictBlocked": "O Secure Input está bloqueando os eventos de tecla — atalhos que incluem uma tecla normal não funcionam até que isso seja resolvido.",
         "verdictSuspicious": "Chegaram eventos de modificadores, mas nenhum evento de tecla — algo está suprimindo as teclas mesmo com o Secure Input indicando desativado. Por favor, relate isso no GitHub.",
-        "verdictOk": "Os eventos de tecla estão chegando normalmente ao Silkey.",
+        "verdictOk": "Os eventos de tecla estão chegando normalmente ao Silktone.",
         "verdictNoEvents": "Nenhum evento capturado — você pressionou alguma tecla durante o teste?",
         "failed": "Falha no diagnóstico: {{error}}"
       },
@@ -607,33 +607,23 @@
       "title": "Sobre",
       "version": {
         "title": "Versão",
-        "description": "Versão atual do Silkey"
+        "description": "Versão atual do Silktone"
       },
       "appDataDirectory": {
         "title": "Diretório de Dados do App",
-        "description": "Local onde o Silkey armazena seus dados"
-      },
-      "sourceCode": {
-        "title": "Código Fonte",
-        "description": "Visualizar código fonte e contribuir",
-        "button": "Ver no GitHub"
-      },
-      "supportDevelopment": {
-        "title": "Apoiar o Desenvolvimento",
-        "description": "Ajude-nos a continuar construindo o Handy",
-        "button": "Doar"
+        "description": "Local onde o Silktone armazena seus dados"
       },
       "acknowledgments": {
         "title": "Agradecimentos",
         "ggml": {
           "title": "ggml",
           "description": "Inferência de alto desempenho do modelo de reconhecimento automático de fala Whisper da OpenAI",
-          "details": "O Silkey usa ggml para processamento rápido e local de fala para texto. Agradecemos ao incrível trabalho de Georgi Gerganov e colaboradores."
+          "details": "O Silktone usa ggml para processamento rápido e local de fala para texto. Agradecemos ao incrível trabalho de Georgi Gerganov e colaboradores."
         }
       },
       "whatsNewUpdates": {
         "label": "Mostrar novidades",
-        "description": "Mostrar notas de versão após atualizações do Silkey"
+        "description": "Mostrar notas de versão após atualizações do Silktone"
       }
     }
   },
@@ -662,7 +652,7 @@
     "noOptionsFound": "Nenhuma opção encontrada"
   },
   "accessibility": {
-    "permissionsDescription": "O Silkey precisa de permissões de acessibilidade para digitar o texto transcrito.",
+    "permissionsDescription": "O Silktone precisa de permissões de acessibilidade para digitar o texto transcrito.",
     "openSettings": "Abrir Configurações do Sistema"
   },
   "errors": {
@@ -685,11 +675,11 @@
   },
   "appLanguage": {
     "title": "Idioma da Aplicação",
-    "description": "Alterar o idioma da interface do Silkey"
+    "description": "Alterar o idioma da interface do Silktone"
   },
   "theme": {
     "title": "Tema do aplicativo",
-    "description": "Escolha se o Silkey segue o tema do sistema ou permanece claro ou escuro",
+    "description": "Escolha se o Silktone segue o tema do sistema ou permanece claro ou escuro",
     "options": {
       "system": "Sistema",
       "light": "Claro",
@@ -701,7 +691,7 @@
     "processing": "Processando..."
   },
   "whatsNew": {
-    "title": "Novidades no Silkey v{{version}}"
+    "title": "Novidades no Silktone v{{version}}"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} pode estar bloqueando 1 atalho",

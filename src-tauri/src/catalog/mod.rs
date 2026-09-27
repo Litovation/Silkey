@@ -1,10 +1,9 @@
 //! The bundled, offline model catalog.
 //!
-//! `catalog.json` is generated at build time by `scripts/gen_catalog.py` from the
-//! `handy-computer` Hugging Face org (card `transcribe_cpp` capabilities +
-//! benchmarks, a GGUF header probe for name/params, and local curation for the
-//! recommended set). It is compiled into the binary so Handy ships a complete
-//! model list with zero network access.
+//! `catalog.json` is the curated list of the models Silktone offers, each pinned
+//! to a Hugging Face repo revision with per-file sizes and sha256 hashes. It is
+//! compiled into the binary so Silktone ships a complete model list with zero
+//! network access.
 //!
 //! Each entry is normalised into a [`ModelDescriptor`] — the same source-agnostic
 //! shape every other producer (HF discovery, on-disk scans, the legacy table)
@@ -37,7 +36,7 @@ struct CatalogRoot {
 /// are declared; serde ignores the rest (slug, family, license, …).
 #[derive(Deserialize)]
 struct CatalogModel {
-    /// HF repo id, e.g. `handy-computer/whisper-small-gguf`.
+    /// HF repo id, e.g. `org/whisper-medium-gguf`.
     id: String,
     /// Commit sha the catalog's sizes/hashes were generated from. Both HF
     /// acquisition and mirror keys use it, so downloaded bytes provably match
@@ -211,6 +210,17 @@ pub fn rank_of(model_id: &str) -> u32 {
     RANK_BY_ID.get(model_id).copied().unwrap_or(u32::MAX)
 }
 
+/// True when `model_id` (`"{repo_id}/{filename}"`) is a file from one of the
+/// bundled catalog repos. Silktone only offers its curated catalog, so models
+/// found elsewhere on disk (custom models dir, shared HF cache) are ignored.
+pub fn is_catalog_model(model_id: &str) -> bool {
+    ROOT.models.iter().any(|m| {
+        model_id
+            .strip_prefix(m.id.as_str())
+            .is_some_and(|rest| rest.starts_with('/'))
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,14 +260,16 @@ mod tests {
     }
 
     #[test]
-    fn every_catalog_model_has_mirror_fallbacks_with_hashes() {
-        // The mirror fallback is the safety net for HF outages and blocked
-        // networks; a catalog entry without one (missing revision, missing
-        // sha256, empty mirrors) silently loses that net.
+    fn catalog_mirror_fallbacks_carry_hashes() {
+        // Mirrors are optional (none are configured until Silktone hosts its
+        // own), but any that are listed must be verifiable end to end.
         for d in CATALOG.iter() {
-            let mirrors = mirror_fallbacks(&d.id);
-            assert!(!mirrors.is_empty(), "{}: no mirror fallbacks", d.id);
-            for m in &mirrors {
+            assert!(
+                d.files.iter().all(|f| f.sha256.as_deref().is_some_and(|h| h.len() == 64)),
+                "{}: catalog file lacks a sha256",
+                d.id
+            );
+            for m in &mirror_fallbacks(&d.id) {
                 assert!(
                     m.sha256.len() == 64,
                     "{}: mirror entry lacks a sha256",

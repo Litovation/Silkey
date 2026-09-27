@@ -101,7 +101,7 @@
     },
     "permissions": {
       "title": "Izin Diperlukan",
-      "description": "Silkey memerlukan beberapa izin agar dapat berfungsi dengan baik.",
+      "description": "Silktone memerlukan beberapa izin agar dapat berfungsi dengan baik.",
       "microphone": {
         "title": "Akses Mikrofon",
         "description": "Diperlukan untuk menangkap suara Anda agar dapat ditranskripsikan."
@@ -161,7 +161,7 @@
     "general": {
       "title": "Umum",
       "shortcut": {
-        "title": "Pintasan Silkey",
+        "title": "Pintasan Silktone",
         "description": "Atur pintasan keyboard untuk memulai perekaman ucapan-ke-teks",
         "loading": "Memuat pintasan...",
         "none": "Belum ada pintasan yang diatur",
@@ -225,7 +225,7 @@
       },
       "rescan": {
         "label": "Pindai Ulang",
-        "tooltip": "Pindai ulang model yang ditambahkan ke folder model atau cache Hugging Face dari luar Silkey"
+        "tooltip": "Pindai ulang model yang ditambahkan ke folder model atau cache Hugging Face dari luar Silktone"
       },
       "noModelsMatch": "Tidak ada model yang cocok dengan kriteria ini."
     },
@@ -293,11 +293,11 @@
       },
       "autostart": {
         "label": "Jalankan saat Komputer Dinyalakan",
-        "description": "Mulai Silkey secara otomatis saat Anda masuk ke komputer."
+        "description": "Mulai Silktone secara otomatis saat Anda masuk ke komputer."
       },
       "showTrayIcon": {
         "label": "Tampilkan Ikon Baki Sistem",
-        "description": "Tampilkan ikon Silkey di baki sistem."
+        "description": "Tampilkan ikon Silktone di baki sistem."
       },
       "overlay": {
         "style": {
@@ -492,8 +492,8 @@
       },
       "updateChecks": {
         "label": "Periksa Pembaruan",
-        "description": "Periksa versi baru Silkey secara otomatis",
-        "lockedDescription": "Dinonaktifkan oleh konfigurasi sistem (SILKEY_DISABLE_UPDATER)"
+        "description": "Periksa versi baru Silktone secara otomatis",
+        "lockedDescription": "Dinonaktifkan oleh konfigurasi sistem (SILKTONE_DISABLE_UPDATER)"
       },
       "whatsNewPreview": {
         "title": "Pratinjau Yang Baru",
@@ -584,7 +584,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Diagnostik Keyboard",
-        "description": "Memeriksa apakah peristiwa keyboard mencapai Silkey. Hanya jumlah peristiwa yang dicatat — bukan tombol yang Anda tekan.",
+        "description": "Memeriksa apakah peristiwa keyboard mencapai Silktone. Hanya jumlah peristiwa yang dicatat — bukan tombol yang Anda tekan.",
         "run": "Jalankan diagnostik 10 dtk",
         "running": "Mendengarkan… tekan pintasan Anda beberapa kali (mis. Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -598,7 +598,7 @@
         "mouse": "Mouse",
         "verdictBlocked": "Secure Input memblokir peristiwa tombol — pintasan keyboard tidak dapat berfungsi sampai masalah ini diselesaikan.",
         "verdictSuspicious": "Peristiwa tombol pengubah diterima, tetapi tidak ada peristiwa tombol — sesuatu memblokir input tombol meskipun Secure Input dilaporkan nonaktif. Harap laporkan ini di GitHub.",
-        "verdictOk": "Peristiwa tombol mencapai Silkey secara normal.",
+        "verdictOk": "Peristiwa tombol mencapai Silktone secara normal.",
         "verdictNoEvents": "Tidak ada peristiwa yang tertangkap — apakah Anda menekan tombol selama pengujian?",
         "failed": "Diagnostik gagal: {{error}}"
       }
@@ -607,32 +607,22 @@
       "title": "Tentang",
       "version": {
         "title": "Versi",
-        "description": "Versi Silkey saat ini"
+        "description": "Versi Silktone saat ini"
       },
       "whatsNewUpdates": {
         "label": "Tampilkan Yang Baru",
-        "description": "Tampilkan catatan rilis setelah Silkey diperbarui"
+        "description": "Tampilkan catatan rilis setelah Silktone diperbarui"
       },
       "appDataDirectory": {
         "title": "Direktori Data Aplikasi",
-        "description": "Lokasi Silkey menyimpan datanya"
-      },
-      "sourceCode": {
-        "title": "Kode Sumber",
-        "description": "Lihat kode sumber dan berkontribusi",
-        "button": "Lihat di GitHub"
-      },
-      "supportDevelopment": {
-        "title": "Dukung Pengembangan",
-        "description": "Bantu kami terus mengembangkan Handy",
-        "button": "Donasi"
+        "description": "Lokasi Silktone menyimpan datanya"
       },
       "acknowledgments": {
         "title": "Ucapan Terima Kasih",
         "ggml": {
           "title": "ggml",
           "description": "Pustaka tensor berkinerja tinggi untuk inferensi pembelajaran mesin di perangkat",
-          "details": "Fitur ucapan-ke-teks lokal Silkey dibangun menggunakan transcribe.cpp dan ggml. Terima kasih kepada Georgi Gerganov dan para kontributor atas karya luar biasa mereka."
+          "details": "Fitur ucapan-ke-teks lokal Silktone dibangun menggunakan transcribe.cpp dan ggml. Terima kasih kepada Georgi Gerganov dan para kontributor atas karya luar biasa mereka."
         }
       }
     }
@@ -653,7 +643,7 @@
     "portableUpdateBrowseButton": "Buka GitHub Releases"
   },
   "whatsNew": {
-    "title": "Baru di Silkey v{{version}}"
+    "title": "Baru di Silktone v{{version}}"
   },
   "common": {
     "loading": "Memuat...",
@@ -665,7 +655,7 @@
     "noOptionsFound": "Tidak ada opsi yang ditemukan"
   },
   "accessibility": {
-    "permissionsDescription": "Silkey memerlukan izin aksesibilitas untuk mengetik teks hasil transkripsi.",
+    "permissionsDescription": "Silktone memerlukan izin aksesibilitas untuk mengetik teks hasil transkripsi.",
     "openSettings": "Buka Pengaturan Sistem"
   },
   "errors": {
@@ -688,11 +678,11 @@
   },
   "appLanguage": {
     "title": "Bahasa Aplikasi",
-    "description": "Ubah bahasa antarmuka Silkey"
+    "description": "Ubah bahasa antarmuka Silktone"
   },
   "theme": {
     "title": "Tema Aplikasi",
-    "description": "Pilih apakah Silkey mengikuti tema sistem atau selalu menggunakan tema terang atau gelap",
+    "description": "Pilih apakah Silktone mengikuti tema sistem atau selalu menggunakan tema terang atau gelap",
     "options": {
       "system": "Sistem",
       "light": "Terang",

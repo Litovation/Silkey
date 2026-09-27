@@ -1,25 +1,37 @@
-# Silkey
+# Silktone
 
-Silkey is a Windows-focused branded build of [Handy v0.9.7](https://github.com/cjpais/Handy/tree/v0.9.7). It keeps the same React/Tauri interface and local speech-to-text features. The supplied Silkey wordmark and its orange `#FF5C00` inform the app icon, onboarding, sidebar, tray, and selective accent colors.
+Silktone is a Windows voice-dictation app. Hold the shortcut, speak, and the text is typed into whatever app you are using. Speech recognition runs locally on the user's computer; nothing is sent to a server unless the user turns on AI post-processing with their own provider key.
 
-The core transcription engine runs on the user's computer. Model downloads still use the URLs maintained by the upstream Handy project and Hugging Face. Optional post-processing may use a provider API if the user explicitly configures one in the app.
+## Speech models
+
+Silktone offers exactly five models, defined in [`src-tauri/src/catalog/catalog.json`](src-tauri/src/catalog/catalog.json):
+
+| Model | Languages | Notes | License |
+| --- | --- | --- | --- |
+| Parakeet Unified EN 0.6B (NVIDIA) | English | Live streaming | CC-BY-4.0 |
+| Nemotron Streaming 3.5 (NVIDIA) | 28 | Live streaming | NVIDIA Open Model License |
+| Canary 180M Flash (NVIDIA) | 4 | Smallest, translation | CC-BY-4.0 |
+| Cohere Transcribe | 14 | Most accurate, slower | Apache-2.0 |
+| Whisper Medium (OpenAI) | 99 | Broadest language support | Apache-2.0 |
+
+Model files download from Hugging Face at the pinned revisions in the catalog and are verified against their sha256 hashes. Any other model found on disk is ignored.
 
 ## Build a Windows installer
 
-The GitHub route needs no Windows development tools on your computer: put the contents of this folder in your own GitHub repository, including `.github/workflows/silkey-windows.yml`. Pushing to `main` starts the Windows build automatically. You can also open **Actions → Build Silkey for Windows → Run workflow** to rerun it. After a successful run, download the **Silkey-Windows-x64** artifact and extract its installer. The workflow does not publish a release. It has not been executed here; Windows compilation and its installation checks still need to run.
+Push to `main` (or run **Actions → Build Silktone for Windows → Run workflow**). The workflow builds the NSIS installer and uploads it as the **Silktone-Windows-x64** artifact.
 
-Alternatively, on Windows 10/11 x64, install Rust, Bun, Microsoft C++ Build Tools, CMake, the LunarG Vulkan SDK, and vcpkg. Ensure vcpkg is on PATH. Open a new PowerShell terminal after installing them, then run:
+To build locally on Windows 10/11 x64, install Rust, Bun, Microsoft C++ Build Tools, CMake, the LunarG Vulkan SDK and vcpkg, then run:
 
 ```powershell
-./scripts/build-silkey-windows.ps1
+./scripts/build-silktone-windows.ps1
 ```
 
-The script installs JavaScript dependencies, obtains the required VAD model, and builds an NSIS installer at `src-tauri/target/release/bundle/nsis/Silkey_0.9.7_x64-setup.exe` (the precise filename comes from Tauri). It does not sign the installer. Test installation, model download, recording, transcription, paste, shortcuts, history, and portable mode on Windows before distribution.
+The installer lands in `src-tauri/target/release/bundle/nsis/`. It is not code-signed.
 
-## Updates and distribution
+## Updates
 
-Silkey uses a separate app identifier, `com.silkey.desktop`, so it does not overwrite Handy or adopt Handy's settings automatically. The original Handy updater cannot be used for a Silkey release. Update checks are safely locked off in this build; the rest of the update implementation remains in the source. To enable Silkey updates in a future release, provide a Silkey update manifest, signing key pair, and release hosting, replace the placeholder updater endpoint and public key in `src-tauri/tauri.conf.json`, and build with `SILKEY_UPDATES_ENABLED=1`. Do not point Silkey at the Handy update feed.
+Update checks are locked off until Silktone update hosting exists. To enable them, publish a signed `latest.json`, replace the updater endpoint and public key in `src-tauri/tauri.conf.json`, and build with `SILKTONE_UPDATES_ENABLED=1`.
 
-The app's About page links to the original Handy repository and donation page. The upstream MIT license is retained in [`LICENSE`](LICENSE). Source credits and model provenance remain in the source.
+## License
 
-The original project documentation is preserved in [`HANDY-UPSTREAM-README.md`](HANDY-UPSTREAM-README.md).
+MIT — see [`LICENSE`](LICENSE). Model licenses are listed above.

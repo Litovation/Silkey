@@ -202,7 +202,7 @@ pub enum RecordingRetentionPeriod {
 #[serde(rename_all = "snake_case")]
 pub enum KeyboardImplementation {
     Tauri,
-    HandyKeys,
+    NativeKeys,
 }
 
 impl Default for KeyboardImplementation {
@@ -210,7 +210,7 @@ impl Default for KeyboardImplementation {
         #[cfg(target_os = "linux")]
         return KeyboardImplementation::Tauri;
         #[cfg(not(target_os = "linux"))]
-        return KeyboardImplementation::HandyKeys;
+        return KeyboardImplementation::NativeKeys;
     }
 }
 
@@ -275,7 +275,7 @@ impl SoundTheme {
 }
 
 /// UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
-/// and `Dark` force one of the two palettes Handy already ships.
+/// and `Dark` force one of the two palettes Silktone already ships.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum Theme {
@@ -353,7 +353,7 @@ impl std::ops::DerefMut for SecretMap {
     }
 }
 
-/* still handy for composing the initial JSON in the store ------------- */
+/* still useful for composing the initial JSON in the store ------------- */
 /// The container-level `serde(default)` (backed by the `Default` impl below)
 /// guarantees every field — including ones added in the future — falls back to
 /// its `get_default_settings()` value when missing from a stored settings
@@ -1189,19 +1189,19 @@ fn apply_settings_migrations(
     updated
 }
 
-/// A separately branded app must never install an upstream Handy release.
-/// Enable this only with a Silkey update manifest and matching signing key.
+/// A separately branded app must never install an upstream Silktone release.
+/// Enable this only with a Silktone update manifest and matching signing key.
 pub fn update_checks_forced_disabled() -> bool {
     use std::sync::OnceLock;
     static IS_UPDATER_DISABLED: OnceLock<bool> = OnceLock::new();
     *IS_UPDATER_DISABLED.get_or_init(|| {
-        !matches!(option_env!("SILKEY_UPDATES_ENABLED"), Some("1"))
-            || utils::env_flag_enabled("SILKEY_DISABLE_UPDATER")
+        !matches!(option_env!("SILKTONE_UPDATES_ENABLED"), Some("1"))
+            || utils::env_flag_enabled("SILKTONE_DISABLE_UPDATER")
     })
 }
 
 /// Effective updater state: the user's stored preference, overridden to `false`
-/// while `HANDY_DISABLE_UPDATER` is set. Callers deciding whether to actually
+/// while `SILKTONE_DISABLE_UPDATER` is set. Callers deciding whether to actually
 /// check for updates must use this rather than reading `update_checks_enabled`
 /// directly, so the forced-off state never leaks into the persisted setting.
 pub fn update_checks_effectively_enabled(settings: &AppSettings) -> bool {
@@ -1324,7 +1324,7 @@ mod tests {
             "overlay_position": "bottom",
             "debug_mode": false,
             "log_level": 2,
-            "custom_words": ["Handy", "cjpais"],
+            "custom_words": ["Silktone", "Litovation"],
             "model_unload_timeout": "min5",
             "word_correction_threshold": 0.18,
             "history_limit": 5,
@@ -1356,7 +1356,7 @@ mod tests {
             "app_language": "en",
             "experimental_enabled": false,
             "lazy_stream_close": false,
-            "keyboard_implementation": "handy_keys",
+            "keyboard_implementation": "native_keys",
             "show_tray_icon": true,
             "paste_delay_ms": 60,
             "typing_tool": "auto",
@@ -1430,14 +1430,14 @@ mod tests {
         let map = stored.as_object_mut().unwrap();
         map.insert("paste_delay_ms".into(), serde_json::json!("sixty"));
         map.insert("sound_theme".into(), serde_json::json!(42));
-        map.insert("custom_words".into(), serde_json::json!(["handy"]));
+        map.insert("custom_words".into(), serde_json::json!(["silktone"]));
 
         assert!(serde_json::from_value::<AppSettings>(stored.clone()).is_err());
 
         let salvaged = salvage_settings(&stored);
         assert_eq!(salvaged.paste_delay_ms, default_paste_delay_ms());
         assert_eq!(salvaged.sound_theme, default_sound_theme());
-        assert_eq!(salvaged.custom_words, vec!["handy".to_string()]);
+        assert_eq!(salvaged.custom_words, vec!["silktone".to_string()]);
     }
 
     #[test]

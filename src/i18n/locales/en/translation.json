@@ -101,7 +101,7 @@
     },
     "permissions": {
       "title": "Permissions Required",
-      "description": "Silkey needs a couple of permissions to work properly.",
+      "description": "Silktone needs a couple of permissions to work properly.",
       "microphone": {
         "title": "Microphone Access",
         "description": "Required to hear your voice for transcription."
@@ -161,7 +161,7 @@
     "general": {
       "title": "General",
       "shortcut": {
-        "title": "Silkey Shortcuts",
+        "title": "Silktone Shortcuts",
         "description": "Configure keyboard shortcuts to trigger speech-to-text recording",
         "loading": "Loading shortcuts...",
         "none": "No shortcuts configured",
@@ -225,7 +225,7 @@
       },
       "rescan": {
         "label": "Rescan",
-        "tooltip": "Rescan for models added to the models folder or Hugging Face cache outside Silkey"
+        "tooltip": "Rescan for models added to the models folder or Hugging Face cache outside Silktone"
       },
       "noModelsMatch": "No models match this filter."
     },
@@ -293,11 +293,11 @@
       },
       "autostart": {
         "label": "Launch on Startup",
-        "description": "Automatically start Silkey when you log in to your computer."
+        "description": "Automatically start Silktone when you log in to your computer."
       },
       "showTrayIcon": {
         "label": "Show Tray Icon",
-        "description": "Display the Silkey icon in the system tray."
+        "description": "Display the Silktone icon in the system tray."
       },
       "overlay": {
         "style": {
@@ -492,8 +492,8 @@
       },
       "updateChecks": {
         "label": "Check for Updates",
-        "description": "Automatically check for new versions of Silkey",
-        "lockedDescription": "Unavailable until Silkey update hosting is configured"
+        "description": "Automatically check for new versions of Silktone",
+        "lockedDescription": "Unavailable until Silktone update hosting is configured"
       },
       "whatsNewPreview": {
         "title": "Preview What's New",
@@ -584,7 +584,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Keyboard Diagnostic",
-        "description": "Checks whether keyboard events reach Silkey. Only event counts are recorded — never which keys you press.",
+        "description": "Checks whether keyboard events reach Silktone. Only event counts are recorded — never which keys you press.",
         "run": "Run 10s diagnostic",
         "running": "Listening… press your shortcut a few times (e.g. Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -598,7 +598,7 @@
         "mouse": "Mouse",
         "verdictBlocked": "Secure Input is blocking key events — keyed shortcuts cannot work until it is resolved.",
         "verdictSuspicious": "Modifier events arrived but no key events — something is suppressing keys even though Secure Input reports disabled. Please report this on GitHub.",
-        "verdictOk": "Key events are reaching Silkey normally.",
+        "verdictOk": "Key events are reaching Silktone normally.",
         "verdictNoEvents": "No events captured — did you press any keys during the test?",
         "failed": "Diagnostic failed: {{error}}"
       }
@@ -607,32 +607,27 @@
       "title": "About",
       "version": {
         "title": "Version",
-        "description": "Current version of Silkey"
+        "description": "Current version of Silktone"
       },
       "whatsNewUpdates": {
         "label": "Show What's New",
-        "description": "Show release notes after Silkey updates"
+        "description": "Show release notes after Silktone updates"
       },
       "appDataDirectory": {
         "title": "App Data Directory",
-        "description": "Location where Silkey stores its data"
+        "description": "Location where Silktone stores its data"
       },
-      "sourceCode": {
-        "title": "Source Code",
-        "description": "Silkey is based on the open-source Handy project (MIT license)",
-        "button": "View on GitHub"
-      },
-      "supportDevelopment": {
-        "title": "Support Development",
-        "description": "Support Handy, the open-source project behind Silkey",
-        "button": "Support Handy"
+      "licenses": {
+        "title": "Open-Source Licenses",
+        "description": "Silktone is built with open-source software",
+        "notice": "Portions of Silktone are Copyright (c) 2025 CJ Pais and are used under the MIT License. Speech models are provided by NVIDIA, Cohere and OpenAI under their respective licenses (CC-BY-4.0, NVIDIA Open Model License, Apache-2.0)."
       },
       "acknowledgments": {
         "title": "Acknowledgments",
         "ggml": {
           "title": "ggml",
           "description": "High-performance tensor library for on-device machine learning inference",
-          "details": "Silkey's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
+          "details": "Silktone's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
         }
       }
     }
@@ -653,7 +648,7 @@
     "portableUpdateBrowseButton": "Open GitHub Releases"
   },
   "whatsNew": {
-    "title": "New in Silkey v{{version}}"
+    "title": "New in Silktone v{{version}}"
   },
   "common": {
     "loading": "Loading...",
@@ -665,7 +660,7 @@
     "noOptionsFound": "No options found"
   },
   "accessibility": {
-    "permissionsDescription": "Silkey needs accessibility permissions to type transcribed text.",
+    "permissionsDescription": "Silktone needs accessibility permissions to type transcribed text.",
     "openSettings": "Open System Settings"
   },
   "errors": {
@@ -688,11 +683,11 @@
   },
   "appLanguage": {
     "title": "Application Language",
-    "description": "Change the language of the Silkey interface"
+    "description": "Change the language of the Silktone interface"
   },
   "theme": {
     "title": "Application Theme",
-    "description": "Choose whether Silkey follows your system theme or stays light or dark",
+    "description": "Choose whether Silktone follows your system theme or stays light or dark",
     "options": {
       "system": "System",
       "light": "Light",

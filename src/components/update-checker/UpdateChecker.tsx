@@ -33,10 +33,10 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
 
   const { settings, isLoading, updateChecksLocked } = useSettings();
   // Wait for the lock state too (null = not loaded yet), otherwise the first
-  // render could fire an update check before HANDY_DISABLE_UPDATER is known.
+  // render could fire an update check before SILKTONE_DISABLE_UPDATER is known.
   const settingsLoaded =
     !isLoading && settings !== null && updateChecksLocked !== null;
-  // Forced-off by system configuration (HANDY_DISABLE_UPDATER) overrides the
+  // Forced-off by system configuration (SILKTONE_DISABLE_UPDATER) overrides the
   // stored preference without persisting it, mirroring the backend's effective
   // updater state.
   const updateChecksEnabled =
@@ -227,7 +227,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
                 {t("common.close")}
               </button>
               <button
-                className="px-3 py-1.5 text-sm rounded bg-logo-primary text-white hover:bg-logo-primary/80 transition-colors"
+                className="px-3 py-1.5 text-sm rounded bg-background-ui text-white hover:bg-background-ui/80 transition-colors"
                 onClick={() => {
                   openUrl(portableInstallerUrl);
                   setShowPortableUpdateDialog(false);

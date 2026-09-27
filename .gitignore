@@ -10,7 +10,7 @@ lerna-debug.log*
 package-lock.json
 
 node_modules
-.silkey-build/
+.silktone-build/
 dist
 dist-ssr
 *.local

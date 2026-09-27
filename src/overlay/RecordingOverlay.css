@@ -5,7 +5,7 @@
   /* Near-opaque app surface (theme.css --color-background at 98%). Auto-flips
      light/dark with --color-background, so no dark-mode override is needed. */
   --s-surface: color-mix(in srgb, var(--color-background) 98%, transparent);
-  /* Accent follows the Silkey orange theme token. */
+  /* Accent follows the Silktone orange theme token. */
   --s-accent: var(--color-logo-primary);
   /* Light/dark pairs for the tokens that can't flip through a shared palette
      variable on their own. Same shape as theme.css: each value is written once
@@ -311,33 +311,80 @@
   gap: 10px;
   justify-self: end;
 }
-.sdot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+/* The Silktone "k" mark (left of the control row). */
+.smark {
+  --lvl: 0;
+  width: 16px;
+  height: 19px;
   flex: none;
-  box-sizing: border-box;
+  display: inline-flex;
+  color: var(--color-brand-pink);
+  filter: drop-shadow(
+    0 0 calc(var(--lvl) * 8px)
+      color-mix(in srgb, var(--color-brand-pink) 70%, transparent)
+  );
   transition:
-    background-color 180ms ease,
+    transform 90ms linear,
+    filter 90ms linear,
     opacity 180ms ease;
 }
-.sdot.ready {
-  background: var(--s-accent);
-  opacity: 1;
-  animation: sdot-pulse 1.9s infinite;
+.smark svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+  overflow: visible;
 }
-/* A quiet neutral dot while the host has not delivered its first sample yet. */
-.sdot.arming {
-  background: var(--s-muted);
-  opacity: 0.45;
-  animation: none;
+/* Pops in each time the shortcut shows the overlay. */
+.smark.arming,
+.smark.ready {
+  animation: smark-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-@keyframes sdot-pulse {
+/* Waiting for the first microphone samples: dimmed, gently pulsing. */
+.smark.arming svg {
+  opacity: 0.55;
+  animation: smark-arming 1.1s ease-in-out infinite;
+}
+/* Listening: the mark swells with the voice level. */
+.smark.ready svg {
+  transform: scale(calc(1 + var(--lvl) * 0.35));
+  transition: transform 90ms linear;
+}
+/* Transcribing / polishing: the two arcs breathe while the model works. */
+.smark.working svg {
+  transform-origin: 60% 50%;
+  animation: smark-work 0.9s ease-in-out infinite;
+}
+@keyframes smark-in {
   0% {
-    box-shadow: 0 0 0 0 var(--s-accent-soft);
+    opacity: 0;
+    transform: scale(0.3) rotate(-90deg);
   }
-  70% {
-    box-shadow: 0 0 0 7px transparent;
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+@keyframes smark-arming {
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes smark-work {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleX(0.55);
+    opacity: 0.7;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .smark,
+  .smark svg {
+    animation: none !important;
+    transform: none !important;
   }
 }
 .stimer {
@@ -440,21 +487,6 @@
   transform: scale(0.95);
 }
 
-/* working state (transcribing / polishing) — spinner + label */
-.sspinner {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  border: 2px solid var(--s-hair);
-  border-top-color: var(--s-accent);
-  animation: sspin 0.7s linear infinite;
-  flex: none;
-}
-@keyframes sspin {
-  to {
-    transform: rotate(1turn);
-  }
-}
 .swork-label {
   font-size: 12px;
   color: var(--s-muted);

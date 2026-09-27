@@ -11,6 +11,7 @@ import type {
 } from "@/bindings";
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
+import { K_MARK_PATH, K_MARK_VIEWBOX } from "@/components/icons/brandPaths";
 
 type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 
@@ -170,6 +171,27 @@ const RecordingOverlay: React.FC = () => {
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   // ---- Shared building blocks (one visual language for every overlay form) ----
+
+  // The Silktone "k" mark. It pops in when the shortcut fires, breathes with the
+  // voice level while listening, and pulses while the model is working.
+  const voiceLevel =
+    levels.reduce((sum, v) => sum + v, 0) / Math.max(1, levels.length);
+  const kMark = (mode: "arming" | "ready" | "working") => (
+    <span
+      className={`smark ${mode}`}
+      style={
+        mode === "ready"
+          ? ({
+              "--lvl": Math.min(1, Math.pow(voiceLevel, 0.6)).toFixed(3),
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
+      <svg viewBox={K_MARK_VIEWBOX} aria-hidden="true">
+        <path d={K_MARK_PATH} />
+      </svg>
+    </span>
+  );
   const waveform = (
     <div className={`swave ${captureReady ? "ready" : "arming"}`}>
       {levels.map((v, i) => (
@@ -205,7 +227,7 @@ const RecordingOverlay: React.FC = () => {
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l">
-        <span className={`sdot ${captureReady ? "ready" : "arming"}`} />
+        {kMark(captureReady ? "ready" : "arming")}
       </div>
       {waveform}
       <div className="sbase-r">
@@ -220,7 +242,7 @@ const RecordingOverlay: React.FC = () => {
   const workingRow = (label: string, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l">
-        <span className="sspinner" />
+        {kMark("working")}
       </div>
       <span className="swork-label">{label}</span>
       <div className="sbase-r">{showCancel && cancelBtn}</div>

@@ -2500,8 +2500,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "silkey"
-version = "0.9.7"
+name = "silktone"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "chrono",

@@ -2,7 +2,7 @@
 //!
 //! When any process enables secure event input (password fields, Terminal's
 //! "Secure Keyboard Entry", a stuck `loginwindow`), CGEventTaps stop receiving
-//! KeyDown/KeyUp events while FlagsChanged still flows. The handy-keys
+//! KeyDown/KeyUp events while FlagsChanged still flows. The native-keys
 //! implementation is tap-based, so keyed shortcuts (e.g. Option+Space) die
 //! silently while modifier-only shortcuts keep working. See issue #1578.
 //!
@@ -359,7 +359,7 @@ mod imp {
         });
     }
 
-    fn is_mouse_key(key: &handy_keys::Key) -> bool {
+    fn is_mouse_key(key: &silktone_keys::Key) -> bool {
         key.to_string().to_lowercase().starts_with("mouse")
     }
 
@@ -369,8 +369,8 @@ mod imp {
     /// modifiers widen to the whole group — returned as `degraded: true` so
     /// the UI can call out the changed matching. The fn key cannot be
     /// expressed at all (`None`).
-    fn carbon_equivalent(hotkey: &handy_keys::Hotkey) -> Option<(String, bool)> {
-        use handy_keys::Modifiers as M;
+    fn carbon_equivalent(hotkey: &silktone_keys::Hotkey) -> Option<(String, bool)> {
+        use silktone_keys::Modifiers as M;
 
         if hotkey.modifiers.contains(M::FN) {
             return None;
@@ -388,7 +388,7 @@ mod imp {
             }
         }
 
-        let carbon_hotkey = handy_keys::Hotkey::new(widened, hotkey.key).ok()?;
+        let carbon_hotkey = silktone_keys::Hotkey::new(widened, hotkey.key).ok()?;
         Some((carbon_hotkey.to_handy_string(), degraded))
     }
 
@@ -406,7 +406,7 @@ mod imp {
     }
 
     fn plan_fallback_binding(id: &str, binding: &ShortcutBinding) -> ShadowPlan {
-        let Ok(hotkey) = binding.current_binding.parse::<handy_keys::Hotkey>() else {
+        let Ok(hotkey) = binding.current_binding.parse::<silktone_keys::Hotkey>() else {
             warn!(
                 "SecureInput fallback: '{}' has unparseable binding '{}', skipping",
                 id, binding.current_binding
@@ -470,7 +470,7 @@ mod imp {
             && app
                 .try_state::<crate::commands::ShortcutsInitialized>()
                 .is_some()
-            && settings.keyboard_implementation == KeyboardImplementation::HandyKeys;
+            && settings.keyboard_implementation == KeyboardImplementation::NativeKeys;
 
         let mut next = FallbackState::default();
         let mut immune = 0usize;
@@ -622,7 +622,7 @@ mod imp {
     /// individual events is logged or returned.
     pub async fn run_diagnostic(duration_secs: u32) -> Result<KeyboardDiagnosticReport, String> {
         tauri::async_runtime::spawn_blocking(move || {
-            let listener = handy_keys::KeyboardListener::new()
+            let listener = silktone_keys::KeyboardListener::new()
                 .map_err(|e| format!("Failed to create keyboard listener: {e}"))?;
 
             let enabled_at_start = is_enabled();

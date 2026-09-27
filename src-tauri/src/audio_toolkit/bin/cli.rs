@@ -1,7 +1,7 @@
 use hound::WavWriter;
 use std::io::{self, Write};
 
-use silkey_app_lib::audio_toolkit::{
+use silktone_app_lib::audio_toolkit::{
     audio::{list_input_devices, CpalDeviceInfo},
     vad::{
         frames_for_duration_ms, SmoothedVad, VAD_OFFLINE_HANGOVER_MS, VAD_ONSET_MS,
