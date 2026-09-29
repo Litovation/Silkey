@@ -2,6 +2,10 @@ name: Build Silktone for Windows
 on:
   push:
     branches: [main, "silktone-*"]
+    paths-ignore:
+      - scripts/laya/**
+      - .github/workflows/laya-onnx.yml
+      - "**.md"
   workflow_dispatch:
 permissions:
   contents: read

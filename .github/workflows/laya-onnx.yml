@@ -37,8 +37,9 @@ jobs:
           set -o pipefail
           if ! python -u scripts/laya/export_onnx.py --out laya-onnx 2>&1 | tee convert.log; then
             # Job logs need a GitHub login to read; annotations do not.
-            tail -n 40 convert.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' | sed 's/^/::error title=Laya conversion failed::/'
-            echo
+            # GitHub keeps up to 10 annotations of each level per step.
+            grep -v '^\s*$' convert.log | tail -n 20 | head -n 10 | cut -c1-300 | sed 's/%/%25/g; s/^/::warning title=log::/'
+            grep -v '^\s*$' convert.log | tail -n 10 | cut -c1-300 | sed 's/%/%25/g; s/^/::error title=log::/'
             exit 1
           fi
           grep -E "accuracy|matches_torch" convert.log | sed "s/^/::notice title=Laya parity::/" || true
