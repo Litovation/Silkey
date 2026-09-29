@@ -218,6 +218,8 @@ impl Laya {
         let marker_mask = Tensor::from_array(([1usize, kmax], marker_mask)).map_err(|e| anyhow!("{e}"))?;
         let qtype = Tensor::from_array(([1usize], vec![QTYPE_CHOICE])).map_err(|e| anyhow!("{e}"))?;
 
+        // Read before `run`: its outputs keep `self.session` mutably borrowed.
+        let t = self.temperature(k);
         let outputs = self
             .session
             .run(ort::inputs![
@@ -232,7 +234,6 @@ impl Laya {
             .try_extract_tensor::<f32>()
             .map_err(|e| anyhow!("reading Laya output: {e}"))?;
 
-        let t = self.temperature(k);
         let z: Vec<f32> = logits.iter().take(k).map(|l| l / t).collect();
         let max = z.iter().copied().fold(f32::NEG_INFINITY, f32::max);
         let exp: Vec<f32> = z.iter().map(|v| (v - max).exp()).collect();
