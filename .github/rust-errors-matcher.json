@@ -3,8 +3,18 @@
     {
       "owner": "rustc-errors",
       "pattern": [
-        { "regexp": "^(error)(\[(\S*)\])?: (.*)$", "severity": 1, "code": 3, "message": 4 },
-        { "regexp": "^[\s\->=]*(.*?):(\d+):(\d+)$", "file": 1, "line": 2, "column": 3 }
+        {
+          "regexp": "^(error)(\\[(\\S*)\\])?: (.*)$",
+          "severity": 1,
+          "code": 3,
+          "message": 4
+        },
+        {
+          "regexp": "^[\\s\\->=]*(.*?):(\\d+):(\\d+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3
+        }
       ]
     }
   ]
