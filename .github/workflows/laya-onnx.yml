@@ -32,7 +32,16 @@ jobs:
           pip install --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
           pip install "transformers>=4.48,<5" safetensors huggingface_hub onnx onnxruntime==1.20.1 numpy
       - name: Convert and verify
-        run: python scripts/laya/export_onnx.py --out laya-onnx
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! python -u scripts/laya/export_onnx.py --out laya-onnx 2>&1 | tee convert.log; then
+            # Job logs need a GitHub login to read; annotations do not.
+            tail -n 40 convert.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' | sed 's/^/::error title=Laya conversion failed::/'
+            echo
+            exit 1
+          fi
+          grep -E "accuracy|matches_torch" convert.log | sed "s/^/::notice title=Laya parity::/" || true
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
