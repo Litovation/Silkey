@@ -255,7 +255,7 @@ pub fn resume_all_shortcuts(app: &AppHandle) {
         if id == "cancel" {
             continue;
         }
-        if id == "transcribe_with_post_process" && !settings.post_process_enabled {
+        if !settings::is_binding_enabled(&settings, id) {
             continue;
         }
         if let Err(e) = register_shortcut(app, binding.clone()) {
@@ -446,8 +446,8 @@ fn register_all_shortcuts_for_implementation(
             continue;
         }
 
-        // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !current_settings.post_process_enabled {
+        // Skip feature-gated shortcuts (post-processing, voice commands) that are off
+        if !settings::is_binding_enabled(&current_settings, id) {
             continue;
         }
 

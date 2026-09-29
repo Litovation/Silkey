@@ -445,6 +445,9 @@ pub struct AppSettings {
     pub auto_submit_key: AutoSubmitKey,
     #[serde(default = "default_post_process_enabled")]
     pub post_process_enabled: bool,
+    /// Voice Commands (beta): the command shortcut is only registered when on.
+    #[serde(default)]
+    pub voice_commands_enabled: bool,
     #[serde(default = "default_post_process_provider_id")]
     pub post_process_provider_id: String,
     #[serde(default = "default_post_process_providers")]
@@ -855,6 +858,16 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
 
 pub const SETTINGS_STORE_PATH: &str = "settings_store.json";
 
+/// Whether a feature-gated shortcut should be registered. `cancel` is handled
+/// separately (it is registered only while recording).
+pub fn is_binding_enabled(settings: &AppSettings, id: &str) -> bool {
+    match id {
+        "transcribe_with_post_process" => settings.post_process_enabled,
+        crate::voice_commands::BINDING_ID => settings.voice_commands_enabled,
+        _ => true,
+    }
+}
+
 pub fn get_default_settings() -> AppSettings {
     #[cfg(target_os = "windows")]
     let default_shortcut = "ctrl+space";
@@ -894,6 +907,20 @@ pub fn get_default_settings() -> AppSettings {
                 .to_string(),
             default_binding: default_post_process_shortcut.to_string(),
             current_binding: default_post_process_shortcut.to_string(),
+        },
+    );
+    #[cfg(target_os = "macos")]
+    let default_voice_command_shortcut = "ctrl+option+space";
+    #[cfg(not(target_os = "macos"))]
+    let default_voice_command_shortcut = "ctrl+alt+space";
+    bindings.insert(
+        crate::voice_commands::BINDING_ID.to_string(),
+        ShortcutBinding {
+            id: crate::voice_commands::BINDING_ID.to_string(),
+            name: "Voice Command (Beta)".to_string(),
+            description: "Say a command like \"open Chrome\" or \"pause the music\".".to_string(),
+            default_binding: default_voice_command_shortcut.to_string(),
+            current_binding: default_voice_command_shortcut.to_string(),
         },
     );
     bindings.insert(
@@ -942,6 +969,7 @@ pub fn get_default_settings() -> AppSettings {
         auto_submit: default_auto_submit(),
         auto_submit_key: AutoSubmitKey::default(),
         post_process_enabled: default_post_process_enabled(),
+        voice_commands_enabled: false,
         post_process_provider_id: default_post_process_provider_id(),
         post_process_providers: default_post_process_providers(),
         post_process_api_keys: default_post_process_api_keys(),

@@ -13,7 +13,12 @@ import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 import { K_MARK_PATH, K_MARK_VIEWBOX } from "@/components/icons/brandPaths";
 
-type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
+type OverlayState =
+  | "recording"
+  | "streaming"
+  | "transcribing"
+  | "processing"
+  | "command";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -33,6 +38,8 @@ const RecordingOverlay: React.FC = () => {
     tentative: "",
   });
   const [phase, setPhase] = useState<StreamPhase>("listening");
+  // Voice Commands (beta): what Silktone did with the last command.
+  const [commandLabel, setCommandLabel] = useState("");
   const [workKind, setWorkKind] = useState<StreamWorkKind>("transcribing");
   const [elapsed, setElapsed] = useState(0);
   // Bumped on each new streaming session so the Live card remounts fresh (replays
@@ -112,6 +119,11 @@ const RecordingOverlay: React.FC = () => {
         setLevels(smoothed.slice(0, WAVE_BARS));
       });
 
+      const unlistenCommand = await listen<string>(
+        "command-feedback",
+        (event) => setCommandLabel(event.payload),
+      );
+
       const unlistenStream = await events.streamTextEvent.listen((event) => {
         setStreamText(event.payload);
       });
@@ -129,6 +141,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
+        unlistenCommand();
       };
     };
 
@@ -176,7 +189,7 @@ const RecordingOverlay: React.FC = () => {
   // voice level while listening, and pulses while the model is working.
   const voiceLevel =
     levels.reduce((sum, v) => sum + v, 0) / Math.max(1, levels.length);
-  const kMark = (mode: "arming" | "ready" | "working") => (
+  const kMark = (mode: "arming" | "ready" | "working" | "done") => (
     <span
       className={`smark ${mode}`}
       style={
@@ -296,6 +309,24 @@ const RecordingOverlay: React.FC = () => {
                 true,
               )
             : listeningRow(open, true)}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Voice command result: the k mark and what Silktone did ----
+  if (state === "command") {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact cworking">
+          <div className="sbase">
+            <div className="sbase-l">{kMark("done")}</div>
+            <span className="swork-label">{commandLabel}</span>
+            <div className="sbase-r" />
+          </div>
         </div>
       </div>
     );

@@ -42,7 +42,8 @@ jobs:
             grep -v '^\s*$' convert.log | tail -n 10 | cut -c1-300 | sed 's/%/%25/g; s/^/::error title=log::/'
             exit 1
           fi
-          grep -E "^(ACCURACY|CHOSEN|PARITY|RECOMMENDED)" convert.log | sed "s/^/::notice title=Laya::/" || true
+          echo "::notice title=Laya accuracy::$(grep -E '^ACCURACY' convert.log | sed 's/^ACCURACY //' | tr '\n' ';')"
+          grep -E "^(CHOSEN|PARITY|RECOMMENDED|NODES|SKIP)" convert.log | sed "s/^/::notice title=Laya::/" || true
           grep -E "^  miss" convert.log | head -n 10 | sed "s/^/::warning title=Laya miss::/" || true
       - name: Publish release
         env:

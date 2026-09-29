@@ -630,6 +630,29 @@ pub fn show_processing_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "processing");
 }
 
+/// Shows a short voice-command result ("Opening Chrome", "Didn't catch that")
+/// and hides it again, unless a new recording has taken the overlay over.
+pub fn show_command_feedback(app_handle: &AppHandle, label: &str) {
+    show_overlay_state(app_handle, "command");
+    // Queued on the main thread after the show above, so the label lands on a
+    // visible overlay.
+    let handle = app_handle.clone();
+    let label = label.to_string();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "command-feedback", label);
+    });
+    let handle = app_handle.clone();
+    std::thread::spawn(move || {
+        // Let the queued show bump the generation before snapshotting it.
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let shown_at = OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst);
+        std::thread::sleep(std::time::Duration::from_millis(1600));
+        if OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst) == shown_at {
+            hide_recording_overlay(&handle);
+        }
+    });
+}
+
 /// Updates the overlay window position based on current settings
 pub fn update_overlay_position(app_handle: &AppHandle) {
     // Positioning queries monitors/cursor (GDK/Xlib on Linux) and moves the

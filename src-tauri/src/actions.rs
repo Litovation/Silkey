@@ -56,6 +56,8 @@ pub trait ShortcutAction: Send + Sync {
 // Transcribe Action
 struct TranscribeAction {
     post_process: bool,
+    /// Voice Commands (beta): run the text as a command instead of pasting it.
+    command: bool,
 }
 
 /// Field name for structured output JSON schema
@@ -669,6 +671,7 @@ impl ShortcutAction for TranscribeAction {
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
         let post_process = self.post_process;
+        let is_command = self.command;
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -766,6 +769,14 @@ impl ShortcutAction for TranscribeAction {
                                 transcription_time.elapsed(),
                                 utils::redact_text(&transcription)
                             );
+
+                            if is_command {
+                                // Commands are not dictation: nothing is pasted or
+                                // saved to history. The overlay shows the result.
+                                crate::voice_commands::run(&ah, transcription);
+                                set_tray_state(&ah, TrayIconState::Idle);
+                                return;
+                            }
 
                             if post_process {
                                 if use_streaming_overlay {
@@ -932,11 +943,22 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         "transcribe".to_string(),
         Arc::new(TranscribeAction {
             post_process: false,
+            command: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "transcribe_with_post_process".to_string(),
-        Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
+        Arc::new(TranscribeAction {
+            post_process: true,
+            command: false,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        crate::voice_commands::BINDING_ID.to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            command: true,
+        }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "cancel".to_string(),

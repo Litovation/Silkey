@@ -81,6 +81,10 @@ sha2 = "0.10"
 transcribe-rs = { version = "0.3.8", features = ["onnx"] }
 transcribe-cpp = { version = "0.2.3", default-features = false }
 silktone-keys = { package = "handy-keys", version = "0.3.4" }
+# Voice Commands (beta): the Laya decision model on the same ONNX Runtime that
+# transcribe-rs uses (keep the version pinned to match), plus its tokenizer.
+ort = "=2.0.0-rc.12"
+tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 ferrous-opencc = "0.2.3"
 clap = { version = "4", features = ["derive"] }
 specta = "=2.0.0-rc.22"

@@ -23,8 +23,8 @@ pub fn init_shortcuts(app: &AppHandle) {
         if id == "cancel" {
             continue; // Skip cancel shortcut, it will be registered dynamically
         }
-        // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !user_settings.post_process_enabled {
+        // Skip feature-gated shortcuts (post-processing, voice commands) that are off
+        if !crate::settings::is_binding_enabled(&user_settings, &id) {
             continue;
         }
         let binding = user_settings

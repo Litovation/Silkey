@@ -29,8 +29,11 @@ VARIANTS = ["", "typed-decisions", "multilingual"]  # "" is the base English che
 SEQ_LEN = 256
 MAX_OPTIONS = 24
 
-# Mirrors INTENT_INSTRUCTIONS / INTENT_OPTIONS in src-tauri/src/voice_commands/intents.rs.
-INTENT = {
+# Ways of asking the intent question. Each is scored on every checkpoint and
+# the winner is written to laya-config.json, which the app reads, so the app
+# asks exactly the question that was measured. Keys must match the intents
+# handled in src-tauri/src/voice_commands/intents.rs.
+PLAIN = {
     "instructions": "What does the user want the computer to do?",
     "criteria": {
         "open_app": "open or launch an application",
@@ -44,6 +47,35 @@ INTENT = {
         "none": "not a request to control the computer",
     },
 }
+EXAMPLES = {
+    "instructions": "The user spoke a short instruction to their computer. What should the computer do?",
+    "criteria": {
+        "open_app": "open, launch or start an app such as Chrome, Notepad, Calculator or Spotify",
+        "open_website": "go to or open a website such as YouTube, Gmail or GitHub",
+        "web_search": "search Google or YouTube for information",
+        "media": "play, pause, resume or skip music or a video",
+        "volume": "turn the sound up or down, or mute it",
+        "window": "show the desktop, or minimize, maximize or switch windows",
+        "screenshot": "take a screenshot or capture the screen",
+        "lock": "lock the computer or the screen",
+        "none": "ordinary speech that is not an instruction to the computer",
+    },
+}
+
+
+def without_none(q):
+    return {"instructions": q["instructions"], "criteria": {k: v for k, v in q["criteria"].items() if k != "none"}}
+
+
+FORMULATIONS = {
+    "plain": PLAIN,
+    "plain_no_none": without_none(PLAIN),
+    "examples": EXAMPLES,
+    "examples_no_none": without_none(EXAMPLES),
+}
+# Same as MIN_PROBABILITY in intents.rs: below it the app says it didn't understand.
+MIN_PROBABILITY = 0.45
+
 SAMPLES = [
     ("open chrome", "open_app"),
     ("launch notepad please", "open_app"),
@@ -127,11 +159,11 @@ class Exportable(torch.nn.Module):
         return self.model(input_ids, attention_mask, marker_pos, marker_mask, qtype)
 
 
-def make_encoder(tok, cfg):
+def make_encoder(tok, cfg, question):
     from rl_common import QTYPES, build_sequence, render_options
 
-    q = {"t": "choice", "ins": INTENT["instructions"], "crit": INTENT["criteria"]}
-    k = len(INTENT["criteria"])
+    q = {"t": "choice", "ins": question["instructions"], "crit": question["criteria"]}
+    k = len(question["criteria"])
 
     def encode(text):
         ids, markers = build_sequence(tok, text, q, SEQ_LEN, cfg["head_max_len"])
@@ -166,38 +198,47 @@ def main():
     ap.add_argument("--out", default="laya-onnx")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
-    keys = list(INTENT["criteria"].keys())
-    report = {"variants": {}}
+    report = {"candidates": {}}
 
-    # 1. Pick the most accurate checkpoint on the command question.
+    def judged(question, p):
+        """The app acts only above MIN_PROBABILITY, so score what it would do."""
+        keys = list(question["criteria"].keys())
+        got = keys[int(p.argmax())] if p.max() >= MIN_PROBABILITY else "none"
+        return got, float(p.max())
+
+    # 1. Pick the most accurate checkpoint + question on the command samples.
     best = None
     for variant in VARIANTS:
-        name = variant or "base"
+        vname = variant or "base"
         base, cfg, tok, model = load_variant(variant)
-        encode, k = make_encoder(tok, cfg)
-        t = temperature_for(cfg, k)
-        rows = []
-        with torch.no_grad():
-            for text, expected in SAMPLES:
-                logits, _ = model(*encode(text))
-                p = softmax(logits[0].numpy(), k, t)
-                rows.append({"text": text, "expected": expected, "got": keys[int(p.argmax())],
-                             "probability": round(float(p.max()), 3)})
-        acc = sum(r["got"] == r["expected"] for r in rows) / len(rows)
-        report["variants"][name] = {"accuracy": acc, "samples": rows}
-        print("ACCURACY %s: %.3f" % (name, acc))
-        for r in rows:
-            if r["got"] != r["expected"]:
-                print("  miss [%s] %r -> %s (%.2f), expected %s" % (name, r["text"], r["got"], r["probability"], r["expected"]))
-        if best is None or acc > best[0]:
-            best = (acc, variant)
+        for fname, question in FORMULATIONS.items():
+            encode, k = make_encoder(tok, cfg, question)
+            t = temperature_for(cfg, k)
+            rows = []
+            with torch.no_grad():
+                for text, expected in SAMPLES:
+                    logits, _ = model(*encode(text))
+                    got, prob = judged(question, softmax(logits[0].numpy(), k, t))
+                    rows.append({"text": text, "expected": expected, "got": got, "probability": round(prob, 3)})
+            acc = sum(r["got"] == r["expected"] for r in rows) / len(rows)
+            name = "%s/%s" % (vname, fname)
+            report["candidates"][name] = {"accuracy": acc, "samples": rows}
+            print("ACCURACY %s: %.3f" % (name, acc))
+            if best is None or acc > best[0]:
+                best = (acc, variant, fname, rows)
         del model
-    report["chosen"] = best[1] or "base"
-    print("CHOSEN %s (accuracy %.3f)" % (report["chosen"], best[0]))
+    acc, chosen_variant, chosen_q, rows = best
+    question = FORMULATIONS[chosen_q]
+    report["chosen"] = {"checkpoint": chosen_variant or "base", "question": chosen_q, "accuracy": acc}
+    print("CHOSEN %s/%s (accuracy %.3f)" % (chosen_variant or "base", chosen_q, acc))
+    for r in rows:
+        if r["got"] != r["expected"]:
+            print("  miss %r -> %s (%.2f), expected %s" % (r["text"], r["got"], r["probability"], r["expected"]))
 
     # 2. Export the winner with static shapes.
-    base, cfg, tok, model = load_variant(best[1])
-    encode, k = make_encoder(tok, cfg)
+    keys = list(question["criteria"].keys())
+    base, cfg, tok, model = load_variant(chosen_variant)
+    encode, k = make_encoder(tok, cfg, question)
     t = temperature_for(cfg, k)
     wrapped = Exportable(model).eval()
     fp32_path = os.path.join(args.out, "laya.onnx")
@@ -209,37 +250,59 @@ def main():
             opset_version=17, do_constant_folding=True, dynamo=False,
         )
 
+    import onnx
+    import onnxruntime as ort
     from onnxruntime.quantization import QuantType, quantize_dynamic
 
-    int8_path = os.path.join(args.out, "laya-int8.onnx")
-    quantize_dynamic(fp32_path, int8_path, weight_type=QuantType.QInt8, per_channel=True)
+    # Quantizing the decision head wrecks its calibrated scores, so only the
+    # encoder is quantized; embeddings-only is the gentler fallback.
+    graph_nodes = onnx.load(fp32_path, load_external_data=False).graph.node
+    print("NODES %s" % [n.name for n in graph_nodes if n.op_type in ("MatMul", "Gather")][:6])
+    encoder_nodes = lambda ops: [n.name for n in graph_nodes if n.op_type in ops and "/encoder/" in n.name]
+    quant_candidates = {
+        "encoder-int8": (["MatMul", "Gather"], encoder_nodes({"MatMul", "Gather"})),
+        "embeddings-int8": (["Gather"], encoder_nodes({"Gather"})),
+    }
 
-    # 3. Parity: ONNX (fp32, int8) vs PyTorch on every sample.
-    import onnxruntime as ort
-
-    sessions = {n: ort.InferenceSession(p, providers=["CPUExecutionProvider"])
-                for n, p in (("fp32", fp32_path), ("int8", int8_path))}
-    agree = {"fp32": 0, "int8": 0}
-    correct = {"fp32": 0, "int8": 0}
-    max_diff = {"fp32": 0.0, "int8": 0.0}
-    for text, expected in SAMPLES:
-        inputs = encode(text)
-        with torch.no_grad():
-            pt = softmax(wrapped(*inputs)[0][0].numpy(), k, t)
-        feeds = dict(zip(["input_ids", "attention_mask", "marker_pos", "marker_mask", "qtype"], [x.numpy() for x in inputs]))
-        for n, sess in sessions.items():
+    def parity(path):
+        sess = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+        agree = correct = 0
+        max_diff = 0.0
+        for text, expected in SAMPLES:
+            inputs = encode(text)
+            with torch.no_grad():
+                pt = softmax(wrapped(*inputs)[0][0].numpy(), k, t)
+            feeds = dict(zip(["input_ids", "attention_mask", "marker_pos", "marker_mask", "qtype"], [x.numpy() for x in inputs]))
             po = softmax(sess.run(["logits"], feeds)[0][0], k, t)
-            agree[n] += int(po.argmax() == pt.argmax())
-            correct[n] += int(keys[int(po.argmax())] == expected)
-            max_diff[n] = max(max_diff[n], float(np.abs(po - pt).max()))
-    for n in ("fp32", "int8"):
-        report[n] = {"matches_torch": agree[n] / len(SAMPLES), "accuracy": correct[n] / len(SAMPLES),
-                     "max_prob_diff": round(max_diff[n], 4)}
-        print("PARITY %s: matches_torch=%.3f accuracy=%.3f max_prob_diff=%.4f" % (
-            n, report[n]["matches_torch"], report[n]["accuracy"], report[n]["max_prob_diff"]))
+            agree += int(po.argmax() == pt.argmax())
+            correct += int(judged(question, po)[0] == expected)
+            max_diff = max(max_diff, float(np.abs(po - pt).max()))
+        n = len(SAMPLES)
+        return {"matches_torch": agree / n, "accuracy": correct / n, "max_prob_diff": round(max_diff, 4),
+                "size_mb": os.path.getsize(path) // 1_000_000}
+
+    report["fp32"] = parity(fp32_path)
+    print("PARITY fp32: %s" % json.dumps(report["fp32"]))
     if report["fp32"]["matches_torch"] < 1.0:
         sys.exit("fp32 ONNX export disagrees with PyTorch; not publishing.")
-    recommended = "laya-int8.onnx" if report["int8"]["matches_torch"] >= 0.95 else "laya.onnx"
+    int8_path = os.path.join(args.out, "laya-int8.onnx")
+    recommended = "laya.onnx"
+    for qname, (ops, nodes) in quant_candidates.items():
+        if not nodes:
+            print("SKIP %s: no encoder nodes found" % qname)
+            continue
+        tmp = os.path.join(args.out, qname + ".onnx")
+        quantize_dynamic(fp32_path, tmp, weight_type=QuantType.QInt8, op_types_to_quantize=ops, nodes_to_quantize=nodes)
+        report[qname] = parity(tmp)
+        print("PARITY %s: %s" % (qname, json.dumps(report[qname])))
+        if report[qname]["matches_torch"] >= 0.95:
+            shutil.move(tmp, int8_path)
+            recommended = "laya-int8.onnx"
+            report["int8_method"] = qname
+            break
+        os.remove(tmp)
+    if recommended == "laya.onnx":
+        shutil.copy(fp32_path, int8_path)  # keep the release file set stable
     report["recommended_model"] = recommended
     with open(os.path.join(args.out, "report.json"), "w") as f:
         json.dump(report, f, indent=2)
@@ -247,7 +310,9 @@ def main():
     shutil.copy(os.path.join(base, "tokenizer", "tokenizer.json"), os.path.join(args.out, "tokenizer.json"))
     tid = lambda s: int(tok.convert_tokens_to_ids(s))
     app_cfg = {
-        "source": {"repo": REPO, "revision": REVISION, "variant": best[1] or "base"},
+        "source": {"repo": REPO, "revision": REVISION, "variant": chosen_variant or "base"},
+        "intent": {"instructions": question["instructions"], "options": [[k2, v] for k2, v in question["criteria"].items()]},
+        "min_probability": MIN_PROBABILITY,
         "seq_len": SEQ_LEN,
         "max_options": MAX_OPTIONS,
         "max_len": SEQ_LEN,

@@ -17,7 +17,9 @@
     "history": "History",
     "debug": "Debug",
     "about": "About",
-    "by": "by"
+    "by": "by",
+    "voiceCommands": "Commands",
+    "beta": "Beta"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -630,6 +632,66 @@
           "description": "High-performance tensor library for on-device machine learning inference",
           "details": "Silktone's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
         }
+      }
+    },
+    "voiceCommands": {
+      "title": "Voice Commands",
+      "beta": {
+        "title": "Voice Commands is in beta",
+        "description": "Hold the command shortcut, say what you want, and Silktone does it. Works on Windows, in English, with a fixed set of safe actions: nothing is deleted, sent or typed. It can misunderstand, so check what happened."
+      },
+      "enable": {
+        "label": "Enable Voice Commands",
+        "description": "Turns on the command shortcut. Commands run on your computer; nothing is sent online."
+      },
+      "model": {
+        "title": "Command model",
+        "description": "Laya decision model, downloaded once and run on this computer.",
+        "download": "Download",
+        "remove": "Remove",
+        "ready": "Ready",
+        "starting": "Starting…",
+        "progress": "{{done}} of {{total}} MB",
+        "failed": "Couldn’t download the command model: {{error}}"
+      },
+      "examples": {
+        "title": "What you can say",
+        "openApp": {
+          "label": "Open an app",
+          "say": "“Open Chrome”, “launch Notepad”, “start Calculator”"
+        },
+        "openSite": {
+          "label": "Open a website",
+          "say": "“Go to YouTube”, “open Gmail”, “open litovation dot com”"
+        },
+        "search": {
+          "label": "Search",
+          "say": "“Search for flights to Goa”, “search YouTube for lofi music”"
+        },
+        "media": {
+          "label": "Music & video",
+          "say": "“Pause the music”, “next song”, “previous track”"
+        },
+        "volume": {
+          "label": "Volume",
+          "say": "“Turn the volume up”, “make it quieter”, “mute”"
+        },
+        "window": {
+          "label": "Windows",
+          "say": "“Show the desktop”, “minimize this window”, “switch window”"
+        },
+        "screenshot": {
+          "label": "Screenshot",
+          "say": "“Take a screenshot”"
+        },
+        "lock": {
+          "label": "Lock",
+          "say": "“Lock my computer”"
+        }
+      },
+      "recent": {
+        "title": "Recent commands",
+        "empty": "Commands you say will show up here with what Silktone did."
       }
     }
   },

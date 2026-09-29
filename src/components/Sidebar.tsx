@@ -5,6 +5,7 @@ import {
   FlaskConical,
   History,
   Info,
+  Wand2,
   Settings,
   SlidersHorizontal,
   Sparkles,
@@ -20,6 +21,7 @@ import {
   AboutSettings,
   PostProcessingSettings,
   ModelsSettings,
+  VoiceCommandsSettings,
 } from "./settings";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
@@ -37,6 +39,7 @@ interface SectionConfig {
   icon: React.ComponentType<IconProps>;
   component: React.ComponentType;
   enabled: (settings: any) => boolean;
+  beta?: boolean;
 }
 
 export const SECTIONS_CONFIG = {
@@ -57,6 +60,13 @@ export const SECTIONS_CONFIG = {
     icon: Cpu,
     component: ModelsSettings,
     enabled: () => true,
+  },
+  commands: {
+    labelKey: "sidebar.voiceCommands",
+    icon: Wand2,
+    component: VoiceCommandsSettings,
+    enabled: () => true,
+    beta: true,
   },
   advanced: {
     labelKey: "sidebar.advanced",
@@ -137,6 +147,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 {t(section.labelKey)}
               </p>
+              {"beta" in section && section.beta && (
+                <span className="ms-auto rounded-full bg-brand-pink/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-brand-pink">
+                  {t("sidebar.beta")}
+                </span>
+              )}
             </div>
           );
         })}

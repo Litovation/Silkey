@@ -24,6 +24,7 @@ mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
 mod utils;
+mod voice_commands;
 
 pub use cli::CliArgs;
 #[cfg(debug_assertions)]
@@ -676,6 +677,11 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_auto_submit_setting,
             shortcut::change_auto_submit_key_setting,
             shortcut::change_post_process_enabled_setting,
+            voice_commands::change_voice_commands_enabled_setting,
+            voice_commands::get_voice_command_status,
+            voice_commands::download_voice_command_model,
+            voice_commands::delete_voice_command_model,
+            voice_commands::get_recent_voice_commands,
             shortcut::change_experimental_enabled_setting,
             shortcut::change_post_process_base_url_setting,
             shortcut::change_post_process_api_key_setting,
@@ -886,6 +892,7 @@ pub fn run(cli_args: CliArgs) {
             Some(vec![]),
         ))
         .manage(cli_args.clone())
+        .manage(voice_commands::VoiceCommands::default())
         .setup(move |app| {
             #[cfg(target_os = "windows")]
             log::info!(
