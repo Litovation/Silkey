@@ -9,6 +9,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   windows:
     runs-on: windows-2022
@@ -21,6 +24,8 @@ jobs:
         with:
           version: 1.4.309.0
           cache: true
+      # Compiler errors become public annotations (job logs need a GitHub login).
+      - run: echo "::add-matcher::.github/rust-errors-matcher.json"
       - name: Build installer and verify native runtime
         shell: pwsh
         run: ./scripts/build-silktone-windows.ps1
