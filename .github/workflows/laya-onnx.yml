@@ -42,16 +42,17 @@ jobs:
             grep -v '^\s*$' convert.log | tail -n 10 | cut -c1-300 | sed 's/%/%25/g; s/^/::error title=log::/'
             exit 1
           fi
-          grep -E "accuracy|matches_torch" convert.log | sed "s/^/::notice title=Laya parity::/" || true
+          grep -E "^(ACCURACY|CHOSEN|PARITY|RECOMMENDED)" convert.log | sed "s/^/::notice title=Laya::/" || true
+          grep -E "^  miss" convert.log | head -n 10 | sed "s/^/::warning title=Laya miss::/" || true
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          files="laya-onnx/laya-int8.onnx laya-onnx/laya.onnx laya-onnx/tokenizer.json laya-onnx/laya-config.json laya-onnx/parity.json"
+          files="laya-onnx/laya-int8.onnx laya-onnx/laya.onnx laya-onnx/tokenizer.json laya-onnx/laya-config.json laya-onnx/report.json"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" $files --clobber
           else
             gh release create "$TAG" $files --target "$GITHUB_SHA" --prerelease \
               --title "Laya ONNX ($TAG)" \
-              --notes "Laya (convaiinnovations/laya, Apache-2.0) converted to ONNX for Silktone Voice Commands (beta). parity.json compares it with the original PyTorch model."
+              --notes "Laya (convaiinnovations/laya, Apache-2.0) converted to ONNX for Silktone Voice Commands (beta). report.json has the checkpoint comparison and the ONNX-vs-PyTorch parity check."
           fi
