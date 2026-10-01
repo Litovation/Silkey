@@ -4,15 +4,12 @@ Silktone is a Windows voice-dictation app. Hold the shortcut, speak, and the tex
 
 ## Speech models
 
-Silktone offers exactly five models, defined in [`src-tauri/src/catalog/catalog.json`](src-tauri/src/catalog/catalog.json):
+Silktone offers exactly two models, both from NVIDIA, defined in [`src-tauri/src/catalog/catalog.json`](src-tauri/src/catalog/catalog.json):
 
 | Model | Languages | Notes | License |
 | --- | --- | --- | --- |
-| Parakeet Unified EN 0.6B (NVIDIA) | English | Live streaming | CC-BY-4.0 |
-| Nemotron Streaming 3.5 (NVIDIA) | 28 | Live streaming | NVIDIA Open Model License |
-| Canary 180M Flash (NVIDIA) | 4 | Smallest, translation | CC-BY-4.0 |
-| Cohere Transcribe | 14 | Most accurate, slower | Apache-2.0 |
-| Whisper Medium (OpenAI) | 99 | Broadest language support | Apache-2.0 |
+| Nemotron Streaming 3.5 | 28 (incl. Hindi) | Live streaming: text appears while you speak | NVIDIA Open Model License |
+| Canary 180M Flash | 4 | Smallest and fastest, translation | CC-BY-4.0 |
 
 Model files download from Hugging Face at the pinned revisions in the catalog and are verified against their sha256 hashes. Any other model found on disk is ignored.
 

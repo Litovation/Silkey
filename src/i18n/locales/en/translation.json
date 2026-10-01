@@ -623,7 +623,7 @@
       "licenses": {
         "title": "Open-Source Licenses",
         "description": "Silktone is built with open-source software",
-        "notice": "Portions of Silktone are Copyright (c) 2025 CJ Pais and are used under the MIT License. Speech models are provided by NVIDIA, Cohere and OpenAI under their respective licenses (CC-BY-4.0, NVIDIA Open Model License, Apache-2.0)."
+        "notice": "Portions of Silktone are Copyright (c) 2025 CJ Pais and are used under the MIT License. Speech models are provided by NVIDIA under the CC-BY-4.0 and NVIDIA Open Model licenses. Voice Commands uses the Laya model (Apache-2.0)."
       },
       "acknowledgments": {
         "title": "Acknowledgments",
@@ -638,15 +638,15 @@
       "title": "Voice Commands",
       "beta": {
         "title": "Voice Commands is in beta",
-        "description": "Hold the command shortcut, say what you want, and Silktone does it. Works on Windows, in English, with a fixed set of safe actions: nothing is deleted, sent or typed. It can misunderstand, so check what happened."
+        "description": "Hold the command shortcut, say what you want, and Silktone does it. With the Nemotron model, simple commands like “pause” or “volume up” happen while you are still speaking. Works on Windows, in English, with a fixed set of safe actions: nothing is deleted, sent or typed."
       },
       "enable": {
         "label": "Enable Voice Commands",
         "description": "Turns on the command shortcut. Commands run on your computer; nothing is sent online."
       },
       "model": {
-        "title": "Command model",
-        "description": "Laya decision model, downloaded once and run on this computer.",
+        "title": "Smart fallback (optional)",
+        "description": "Common commands work without this. The Laya model (about 700 MB, runs on this computer) helps with unusual wording.",
         "download": "Download",
         "remove": "Remove",
         "ready": "Ready",

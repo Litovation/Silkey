@@ -110,6 +110,38 @@ impl KeyAction {
     }
 }
 
+/// What the overlay shows for a key action.
+pub fn key_label(action: KeyAction) -> &'static str {
+    match action {
+        KeyAction::PlayPause => "Play / pause",
+        KeyAction::NextTrack => "Next track",
+        KeyAction::PreviousTrack => "Previous track",
+        KeyAction::VolumeUp => "Volume up",
+        KeyAction::VolumeDown => "Volume down",
+        KeyAction::Mute => "Mute / unmute",
+        KeyAction::ShowDesktop => "Showing desktop",
+        KeyAction::MinimizeWindow => "Minimizing window",
+        KeyAction::MaximizeWindow => "Maximizing window",
+        KeyAction::SwitchWindow => "Switching window",
+        KeyAction::Screenshot => "Screenshot",
+    }
+}
+
+/// `(display name, launch target)` for an app key.
+pub fn app(key: &str) -> Option<(&'static str, &'static str)> {
+    APPS.iter()
+        .find(|a| a.0 == key && a.0 != "other")
+        .map(|a| (a.2, a.3))
+}
+
+/// `(display name, URL)` for a site key.
+pub fn site(key: &str) -> Option<(&'static str, &'static str)> {
+    SITES
+        .iter()
+        .find(|s| s.0 == key && s.0 != "other")
+        .map(|s| (s.2, s.3))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     LaunchApp { target: &'static str },
@@ -343,7 +375,11 @@ fn encode(q: &str) -> String {
     out
 }
 
-fn google_search_url(q: &str) -> String {
+pub fn youtube_search_url(q: &str) -> String {
+    format!("https://www.youtube.com/results?search_query={}", encode(q))
+}
+
+pub fn google_search_url(q: &str) -> String {
     format!("https://www.google.com/search?q={}", encode(q))
 }
 

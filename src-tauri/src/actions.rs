@@ -515,6 +515,9 @@ impl ShortcutAction for TranscribeAction {
         } else {
             VadPolicy::Offline
         };
+        // Commands run live only with a streaming model; every other recording
+        // clears any leftover command session before the stream starts.
+        crate::voice_commands::set_live(app, self.command && model_supports_streaming);
         if model_supports_streaming {
             tm.start_stream();
         }

@@ -1166,6 +1166,9 @@ impl TranscriptionManager {
     }
 
     fn emit_stream_text(&self, committed: &str, tentative: &str) {
+        // Voice Commands (beta) acts on finished commands mid-speech; a no-op
+        // unless a command recording is live.
+        crate::voice_commands::on_live_text(&self.app_handle, committed, tentative);
         let _ = StreamTextEvent {
             committed: committed.to_string(),
             tentative: tentative.to_string(),

@@ -2,13 +2,17 @@
 //! ("open Chrome", "search for flights to Goa", "pause the music"), and
 //! Silktone does it.
 //!
-//! Speech is transcribed by the normal pipeline (see `actions.rs`); this module
-//! classifies the text with the Laya decision model and runs one of a fixed set
-//! of harmless actions (`intents.rs`). The Laya model is downloaded on demand
-//! from the release published by `.github/workflows/laya-onnx.yml`.
+//! Speech is transcribed by the normal pipeline (see `actions.rs`). The text
+//! is matched against phrase rules (`rules.rs`), which are instant and need no
+//! download; with a streaming speech model they run *while the user is still
+//! speaking* (`on_live_text`). Wording the rules do not recognise falls back
+//! to the optional Laya decision model (`intents.rs`, downloaded on demand
+//! from the release published by `.github/workflows/laya-onnx.yml`). Either
+//! way only a fixed set of harmless actions can run.
 
 pub mod intents;
 pub mod laya;
+pub mod rules;
 
 use std::collections::VecDeque;
 use std::io::Write;
@@ -59,11 +63,22 @@ struct DownloadProgress {
     total: u64,
 }
 
+/// Commands already run from the live transcript of the current recording.
+#[derive(Default)]
+struct LiveSession {
+    /// Prefix of the committed transcript that has been acted on.
+    consumed: String,
+    /// What was done, in order.
+    done: Vec<String>,
+}
+
 #[derive(Default)]
 pub struct VoiceCommands {
     engine: Mutex<Option<Laya>>,
     downloading: AtomicBool,
     recent: Mutex<VecDeque<VoiceCommandLogEntry>>,
+    /// `Some` only while a command recording with a streaming model is live.
+    live: Mutex<Option<LiveSession>>,
 }
 
 fn model_dir(app: &AppHandle) -> Result<PathBuf> {
@@ -205,31 +220,112 @@ impl VoiceCommands {
     }
 }
 
-/// Handle a transcribed command. Runs on a blocking thread; the overlay shows
-/// the result.
+/// Start (or clear) live command handling for the recording that is starting.
+/// Must be called for every recording so a dictation never inherits a stale
+/// command session.
+pub fn set_live(app: &AppHandle, active: bool) {
+    if let Some(state) = app.try_state::<VoiceCommands>() {
+        *state.live.lock().unwrap_or_else(|e| e.into_inner()) =
+            active.then(LiveSession::default);
+    }
+}
+
+/// Called on every live transcript update. Runs commands that are complete and
+/// safe to run before the user stops speaking ("pause", "volume up", "open
+/// Chrome"); searches and anything ambiguous wait for the end.
+pub fn on_live_text(app: &AppHandle, committed: &str, tentative: &str) {
+    let Some(state) = app.try_state::<VoiceCommands>() else {
+        return;
+    };
+    let runs = {
+        let mut live = state.live.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(session) = live.as_mut() else {
+            return;
+        };
+        // The committed text is append-only; if that ever stops holding, stay
+        // out of the way and let the end-of-recording pass handle everything.
+        let Some(rest) = committed.strip_prefix(session.consumed.as_str()) else {
+            return;
+        };
+        let (runs, used) = rules::live_scan(rest, tentative);
+        if runs.is_empty() {
+            return;
+        }
+        session.consumed.push_str(&rest[..used]);
+        session.done.extend(runs.iter().map(|r| r.1.clone()));
+        runs
+    };
+    // Off the transcription thread: launching apps and pressing keys must not
+    // delay the next audio chunk.
+    let app = app.clone();
+    std::thread::spawn(move || {
+        for (action, label) in runs {
+            match execute(&app, &action) {
+                Ok(()) => log::info!("live voice command: {label}"),
+                Err(e) => log::error!("live voice command '{label}' failed: {e:#}"),
+            }
+        }
+    });
+}
+
+/// Handle the finished transcript of a command recording. Runs on a blocking
+/// thread; the overlay shows the result.
 pub fn run(app: &AppHandle, heard: String) {
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<VoiceCommands>();
-        if installed_config(&app).is_none() {
-            let msg = "Download the command model in Commands first";
-            state.log(&heard, msg, false);
-            crate::overlay::show_command_feedback(&app, msg);
-            return;
-        }
-        let (label, ok) = match state.decide(&app, &heard) {
-            Ok(Decision::Run { action, label }) => match execute(&app, &action) {
-                Ok(()) => (label, true),
+        let session = state
+            .live
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+            .unwrap_or_default();
+
+        // Skip what already ran live. If the final text no longer starts with
+        // the live prefix (post-processing changed it), don't risk running
+        // those commands twice: treat the live pass as the whole result.
+        let mut done = session.done;
+        let remaining = if done.is_empty() {
+            heard.as_str()
+        } else {
+            heard.strip_prefix(session.consumed.as_str()).unwrap_or("")
+        };
+
+        let plan = rules::plan_all(remaining);
+        let mut failed = false;
+        for (action, label) in plan.runs {
+            match execute(&app, &action) {
+                Ok(()) => done.push(label),
                 Err(e) => {
                     log::error!("voice command '{label}' failed: {e:#}");
-                    (format!("Couldn't do that: {label}"), false)
+                    done.push(format!("Couldn't do that: {label}"));
+                    failed = true;
                 }
-            },
-            Ok(Decision::Unsupported(msg)) => (msg, false),
-            Ok(Decision::NotUnderstood) => ("Didn't catch a command".to_string(), false),
-            Err(e) => {
-                log::error!("voice command failed: {e:#}");
-                ("Voice command failed".to_string(), false)
+            }
+        }
+
+        let (label, ok) = if !done.is_empty() {
+            (done.join(", "), !failed)
+        } else if plan.leftover.is_empty() {
+            ("Didn't catch a command".to_string(), false)
+        } else if installed_config(&app).is_none() {
+            // Laya is optional: without it, only the phrase rules apply.
+            ("Didn't catch a command".to_string(), false)
+        } else {
+            match state.decide(&app, &plan.leftover) {
+                Ok(Decision::Run { action, label }) => match execute(&app, &action) {
+                    Ok(()) => (label, true),
+                    Err(e) => {
+                        log::error!("voice command '{label}' failed: {e:#}");
+                        (format!("Couldn't do that: {label}"), false)
+                    }
+                },
+                Ok(Decision::Unsupported(msg)) => (msg, false),
+                Ok(Decision::NotUnderstood) => ("Didn't catch a command".to_string(), false),
+                Err(e) => {
+                    log::error!("voice command failed: {e:#}");
+                    ("Voice command failed".to_string(), false)
+                }
             }
         };
         state.log(&heard, &label, ok);

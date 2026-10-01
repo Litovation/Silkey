@@ -29,3 +29,18 @@ if ($LASTEXITCODE -ne 0) { throw 'Windows build failed.' }
 
 Get-ChildItem 'src-tauri/target/release/bundle/nsis' -Filter '*setup.exe' |
   Select-Object FullName, Length
+
+# Phrase-rule tests for Voice Commands. Reuses the release build's dependencies.
+# A failure is reported as a warning: it must not block the installer above.
+$env:PATH = "$ortLib;$(Join-Path $repoRoot 'src-tauri/transcribe-libs');$env:PATH"
+Push-Location (Join-Path $repoRoot 'src-tauri')
+$testOutput = cargo test --release --lib voice_commands:: 2>&1 | Out-String
+$testExit = $LASTEXITCODE
+Pop-Location
+$summary = ($testOutput -split "`n" | Where-Object { $_ -match '^test result|FAILED|panicked' } | Select-Object -First 8) -join ' | '
+if ($testExit -eq 0) {
+  Write-Host "::notice title=Voice command tests::$summary"
+} else {
+  Write-Host "::warning title=Voice command tests failed::$summary"
+}
+$global:LASTEXITCODE = 0
