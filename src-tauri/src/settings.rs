@@ -472,7 +472,8 @@ pub struct AppSettings {
     pub experimental_enabled: bool,
     #[serde(default)]
     pub lazy_stream_close: bool,
-    /// Two-finger double-tap on the touchpad toggles recording (Windows).
+    /// Resting two fingers on the touchpad toggles recording (Windows). The
+    /// key predates the switch from a double-tap to a hold.
     #[serde(default)]
     pub trackpad_double_tap_enabled: bool,
     /// Seconds of silence after which a recording stops and pastes on its
