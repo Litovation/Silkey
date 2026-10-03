@@ -151,13 +151,13 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
 ; Installer pages, must be ordered as they appear
-; 1. Welcome Page
-!define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
+; 1. Welcome Page (skipped: the installer goes straight to the install location)
+!define MUI_PAGE_CUSTOMFUNCTION_PRE Skip
 !insertmacro MUI_PAGE_WELCOME
 
 ; 2. License Page (if defined)
 !if "${LICENSE}" != ""
-  !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE Skip
   !insertmacro MUI_PAGE_LICENSE "${LICENSE}"
 !endif
 
@@ -173,6 +173,10 @@ Var InstallTypeRadioPortable
 Page custom PageInstallType PageLeaveInstallType
 
 Function PageInstallType
+  ; The portable choice is not offered: installs are always normal installs.
+  ; Existing portable installs are still detected and updated in place.
+  Abort
+
   ; Skip for passive/silent/update modes — portable flag is handled via /PORTABLE
   ${If} $PassiveMode = 1
   ${OrIf} ${Silent}
@@ -460,9 +464,8 @@ Var AppStartMenuFolder
 
 ; 8. Finish page
 ;
-; Don't auto jump to finish page after installation page,
-; because the installation page has useful info that can be used debug any issues with the installer.
-!define MUI_FINISHPAGE_NOAUTOCLOSE
+; The finish page is skipped: once the files are installed the installer
+; closes and the app launches on its own (see .onInstSuccess).
 ; Use show readme button in the finish page as a button create a desktop shortcut
 !define MUI_FINISHPAGE_SHOWREADME
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "$(createDesktop)"
@@ -470,7 +473,7 @@ Var AppStartMenuFolder
 ; Show run app after installation.
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION RunMainBinary
-!define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
+!define MUI_PAGE_CUSTOMFUNCTION_PRE Skip
 !insertmacro MUI_PAGE_FINISH
 
 Function RunMainBinary
@@ -852,6 +855,9 @@ Function .onInstSuccess
       ${GetOptions} $CMDLINE "/ARGS" $R0
       nsis_tauri_utils::RunAsUser "$INSTDIR\${MAINBINARYNAME}.exe" "$R0"
     ${EndIf}
+  ${Else}
+    ; Interactive installs always launch the app; there is no finish page to ask.
+    Call RunMainBinary
   ${EndIf}
 FunctionEnd
 

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { getVersion } from "@tauri-apps/api/app";
+import { commands } from "@/bindings";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
-import { AppDataDirectory } from "../AppDataDirectory";
 import { AppLanguageSelector } from "../AppLanguageSelector";
-import { ShowWhatsNewOnUpdate } from "../ShowWhatsNewOnUpdate";
 import { ThemeSelector } from "../ThemeSelector";
-import { LogDirectory } from "../debug";
 
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -27,6 +25,14 @@ export const AboutSettings: React.FC = () => {
     fetchVersion();
   }, []);
 
+  const openFolder = async (open: () => Promise<unknown>) => {
+    try {
+      await open();
+    } catch (error) {
+      console.error("Failed to open folder:", error);
+    }
+  };
+
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
       <SettingsGroup title={t("settings.about.title")}>
@@ -40,35 +46,29 @@ export const AboutSettings: React.FC = () => {
           {/* eslint-disable-next-line i18next/no-literal-string */}
           <span className="text-sm font-mono">v{version}</span>
         </SettingContainer>
-
-        <ShowWhatsNewOnUpdate descriptionMode="tooltip" grouped={true} />
-
-        <AppDataDirectory descriptionMode="tooltip" grouped={true} />
-        <LogDirectory grouped={true} />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.about.acknowledgments.title")}>
-        <SettingContainer
-          title={t("settings.about.licenses.title")}
-          description={t("settings.about.licenses.description")}
-          grouped={true}
-          layout="stacked"
-        >
-          <div className="text-sm text-mid-gray">
-            {t("settings.about.licenses.notice")}
-          </div>
-        </SettingContainer>
-        <SettingContainer
-          title={t("settings.about.acknowledgments.ggml.title")}
-          description={t("settings.about.acknowledgments.ggml.description")}
-          grouped={true}
-          layout="stacked"
-        >
-          <div className="text-sm text-mid-gray">
-            {t("settings.about.acknowledgments.ggml.details")}
-          </div>
-        </SettingContainer>
-      </SettingsGroup>
+      {/* Deliberately quiet: support folders and attributions most people never need. */}
+      <div className="px-4 space-y-1 text-[9px] leading-snug text-mid-gray/60">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            className="cursor-pointer hover:text-mid-gray"
+            onClick={() => openFolder(commands.openAppDataDir)}
+          >
+            {t("settings.about.appDataDirectory.title")}
+          </button>
+          <button
+            type="button"
+            className="cursor-pointer hover:text-mid-gray"
+            onClick={() => openFolder(commands.openLogDir)}
+          >
+            {t("settings.debug.logDirectory.title")}
+          </button>
+        </div>
+        <p>{t("settings.about.licenses.notice")}</p>
+        <p>{t("settings.about.acknowledgments.ggml.details")}</p>
+      </div>
     </div>
   );
 };

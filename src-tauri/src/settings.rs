@@ -136,8 +136,8 @@ pub enum OverlayStyle {
 pub enum ModelUnloadTimeout {
     Never,
     Immediately,
-    Min2,
     #[default]
+    Min2,
     Min5,
     Min10,
     Min15,
@@ -216,11 +216,11 @@ impl Default for KeyboardImplementation {
 
 impl Default for PasteMethod {
     fn default() -> Self {
-        // Default to CtrlV for macOS and Windows, Direct for Linux
-        #[cfg(target_os = "linux")]
-        return PasteMethod::Direct;
-        #[cfg(not(target_os = "linux"))]
+        // Type the text directly everywhere except macOS, which keeps Cmd+V.
+        #[cfg(target_os = "macos")]
         return PasteMethod::CtrlV;
+        #[cfg(not(target_os = "macos"))]
+        return PasteMethod::Direct;
     }
 }
 
@@ -472,6 +472,9 @@ pub struct AppSettings {
     pub experimental_enabled: bool,
     #[serde(default)]
     pub lazy_stream_close: bool,
+    /// Two-finger double-tap on the touchpad toggles recording (Windows).
+    #[serde(default)]
+    pub trackpad_double_tap_enabled: bool,
     #[serde(default)]
     pub keyboard_implementation: KeyboardImplementation,
     #[serde(default = "default_show_tray_icon")]
@@ -546,7 +549,7 @@ fn default_start_hidden() -> bool {
 }
 
 fn default_autostart_enabled() -> bool {
-    false
+    true
 }
 
 fn default_update_checks_enabled() -> bool {
@@ -562,13 +565,13 @@ fn default_whats_new_last_seen_version() -> String {
 }
 
 fn default_selected_language() -> String {
-    "auto".to_string()
+    "en".to_string()
 }
 
 fn default_overlay_position() -> OverlayPosition {
     // Position only matters when the overlay is shown; whether it shows at all is
     // `overlay_style` (Linux defaults that to None). So a single default suffices.
-    OverlayPosition::Bottom
+    OverlayPosition::Top
 }
 
 fn default_overlay_style() -> OverlayStyle {
@@ -629,7 +632,7 @@ fn default_sound_theme() -> SoundTheme {
 }
 
 fn default_theme() -> Theme {
-    Theme::System
+    Theme::Light
 }
 
 fn default_post_process_enabled() -> bool {
@@ -869,8 +872,9 @@ pub fn is_binding_enabled(settings: &AppSettings, id: &str) -> bool {
 }
 
 pub fn get_default_settings() -> AppSettings {
+    // Modifier-only combo; works because Windows defaults to the NativeKeys backend.
     #[cfg(target_os = "windows")]
-    let default_shortcut = "ctrl+space";
+    let default_shortcut = "ctrl+super";
     #[cfg(target_os = "macos")]
     let default_shortcut = "option+space";
     #[cfg(target_os = "linux")]
@@ -955,7 +959,7 @@ pub fn get_default_settings() -> AppSettings {
         clamshell_microphone: None,
         selected_output_device: None,
         translate_to_english: false,
-        selected_language: "auto".to_string(),
+        selected_language: default_selected_language(),
         overlay_position: default_overlay_position(),
         debug_mode: false,
         log_level: default_log_level(),
@@ -981,7 +985,8 @@ pub fn get_default_settings() -> AppSettings {
         app_language: default_app_language(),
         theme: default_theme(),
         experimental_enabled: false,
-        lazy_stream_close: false,
+        lazy_stream_close: true,
+        trackpad_double_tap_enabled: false,
         keyboard_implementation: KeyboardImplementation::default(),
         show_tray_icon: default_show_tray_icon(),
         paste_delay_ms: default_paste_delay_ms(),

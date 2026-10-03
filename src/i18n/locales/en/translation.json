@@ -10,16 +10,19 @@
     "secureInputWarning": "⚠ Shortcuts blocked by Secure Input"
   },
   "sidebar": {
-    "general": "General",
+    "general": "Tone",
     "models": "Models",
-    "advanced": "Advanced",
+    "advanced": "Settings",
     "postProcessing": "Post Process",
     "history": "History",
     "debug": "Debug",
     "about": "About",
     "by": "by",
     "voiceCommands": "Commands",
-    "beta": "Beta"
+    "beta": "Beta",
+    "comingSoon": "Coming soon",
+    "soon": "Soon",
+    "referAndEarn": "Refer & earn"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -273,18 +276,22 @@
         "label": "Experimental Features",
         "description": "Enable experimental features that are still in development."
       },
+      "trackpadDoubleTap": {
+        "label": "Two-Finger Double-Tap to Dictate",
+        "description": "Double-tap the touchpad with two fingers to start or stop dictation. Works with Windows Precision Touchpads. Off by default."
+      },
       "lazyStreamClose": {
         "label": "Keep Mic Open Between Transcriptions",
         "description": "Keeps the microphone stream open for 30 seconds after recording stops, reducing latency for back-to-back transcriptions. May degrade Bluetooth audio quality while active."
       },
       "acceleration": {
         "transcribe": {
-          "title": "transcribe.cpp Acceleration",
-          "description": "Hardware acceleration for transcribe.cpp (Whisper-family) models. Auto uses GPU if available (Metal on macOS, Vulkan on Windows/Linux)."
+          "title": "Graphics Acceleration",
+          "description": "Uses your graphics card for faster dictation. Auto picks the GPU when one is available."
         },
         "ort": {
-          "title": "ONNX Acceleration",
-          "description": "Hardware acceleration for ONNX models (Parakeet, Canary, Moonshine, etc.). DirectML on Windows is experimental. Models may fail to transcribe."
+          "title": "Graphics Acceleration (alternate engine)",
+          "description": "Acceleration for the alternate speech engine. Leave on Auto unless dictation fails."
         },
         "gpuDevice": {
           "auto": "Auto"
@@ -455,6 +462,32 @@
         "cancel": "Cancel",
         "selectToEdit": "Select a prompt above to view and edit its details.",
         "createFirst": "Click 'Create New Prompt' above to create your first post-processing prompt."
+      },
+      "guide": {
+        "title": "Set up post-processing for free",
+        "intro": "Post-processing cleans up your dictation with an AI model. Silktone does not include one, so you connect your own. These options have a free tier or are free to run.",
+        "options": {
+          "groq": {
+            "name": "Groq",
+            "description": "Free tier with fast open-source models. Sign in and create an API key."
+          },
+          "openrouter": {
+            "name": "OpenRouter",
+            "description": "Offers free models (names ending in “:free”). Sign in and create an API key."
+          },
+          "ollama": {
+            "name": "Ollama",
+            "description": "Runs a model on this computer. Free and offline, but needs a capable PC."
+          }
+        },
+        "steps": {
+          "choose": "Pick one option above and open its website.",
+          "key": "Groq or OpenRouter: create an API key and copy it. Ollama: install it and download a model.",
+          "model": "Below, choose the same provider (use Custom for Ollama), paste the key, and pick a model.",
+          "prompt": "Choose a prompt that describes how your text should be cleaned up.",
+          "use": "Dictate with the post-processing shortcut instead of the normal one."
+        },
+        "privacy": "With Groq or OpenRouter, the transcribed text is sent to that service. Your audio never leaves this computer."
       }
     },
     "history": {
@@ -771,5 +804,42 @@
     "learnMore": "How to fix",
     "recorderBlocked": "Can't record shortcuts right now — macOS Secure Input is blocking key events. Resolve the Secure Input warning first.",
     "dismiss": "Dismiss"
+  },
+  "toneBanner": {
+    "welcome": "Welcome to Silktone",
+    "press": "Press",
+    "andSpeak": "and start speaking.",
+    "comingSoon": "Coming soon",
+    "tagline": "An Agentic Voice Model",
+    "knowMore": "Know More"
+  },
+  "settingsModal": {
+    "tabs": {
+      "general": "General",
+      "system": "System",
+      "account": "Account"
+    }
+  },
+  "account": {
+    "title": "Account",
+    "signIn": "Sign in",
+    "signedOut": "You're not signed in",
+    "unavailable": "Accounts are being set up. Sign-in with Google will appear here.",
+    "continueWithGoogle": "Continue with Google"
+  },
+  "stats": {
+    "totalWords": "total words",
+    "wpm": "wpm",
+    "dayStreak": "day streak",
+    "pace": {
+      "title": "Speaking pace",
+      "outOfTen": "{{score}}/10",
+      "tips": {
+        "none": "Dictate a few sentences to see your pace score.",
+        "slow": "Speak in full sentences at your natural pace. Short pauses are fine.",
+        "good": "Great pace. Keep the microphone about a hand's width from your mouth.",
+        "fast": "Slow down a little and finish each word. Accuracy improves."
+      }
+    }
   }
 }

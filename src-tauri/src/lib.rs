@@ -20,6 +20,7 @@ mod secure_input;
 mod settings;
 mod shortcut;
 mod signal_handle;
+mod trackpad;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
@@ -698,6 +699,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,
+            shortcut::change_trackpad_double_tap_setting,
             shortcut::change_vad_enabled_setting,
             shortcut::change_vad_backend_setting,
             shortcut::change_filler_word_removal_enabled_setting,
@@ -889,7 +891,9 @@ pub fn run(cli_args: CliArgs) {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            Some(vec![]),
+            // Login launches go straight to the tray; opening the app by hand
+            // still shows the window.
+            Some(vec!["--start-hidden"]),
         ))
         .manage(cli_args.clone())
         .manage(voice_commands::VoiceCommands::default())
@@ -1013,6 +1017,7 @@ pub fn run(cli_args: CliArgs) {
             WEBVIEW_LOG_STREAMING.store(settings.debug_mode, Ordering::Relaxed);
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
+            trackpad::apply(&app_handle, settings.trackpad_double_tap_enabled);
 
             initialize_core_logic(&app_handle);
 

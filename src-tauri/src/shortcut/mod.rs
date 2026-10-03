@@ -1278,6 +1278,16 @@ pub fn change_lazy_stream_close_setting(app: AppHandle, enabled: bool) -> Result
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_trackpad_double_tap_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.trackpad_double_tap_enabled = enabled;
+    settings::write_settings(&app, settings);
+    crate::trackpad::apply(&app, enabled);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_vad_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.vad_enabled = enabled;

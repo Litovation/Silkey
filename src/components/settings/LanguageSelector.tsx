@@ -19,6 +19,10 @@ interface LanguageSelectorProps {
   supportsLanguageDetection?: boolean;
 }
 
+// v0.1.1 offers dictation in these languages only; the picker is narrowed to
+// them (and further to whatever the active model supports).
+const OFFERED_LANGUAGES = ["en", "hi"];
+
 // Convert a concrete or aliased code to the picker entry that represents it.
 // Chinese script intents are already selectable and must remain intact; model
 // codes such as `en-US` and `nb` resolve to their canonical `en` / `no` entry.
@@ -90,14 +94,14 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   }, [isOpen]);
 
   const availableLanguages = useMemo(() => {
-    if (!supportedLanguages || supportedLanguages.length === 0)
-      return SELECTABLE_LANGUAGES;
-    return SELECTABLE_LANGUAGES.filter((lang) =>
-      lang.value === "auto"
-        ? supportsLanguageDetection
-        : supportsLanguageCode(supportedLanguages, lang.value),
+    const offered = SELECTABLE_LANGUAGES.filter((lang) =>
+      OFFERED_LANGUAGES.includes(lang.value),
     );
-  }, [supportedLanguages, supportsLanguageDetection]);
+    if (!supportedLanguages || supportedLanguages.length === 0) return offered;
+    return offered.filter((lang) =>
+      supportsLanguageCode(supportedLanguages, lang.value),
+    );
+  }, [supportedLanguages]);
 
   const filteredLanguages = useMemo(
     () =>
@@ -150,10 +154,10 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
-            className={`px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 rounded min-w-[200px] text-start flex items-center justify-between transition-all duration-150 ${
+            className={`glass-control px-2 py-1 text-sm font-semibold rounded-md min-w-[200px] text-start flex items-center justify-between transition-all duration-150 ${
               isUpdating("selected_language")
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-logo-primary/10 cursor-pointer hover:border-logo-primary"
+                : "cursor-pointer hover:border-logo-primary"
             }`}
             onClick={handleToggle}
             disabled={isUpdating("selected_language")}
@@ -177,7 +181,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           </button>
 
           {isOpen && !isUpdating("selected_language") && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-mid-gray/80 rounded shadow-lg z-50 max-h-60 overflow-hidden">
+            <div className="glass-menu absolute top-full left-0 right-0 mt-1 rounded-md z-50 max-h-60 overflow-hidden">
               {/* Search input */}
               <div className="p-2 border-b border-mid-gray/80">
                 <input

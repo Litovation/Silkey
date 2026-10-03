@@ -19,12 +19,14 @@ import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
 import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
+import { type OnboardingPreviewStep } from "./components/settings";
 import {
-  DebugSettings,
-  type OnboardingPreviewStep,
-} from "./components/settings";
+  SettingsModal,
+  type SettingsTab,
+} from "./components/settings/SettingsModal";
+import { HomePage } from "./components/home/HomePage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
+import { Sidebar } from "./components/Sidebar";
 import { WhatsNewGate } from "./components/whats-new";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -36,19 +38,6 @@ type OnboardingStep = "accessibility" | "model" | "done";
 // Stable identity so preview effects do not re-run due to callback changes.
 const NOOP = () => {};
 
-const renderSettingsContent = (
-  section: SidebarSection,
-  onPreviewOnboarding: (step: OnboardingPreviewStep) => void,
-) => {
-  if (section === "debug") {
-    return <DebugSettings onPreviewOnboarding={onPreviewOnboarding} />;
-  }
-
-  const ActiveComponent =
-    SECTIONS_CONFIG[section]?.component || SECTIONS_CONFIG.general.component;
-  return <ActiveComponent />;
-};
-
 function App() {
   const { t, i18n } = useTranslation();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(
@@ -59,8 +48,7 @@ function App() {
   // Track if this is a returning user who just needs to grant permissions
   // (vs a new user who needs full onboarding including model selection)
   const [isReturningUser, setIsReturningUser] = useState(false);
-  const [currentSection, setCurrentSection] =
-    useState<SidebarSection>("general");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
@@ -354,23 +342,29 @@ function App() {
         </ErrorBoundary>
         {/* Main content area that takes remaining space */}
         <div className="flex-1 flex overflow-hidden">
-          <Sidebar
-            activeSection={currentSection}
-            onSectionChange={setCurrentSection}
-          />
+          <Sidebar onOpenSettings={setSettingsTab} />
           {/* Scrollable content area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <div className="flex flex-col items-center p-4 gap-4">
                 <AccessibilityPermissions />
                 <SecureInputWarning />
-                {renderSettingsContent(currentSection, setOnboardingPreview)}
+                <HomePage />
               </div>
             </div>
           </div>
         </div>
         {/* Fixed footer at bottom */}
         <Footer />
+        <SettingsModal
+          tab={settingsTab}
+          onTabChange={setSettingsTab}
+          onClose={() => setSettingsTab(null)}
+          onPreviewOnboarding={(step) => {
+            setSettingsTab(null);
+            setOnboardingPreview(step);
+          }}
+        />
       </div>
     );
   }

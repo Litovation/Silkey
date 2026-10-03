@@ -10,8 +10,10 @@ import {
 } from "@/lib/utils/rtl";
 
 // Auto-discover translation files using Vite's glob import
+// v0.1.1 ships English and Hindi only; the other locale files stay in the
+// repo but are not bundled or offered.
 const localeModules = import.meta.glob<{ default: Record<string, unknown> }>(
-  "./locales/*/translation.json",
+  "./locales/{en,hi}/translation.json",
   { eager: true },
 );
 

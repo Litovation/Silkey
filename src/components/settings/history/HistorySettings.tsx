@@ -356,10 +356,10 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   const formattedDate = formatDateTime(String(entry.timestamp), i18n.language);
 
   return (
-    <div className="px-4 py-2 pb-5 flex flex-col gap-3">
-      <div className="flex justify-between items-center">
-        <p className="text-sm font-medium">{formattedDate}</p>
-        <div className="flex items-center">
+    <div className="group px-4 py-3 grid grid-cols-[7rem_1fr] gap-x-4 gap-y-2">
+      <p className="pt-0.5 text-xs text-mid-gray">{formattedDate}</p>
+      <div className="min-w-0 flex flex-col gap-2">
+        <div className="flex justify-end items-center opacity-60 group-hover:opacity-100 transition-opacity -mt-1 -mb-1">
           <IconButton
             onClick={handleCopyText}
             disabled={!hasTranscription || retrying}
@@ -410,38 +410,38 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
             <Trash2 width={16} height={16} />
           </IconButton>
         </div>
-      </div>
 
-      <p
-        className={`italic text-sm pb-2 ${
-          retrying
-            ? ""
-            : hasTranscription
-              ? "text-text/90 select-text cursor-text whitespace-pre-wrap break-words"
-              : "text-text/40"
-        }`}
-        style={
-          retrying
-            ? { animation: "transcribe-pulse 3s ease-in-out infinite" }
-            : undefined
-        }
-      >
-        {retrying && (
-          <style>{`
+        <p
+          className={`text-sm ${
+            retrying
+              ? ""
+              : hasTranscription
+                ? "text-text/90 select-text cursor-text whitespace-pre-wrap break-words"
+                : "text-text/40"
+          }`}
+          style={
+            retrying
+              ? { animation: "transcribe-pulse 3s ease-in-out infinite" }
+              : undefined
+          }
+        >
+          {retrying && (
+            <style>{`
             @keyframes transcribe-pulse {
               0%, 100% { color: color-mix(in srgb, var(--color-text) 40%, transparent); }
               50% { color: color-mix(in srgb, var(--color-text) 90%, transparent); }
             }
           `}</style>
-        )}
-        {retrying
-          ? t("settings.history.transcribing")
-          : hasTranscription
-            ? entry.transcription_text
-            : t("settings.history.transcriptionFailed")}
-      </p>
+          )}
+          {retrying
+            ? t("settings.history.transcribing")
+            : hasTranscription
+              ? entry.transcription_text
+              : t("settings.history.transcriptionFailed")}
+        </p>
 
-      <AudioPlayer onLoadRequest={handleLoadAudio} className="w-full" />
+        <AudioPlayer onLoadRequest={handleLoadAudio} className="w-full" />
+      </div>
     </div>
   );
 };

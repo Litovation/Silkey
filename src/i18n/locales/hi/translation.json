@@ -10,9 +10,9 @@
     "secureInputWarning": "⚠ Secure Input ने शॉर्टकट ब्लॉक किए हैं"
   },
   "sidebar": {
-    "general": "सामान्य",
+    "general": "टोन",
     "models": "मॉडल",
-    "advanced": "ऐडवांस",
+    "advanced": "सेटिंग्स",
     "postProcessing": "पोस्ट प्रोसेस",
     "history": "इतिहास",
     "debug": "डिबग",

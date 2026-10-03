@@ -55,13 +55,13 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     borderRadius: 6,
     borderColor: state.isFocused ? "var(--color-logo-primary)" : neutralBorder,
     boxShadow: state.isFocused ? "0 0 0 1px var(--color-logo-primary)" : "none",
-    backgroundColor: state.isFocused ? focusBackground : baseBackground,
+    background: `linear-gradient(135deg, ${state.isFocused ? focusBackground : baseBackground} 0%, ${hoverBackground} 100%)`,
+    backdropFilter: "blur(14px) saturate(160%)",
     fontSize: "0.875rem",
     color: "var(--color-text)",
     transition: "all 150ms ease",
     ":hover": {
       borderColor: "var(--color-logo-primary)",
-      backgroundColor: hoverBackground,
     },
   }),
   valueContainer: (base) => ({
@@ -96,7 +96,9 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   menu: (provided) => ({
     ...provided,
     zIndex: 30,
-    backgroundColor: "var(--color-background)",
+    backgroundColor:
+      "color-mix(in srgb, var(--color-background) 72%, transparent)",
+    backdropFilter: "blur(18px) saturate(170%)",
     color: "var(--color-text)",
     border:
       "1px solid color-mix(in srgb, var(--color-mid-gray) 30%, transparent)",
