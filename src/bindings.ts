@@ -557,6 +557,21 @@ async triggerUpdateCheck() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async setAccessAllowed(allowed: boolean) : Promise<void> {
+    await TAURI_INVOKE("set_access_allowed", { allowed });
+},
+/**
+ * Listen once on the loopback port for the browser's return from sign-in and
+ * forward its query string to the frontend as an `oauth-callback` event.
+ */
+async startOauthListener() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_oauth_listener") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async showMainWindowCommand() : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("show_main_window_command") };

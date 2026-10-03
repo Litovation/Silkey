@@ -689,6 +689,13 @@ fn run_effect(app: &AppHandle, state: &mut CoordinatorState, effect: Effect) {
 /// Execute a start effect; returns whether recording actually began, so the
 /// state machine can roll back its optimistic transition on failure.
 fn start(app: &AppHandle, binding_id: &str, hotkey_string: &str) -> bool {
+    // Signed out, trial over or banned: bring up the window that explains why
+    // instead of recording.
+    if !crate::access::is_allowed() {
+        debug!("Start for '{binding_id}' refused: account access not allowed");
+        crate::show_main_window(app);
+        return false;
+    }
     let Some(action) = ACTION_MAP.get(binding_id) else {
         warn!("No action in ACTION_MAP for '{binding_id}'");
         return false;

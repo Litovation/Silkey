@@ -1,7 +1,14 @@
 # Silktone v0.1.1 handoff
 
 Share this file with Claude at the start of a session to continue from here.
-Last updated: 2026-10-04. Branch: `v0.1.1-ui` on `github.com/Litovation/Silkey`.
+Last updated: 2026-10-04. Repo: `github.com/Litovation/Silkey`.
+
+Branches:
+
+- `v0.1.1-ui`: the v0.1.1 interface work. A collaborator may also push here,
+  so pull before working and do not push to it directly from a session.
+- `silktone-accounts`: accounts work, branched from `v0.1.1-ui`. The
+  `silktone-` prefix makes the Windows build run on every push.
 
 ## What Silktone is
 
@@ -95,10 +102,39 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
 - Whether the speech model supports Hindi. The language list only shows
   Hindi if the model reports it.
 
+## Accounts (on `silktone-accounts`)
+
+Backend: Supabase project `silktone-v0-1-1` (ref `ihslofjgydhpnaadbhnv`,
+region ap-south-1). Schema is in `supabase/migrations/`.
+
+- `public.profiles`: `email`, `plan` (`trial` / `paid` / `free_forever`),
+  `trial_ends_at` (signup + 30 days), `banned`. Users can only read their own
+  row; the owner edits rows in the dashboard.
+- `public.silktone_get_access()`: the one call the app makes; answers with
+  the server clock.
+
+App side:
+
+- `src/lib/auth.ts`: Google sign-in (PKCE), session refresh, access check,
+  3-day offline rule, clock-rollback check.
+- `src/stores/authStore.ts`: state, re-check every 30 minutes.
+- `src/components/account/AccountScreens.tsx`: sign-in and blocked screens.
+- `src-tauri/src/access.rs`: the gate (`set_access_allowed`) and a one-shot
+  loopback listener on `127.0.0.1:17645` that catches the browser's return.
+- `src-tauri/src/transcription_coordinator.rs`: recording refuses to start
+  when access is not allowed.
+- `src/bindings.ts` was edited by hand for the two new commands.
+
+Sign-in does not work until the owner finishes the Google step (see
+Blockers). Until then this branch shows the sign-in screen and cannot be
+used, so do not merge it into `v0.1.1-ui` before that.
+
+Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banned`.
+
 ## Placeholders that do nothing yet
 
-- Sign in button and Account tab (greyed out).
 - CommandGo sidebar item (locked) and Refer & earn (marked "Soon").
+- The "trial ended" screen links to the website; there is no checkout yet.
 
 ## Still to build, in suggested order
 
@@ -109,12 +145,10 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
    Steps: sign in, set the shortcut (trackpad double-tap explained), a
    practice box where the pressed keys glow, then say "From now on, my
    workflow will be very easy", then finish to the tray. Shown once.
-4. **Accounts (large, blocked).** Supabase table with email, trial end date,
-   plan (`trial`, `paid`, `free_forever`) and banned flag; a trigger that
-   starts the 30-day trial; a server-clock access check; Google sign-in via
-   the browser and a `silktone://` link back to the app; log out; a block at
-   the point where recording starts; trial-ended and banned screens; the
-   3-day offline rule.
+4. **Accounts: finish and test.** Code is written on `silktone-accounts`
+   but has never run for real: the Rust parts are uncompiled and no one has
+   signed in yet. After the owner's Google step, test sign-in, sign-out,
+   trial expiry, ban, and the offline rule on a real build.
 5. **Razorpay with UPI recurring (large, blocked).** Checkout link and a
    function that marks the user `paid` on Razorpay's notification.
 6. **Later:** private admin page, signed Windows builds, a local
@@ -122,11 +156,14 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
 
 ## Blockers that need the owner
 
-- **Supabase:** the free plan's two-project limit is reached, so a new
-  project cannot be created. The owner must pause an unused project or
-  upgrade (about $25/month).
-- **Google sign-in:** the owner registers Silktone in Google Cloud and pastes
-  two values into Supabase (about 10 minutes, free).
+- **Google sign-in (owner, about 10 minutes, free):**
+  1. Google Cloud Console: create an OAuth client of type "Web application"
+     with the authorised redirect URI
+     `https://ihslofjgydhpnaadbhnv.supabase.co/auth/v1/callback`.
+  2. Supabase dashboard, Authentication, Sign In / Providers, Google: turn it
+     on and paste the client ID and client secret.
+  3. Supabase dashboard, Authentication, URL Configuration, Redirect URLs:
+     add `http://127.0.0.1:17645/callback`.
 - **Razorpay:** account, verification, subscription plan with UPI AutoPay,
   and keys.
 

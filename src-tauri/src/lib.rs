@@ -1,3 +1,4 @@
+mod access;
 mod actions;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
@@ -720,6 +721,8 @@ pub fn run(cli_args: CliArgs) {
             secure_input::run_keyboard_diagnostic,
             trigger_update_check,
             show_main_window_command,
+            access::set_access_allowed,
+            access::start_oauth_listener,
             commands::cancel_operation,
             commands::is_portable,
             commands::is_update_checks_locked,

@@ -25,6 +25,11 @@ import {
   type SettingsTab,
 } from "./components/settings/SettingsModal";
 import { HomePage } from "./components/home/HomePage";
+import {
+  BlockedScreen,
+  SignInScreen,
+} from "./components/account/AccountScreens";
+import { useAuthStore } from "./stores/authStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar } from "./components/Sidebar";
 import { WhatsNewGate } from "./components/whats-new";
@@ -50,6 +55,8 @@ function App() {
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const { settings, updateSetting } = useSettings();
+  const verdict = useAuthStore((state) => state.verdict);
+  const initializeAuth = useAuthStore((state) => state.initialize);
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
     (state) => state.refreshAudioDevices,
@@ -75,6 +82,10 @@ function App() {
   useEffect(() => {
     checkOnboardingStatus();
   }, []);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   // Initialize RTL direction when language changes
   useEffect(() => {
@@ -296,8 +307,8 @@ function App() {
     />
   );
 
-  // Still checking onboarding status
-  if (onboardingStep === null) {
+  // Still checking onboarding status or the account
+  if (onboardingStep === null || verdict === null) {
     return null;
   }
 
@@ -305,7 +316,11 @@ function App() {
   // stable wrapper around this node, so crossing between onboarding steps and
   // the main app never remounts it (which would drop any in-flight toast).
   let content: ReactNode;
-  if (onboardingPreview) {
+  if (verdict.state === "signedOut") {
+    content = <SignInScreen />;
+  } else if (verdict.state === "blocked") {
+    content = <BlockedScreen reason={verdict.reason} />;
+  } else if (onboardingPreview) {
     // Render previews in the same top-level slot as real onboarding. Keeping
     // the settings layout unmounted ensures viewport overflow behaves exactly
     // as it does during first-run onboarding.

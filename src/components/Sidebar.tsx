@@ -4,6 +4,7 @@ import { Bot, Gift, Lock, Mic, Settings, UserRound } from "lucide-react";
 import SilktoneWordmark from "./icons/SilktoneWordmark";
 import LitovationLogo from "./icons/LitovationLogo";
 import type { SettingsTab } from "./settings/SettingsModal";
+import { useAuthStore } from "../stores/authStore";
 
 interface SidebarProps {
   onOpenSettings: (tab: SettingsTab) => void;
@@ -19,6 +20,7 @@ const itemClasses =
 
 export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
   const { t } = useTranslation();
+  const email = useAuthStore((state) => state.email);
 
   return (
     <div className="flex flex-col w-52 h-full border-e border-mid-gray/20 bg-mid-gray/5 px-2">
@@ -83,8 +85,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
           <span className="shrink-0 rounded-full bg-logo-primary/20 p-1 text-logo-primary">
             <UserRound width={14} height={14} />
           </span>
-          <span className="text-sm font-medium truncate">
-            {t("account.signIn")}
+          <span className="text-sm font-medium truncate" title={email}>
+            {email || t("account.title")}
           </span>
         </button>
       </div>

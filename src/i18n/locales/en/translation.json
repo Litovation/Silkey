@@ -822,10 +822,39 @@
   },
   "account": {
     "title": "Account",
-    "signIn": "Sign in",
-    "signedOut": "You're not signed in",
-    "unavailable": "Accounts are being set up. Sign-in with Google will appear here.",
-    "continueWithGoogle": "Continue with Google"
+    "signInTitle": "Sign in to Silktone",
+    "signInBody": "Sign in with Google to start your 30-day free trial. No card needed.",
+    "continueWithGoogle": "Continue with Google",
+    "finishInBrowser": "Finish signing in in your browser, then come back here.",
+    "signInFailed": "Sign-in didn't complete: {{error}}",
+    "privacy": "Only your sign-in goes online. Your voice stays on this computer.",
+    "signOut": "Sign out",
+    "signedInAs": "Signed in as {{email}}",
+    "checkAgain": "Check again",
+    "offline": "offline",
+    "plan": {
+      "trial_one": "Free trial · {{count}} day left",
+      "trial_other": "Free trial · {{count}} days left",
+      "paid": "Subscribed",
+      "free_forever": "Free access",
+      "expired": "Trial ended",
+      "banned": "Suspended"
+    },
+    "blocked": {
+      "expired": {
+        "title": "Your free trial has ended",
+        "body": "Subscriptions are opening soon. Visit our site to keep using Silktone.",
+        "action": "Visit silktone.litovation.in"
+      },
+      "banned": {
+        "title": "This account is suspended",
+        "body": "Dictation is turned off for this account. Contact us if you think this is a mistake."
+      },
+      "offline": {
+        "title": "Connect to the internet to continue",
+        "body": "Silktone works offline for up to 3 days, then needs to check your account once."
+      }
+    }
   },
   "stats": {
     "totalWords": "total words",

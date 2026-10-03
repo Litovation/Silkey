@@ -119,6 +119,34 @@
         exe_extension: "exe",
       };
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+
+      // ?account=trial|offline|stale|expired|banned fakes a signed-in account;
+      // without it the real sign-in screen shows.
+      const account = new URLSearchParams(location.search).get("account");
+      if (account) {
+        const day = 24 * 60 * 60 * 1000;
+        const access = {
+          status: account === "expired" || account === "banned" ? account : "trial",
+          allowed: !(account === "expired" || account === "banned"),
+          trial_ends_at: new Date(Date.now() + 12 * day).toISOString(),
+        };
+        localStorage.setItem("silktone.session", JSON.stringify({
+          access_token: "mock", refresh_token: "mock",
+          expires_at: Math.floor(Date.now() / 1000) + 3600, email: "you@example.com",
+        }));
+        const checkedAt = Date.now() - (account === "stale" ? 4 * day : 0);
+        localStorage.setItem("silktone.access", JSON.stringify({ access, checkedAt, lastSeen: checkedAt }));
+        const realFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+          const url = String(input && input.url ? input.url : input);
+          if (!url.includes("supabase.co")) return realFetch(input, init);
+          if (account === "offline" || account === "stale") return Promise.reject(new TypeError("offline"));
+          return Promise.resolve(new Response(JSON.stringify(access), { status: 200, headers: { "Content-Type": "application/json" } }));
+        };
+      } else {
+        localStorage.removeItem("silktone.session");
+        localStorage.removeItem("silktone.access");
+      }
     </script>
   </head>
   <body>
