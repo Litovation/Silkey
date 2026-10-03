@@ -5,10 +5,12 @@ Last updated: 2026-10-04. Repo: `github.com/Litovation/Silkey`.
 
 Branches:
 
-- `v0.1.1-ui`: the v0.1.1 interface work. A collaborator may also push here,
-  so pull before working and do not push to it directly from a session.
-- `silktone-accounts`: accounts work, branched from `v0.1.1-ui`. The
-  `silktone-` prefix makes the Windows build run on every push.
+- `v0.1.1-ui`: the main working branch. It holds everything: the v0.1.1
+  interface and the accounts work. A collaborator may also push here, so pull
+  before working and prefer a side branch plus pull request.
+- `silktone-accounts`: same content at the time of the merge. The `silktone-`
+  prefix makes the Windows build run on every push; `v0.1.1-ui` only builds
+  when the workflow is run by hand.
 
 ## What Silktone is
 
@@ -102,7 +104,7 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
 - Whether the speech model supports Hindi. The language list only shows
   Hindi if the model reports it.
 
-## Accounts (on `silktone-accounts`)
+## Accounts
 
 Backend: Supabase project `silktone-v0-1-1` (ref `ihslofjgydhpnaadbhnv`,
 region ap-south-1). Schema is in `supabase/migrations/`.
@@ -126,8 +128,8 @@ App side:
 - `src/bindings.ts` was edited by hand for the two new commands.
 
 Sign-in does not work until the owner finishes the Google step (see
-Blockers). Until then this branch shows the sign-in screen and cannot be
-used, so do not merge it into `v0.1.1-ui` before that.
+Blockers). Until then any build from this branch stops at the sign-in screen
+and cannot dictate.
 
 Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banned`.
 
@@ -145,7 +147,7 @@ Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banne
    Steps: sign in, set the shortcut (trackpad double-tap explained), a
    practice box where the pressed keys glow, then say "From now on, my
    workflow will be very easy", then finish to the tray. Shown once.
-4. **Accounts: finish and test.** Code is written on `silktone-accounts`
+4. **Accounts: finish and test.** Code is written
    but has never run for real: the Rust parts are uncompiled and no one has
    signed in yet. After the owner's Google step, test sign-in, sign-out,
    trial expiry, ban, and the offline rule on a real build.
