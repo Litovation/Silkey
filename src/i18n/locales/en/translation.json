@@ -919,6 +919,12 @@
       "description": "Silktone now waits quietly in the system tray. Press your shortcut in any app to dictate.",
       "stillDownloading": "The speech engine is still downloading. Dictation will work as soon as it finishes.",
       "finish": "Finish"
+    },
+    "steps": {
+      "performance": "Performance",
+      "shortcut": "Shortcut",
+      "practice": "Practice",
+      "done": "Ready"
     }
   },
   "performance": {

@@ -194,3 +194,91 @@
     );
   }
 }
+
+/* Full-screen backdrop for sign-in and first-run: three soft colour fields
+   that drift slowly, so the glass panel on top has something to blur. */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-background);
+}
+
+.aurora span {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  animation: aurora-drift 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.aurora span:nth-child(1) {
+  width: 48vw;
+  height: 48vw;
+  left: -12vw;
+  top: -16vw;
+  background: var(--color-logo-primary);
+  opacity: 0.4;
+}
+
+.aurora span:nth-child(2) {
+  width: 44vw;
+  height: 44vw;
+  right: -14vw;
+  bottom: -18vw;
+  background: var(--color-brand-pink);
+  opacity: 0.32;
+  animation-duration: 26s;
+  animation-delay: -8s;
+}
+
+.aurora span:nth-child(3) {
+  width: 30vw;
+  height: 30vw;
+  left: 42%;
+  top: 48%;
+  background: var(--color-background-ui);
+  opacity: 0.25;
+  animation-duration: 32s;
+  animation-delay: -14s;
+}
+
+@keyframes aurora-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(7vw, 5vw, 0) scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora span {
+    animation: none;
+  }
+}
+
+/* Large glass surface for dialogs that sit on the aurora backdrop. */
+.glass-panel {
+  background: color-mix(in srgb, var(--color-background) 62%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
+    0 30px 80px color-mix(in srgb, black 22%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+}
+
+:root[data-theme="dark"] .glass-panel {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 12%, transparent),
+    0 30px 80px color-mix(in srgb, black 55%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .glass-panel {
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, white 12%, transparent),
+      0 30px 80px color-mix(in srgb, black 55%, transparent);
+  }
+}
