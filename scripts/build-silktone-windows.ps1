@@ -22,8 +22,34 @@ if (-not (Test-Path $vadFile)) { throw "Missing $vadFile." }
 bun install --frozen-lockfile
 if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
 
-bun run tauri build
-if ($LASTEXITCODE -ne 0) { throw 'Windows build failed.' }
+# Job logs need a GitHub login, but annotations are public. On failure, publish
+# the compiler/installer errors as annotations so they can be read without one.
+function Publish-BuildErrors([string]$logPath) {
+  $lines = @(Get-Content $logPath)
+  $escape = { param($text) $text -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A' }
+  $tail = ($lines | Select-Object -Last 40) -join "`n"
+  Write-Host "::error title=Build log tail::$(& $escape $tail)"
+  $blocks = @()
+  for ($i = 0; $i -lt $lines.Count; $i++) {
+    if ($lines[$i] -match '^(error|Error)(\[|:| )') {
+      $end = [Math]::Min($i + 14, $lines.Count - 1)
+      $blocks += ($lines[$i..$end] -join "`n")
+    }
+  }
+  $perAnnotation = 5
+  for ($i = 0; $i -lt $blocks.Count -and $i -lt 40; $i += $perAnnotation) {
+    $last = [Math]::Min($i + $perAnnotation - 1, $blocks.Count - 1)
+    $text = $blocks[$i..$last] -join "`n`n"
+    Write-Host "::error title=Build errors $([int]($i / $perAnnotation) + 1)::$(& $escape $text)"
+  }
+}
+
+$buildLog = Join-Path ([IO.Path]::GetTempPath()) 'silktone-build.log'
+bun run tauri build 2>&1 | Tee-Object -FilePath $buildLog
+if ($LASTEXITCODE -ne 0) {
+  Publish-BuildErrors $buildLog
+  throw 'Windows build failed.'
+}
 
 & (Join-Path $PSScriptRoot 'verify-silktone-windows.ps1')
 
