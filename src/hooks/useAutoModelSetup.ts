@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ModelInfo } from "@/bindings";
 import { useModelStore } from "../stores/modelStore";
 import { isLegacySource } from "../components/onboarding/ModelCard";
+import { tierOf, type ModelTier } from "../stores/modelTierStore";
 
 export type EngineStatus =
   | { state: "checking" }
@@ -15,17 +16,30 @@ export type EngineStatus =
  * the top recommended download. The catalog arrives in rank order, so the
  * first match is the best pick.
  */
-const pickModel = (models: ModelInfo[]): ModelInfo | undefined =>
+const pickFrom = (models: ModelInfo[]): ModelInfo | undefined =>
   models.find((m) => m.is_downloaded && !isLegacySource(m)) ??
   models.find((m) => m.is_downloaded) ??
   models.find((m) => m.is_recommended && !isLegacySource(m)) ??
   models.find((m) => !isLegacySource(m));
 
+/** Models the chosen tier allows; every model when there is no preference. */
+const candidatesFor = (
+  models: ModelInfo[],
+  tier: ModelTier | null,
+): ModelInfo[] => {
+  if (!tier) return models;
+  const inTier = models.filter((m) => tierOf(m) === tier);
+  // A catalog without that tier must not leave the user with no engine.
+  return inTier.length > 0 ? inTier : models;
+};
+
 /**
  * Makes sure a speech model is downloaded and selected without asking the
  * user to choose one. Runs while `active`; the model list is never shown.
+ * `tier` narrows the pick to the Standard or Light engine; null keeps whatever
+ * is already installed.
  */
-export const useAutoModelSetup = (active: boolean) => {
+export const useAutoModelSetup = (active: boolean, tier: ModelTier | null) => {
   const {
     models,
     currentModel,
@@ -40,8 +54,11 @@ export const useAutoModelSetup = (active: boolean) => {
   const [selecting, setSelecting] = useState(false);
   const downloadStartedFor = useRef<string | null>(null);
 
-  const ready = models.some((m) => m.id === currentModel && m.is_downloaded);
-  const target = useMemo(() => pickModel(models), [models]);
+  const candidates = useMemo(() => candidatesFor(models, tier), [models, tier]);
+  const ready = candidates.some(
+    (m) => m.id === currentModel && m.is_downloaded,
+  );
+  const target = useMemo(() => pickFrom(candidates), [candidates]);
   const targetId = target?.id;
   const busy =
     targetId !== undefined &&
@@ -77,6 +94,12 @@ export const useAutoModelSetup = (active: boolean) => {
     selectModel,
     downloadModel,
   ]);
+
+  // Switching between Standard and Light starts from a clean slate.
+  useEffect(() => {
+    downloadStartedFor.current = null;
+    setFailed(false);
+  }, [tier]);
 
   const retry = useCallback(() => {
     downloadStartedFor.current = null;

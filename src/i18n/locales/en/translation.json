@@ -920,5 +920,19 @@
       "stillDownloading": "The speech engine is still downloading. Dictation will work as soon as it finishes.",
       "finish": "Finish"
     }
+  },
+  "performance": {
+    "title": "Performance",
+    "description": "Standard suits most PCs. Light is for older or slower PCs. Changing this downloads the other speech engine once.",
+    "chooseTitle": "How should Silktone run on this PC?",
+    "chooseDescription": "Pick what fits your computer. You can change it later in Settings.",
+    "standard": {
+      "title": "Standard",
+      "description": "Recommended for most PCs. Your words appear live as you speak. English and Hindi."
+    },
+    "light": {
+      "title": "Light",
+      "description": "For older or slower PCs. Smaller download. English only, and text appears when you stop speaking."
+    }
   }
 }

@@ -14,9 +14,11 @@ import {
   useShortcutKeycaps,
 } from "../../hooks/useShortcutKeycaps";
 import type { EngineStatus } from "../../hooks/useAutoModelSetup";
+import { useModelTierStore, type ModelTier } from "../../stores/modelTierStore";
 
-type Step = "shortcut" | "practice" | "done";
-const STEPS: Step[] = ["shortcut", "practice", "done"];
+type Step = "performance" | "shortcut" | "practice" | "done";
+const STEPS: Step[] = ["performance", "shortcut", "practice", "done"];
+const TIERS: ModelTier[] = ["standard", "light"];
 
 /** Enough of the practice sentence came through to call it a success. */
 const matchesPractice = (typed: string, sentence: string) => {
@@ -121,7 +123,9 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
   const { getSetting } = useSettings();
   const keys = useShortcutKeycaps();
   const isWindows = type() === "windows";
-  const [step, setStep] = useState<Step>("shortcut");
+  const tier = useModelTierStore((state) => state.tier);
+  const setTier = useModelTierStore((state) => state.setTier);
+  const [step, setStep] = useState<Step>("performance");
   const [pressed, setPressed] = useState<Set<string>>(new Set());
   const [practiceText, setPracticeText] = useState("");
 
@@ -203,6 +207,52 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
       </div>
 
       <div className="w-full max-w-[520px] flex-1 flex flex-col gap-5">
+        {step === "performance" && (
+          <>
+            <div className="space-y-1.5 text-center">
+              <h1 className="text-xl font-semibold">
+                {t("performance.chooseTitle")}
+              </h1>
+              <p className="text-sm text-text/70">
+                {t("performance.chooseDescription")}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {TIERS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setTier(option)}
+                  aria-pressed={tier === option}
+                  className={`rounded-xl border p-4 text-start cursor-pointer transition-colors ${
+                    tier === option
+                      ? "border-logo-primary bg-logo-primary/10"
+                      : "border-mid-gray/20 hover:border-logo-primary/60"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2 text-sm font-semibold">
+                    {t(`performance.${option}.title`)}
+                    {tier === option && (
+                      <Check className="w-4 h-4 text-logo-primary" />
+                    )}
+                  </span>
+                  <span className="mt-1 block text-xs text-text/70">
+                    {t(`performance.${option}.description`)}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end">
+              <Button
+                disabled={tier === null && !preview}
+                onClick={() => setStep("shortcut")}
+              >
+                {t("firstRun.next")}
+              </Button>
+            </div>
+          </>
+        )}
+
         {step === "shortcut" && (
           <>
             <div className="space-y-1.5 text-center">
@@ -227,7 +277,10 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
                 {t("firstRun.shortcut.trackpadHint")}
               </p>
             )}
-            <div className="flex justify-end">
+            <div className="flex justify-between">
+              <Button variant="ghost" onClick={() => setStep("performance")}>
+                {t("firstRun.back")}
+              </Button>
               <Button onClick={() => setStep("practice")}>
                 {t("firstRun.next")}
               </Button>
@@ -311,9 +364,11 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
         )}
       </div>
 
-      <div className="shrink-0">
-        <EngineLine engine={engine} onRetry={onRetryEngine} />
-      </div>
+      {(tier !== null || engine.state === "ready") && (
+        <div className="shrink-0">
+          <EngineLine engine={engine} onRetry={onRetryEngine} />
+        </div>
+      )}
     </div>
   );
 };

@@ -38,6 +38,7 @@ import { WhatsNewGate } from "./components/whats-new";
 import AutoUpdater from "./components/update-checker";
 import { useSettings } from "./hooks/useSettings";
 import { useAutoModelSetup } from "./hooks/useAutoModelSetup";
+import { useModelTierStore } from "./stores/modelTierStore";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
@@ -75,8 +76,11 @@ function App() {
     onboardingStep === "setup";
   // The speech model is downloaded and selected automatically, for new users
   // during setup and for anyone whose model has gone missing.
+  // New users choose Standard or Light first, so nothing downloads before then.
+  const modelTier = useModelTierStore((state) => state.tier);
   const { status: engineStatus, retry: retryEngine } = useAutoModelSetup(
-    onboardingStep !== null,
+    onboardingStep !== null && (isReturningUser || modelTier !== null),
+    modelTier,
   );
 
   // Classic scrollbars consume layout space. Reserve a matching gutter on the
