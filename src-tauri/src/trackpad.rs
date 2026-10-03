@@ -428,7 +428,7 @@ mod platform {
         let mut count_link = 0u16;
         let mut x_range = 0i32;
         for cap in &value_caps {
-            if cap.IsRange.as_bool() {
+            if cap.IsRange {
                 continue;
             }
             let usage = cap.Anonymous.NotRange.Usage;
@@ -469,7 +469,7 @@ mod platform {
     ) -> Option<u32> {
         let mut v = 0u32;
         let status =
-            unsafe { HidP_GetUsageValue(HidP_Input, page, link, usage, &mut v, ppd, report) };
+            unsafe { HidP_GetUsageValue(HidP_Input, page, Some(link), usage, &mut v, ppd, report) };
         (status.0 == HIDP_SUCCESS).then_some(v)
     }
 
@@ -499,7 +499,7 @@ mod platform {
                 HidP_GetUsages(
                     HidP_Input,
                     PAGE_DIGITIZER,
-                    link,
+                    Some(link),
                     usages.as_mut_ptr(),
                     &mut len,
                     ppd,
