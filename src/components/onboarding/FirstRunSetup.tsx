@@ -188,7 +188,7 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
   const stepIndex = STEPS.indexOf(step);
 
   return (
-    <div className="relative h-screen w-full overflow-hidden flex items-center justify-center p-6 select-none cursor-default">
+    <div className="fixed inset-0 overflow-hidden flex items-center justify-center p-6 select-none cursor-default">
       <AuroraBackdrop />
       <div className="glass-panel relative flex w-full max-w-[880px] max-h-full min-h-[440px] overflow-hidden rounded-3xl">
         <aside className="flex w-56 shrink-0 flex-col gap-8 border-e border-mid-gray/15 p-7">

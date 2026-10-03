@@ -198,7 +198,8 @@
 /* Full-screen backdrop for sign-in and first-run: a ribbon clip blurred until
    only its colour and movement are left, over a faint brand-pink wash. */
 .aurora {
-  position: absolute;
+  /* Fixed to the window, not the parent, so it always fills the whole screen. */
+  position: fixed;
   inset: 0;
   overflow: hidden;
   background:
@@ -208,6 +209,13 @@
       transparent 70%
     ),
     var(--color-background);
+}
+
+/* These screens never scroll the page, so drop the reserved scrollbar gutter
+   that would otherwise leave an uncovered strip at the window edges. */
+:root:has(.aurora) {
+  scrollbar-gutter: auto;
+  overflow: hidden;
 }
 
 /* The clip is on white. Multiply drops the white into the light background;

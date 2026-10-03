@@ -11,7 +11,7 @@ import type { BlockReason } from "../../lib/auth";
 const SITE_URL = "https://silktone.litovation.in";
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="relative h-screen flex items-center justify-center overflow-hidden p-6 select-none cursor-default">
+  <div className="fixed inset-0 flex items-center justify-center overflow-hidden p-6 select-none cursor-default">
     <AuroraBackdrop />
     <div className="glass-panel relative flex w-full max-w-md flex-col items-center gap-6 rounded-3xl p-10 text-center">
       <SilktoneWordmark width={190} />

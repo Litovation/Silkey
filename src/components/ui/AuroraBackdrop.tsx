@@ -7,8 +7,9 @@ const prefersReducedMotion = (): boolean =>
 
 /**
  * Heavily blurred ribbon clip behind full-screen moments (sign-in, first run).
- * Purely decorative; it gives glass panels something soft to blur. The clip is
- * tiny on purpose: it is only ever seen out of focus.
+ * Purely decorative; it gives glass panels something soft to blur. It plays
+ * once and rests on its last frame. The clip is tiny on purpose: it is only
+ * ever seen out of focus.
  */
 export const AuroraBackdrop: React.FC = () => (
   <div className="aurora" aria-hidden="true">
@@ -16,7 +17,6 @@ export const AuroraBackdrop: React.FC = () => (
       className="aurora-video"
       src={backdrop}
       autoPlay={!prefersReducedMotion()}
-      loop
       muted
       playsInline
       tabIndex={-1}
