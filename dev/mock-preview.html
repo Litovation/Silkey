@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Silktone mock preview</title>
+    <script>
+      // Browser-only stand-in for the Tauri backend so the settings UI can be
+      // looked at without building the Rust app. Not shipped.
+      const settings = {
+        onboarding_completed: true,
+        bindings: {
+          transcribe: {
+            id: "transcribe",
+            name: "Transcribe Shortcut",
+            description: "Converts your speech into text.",
+            default_binding: "ctrl_left+super_left",
+            current_binding: "ctrl_left+super_left",
+          },
+          transcribe_with_post_process: {
+            id: "transcribe_with_post_process",
+            name: "Post-Process Shortcut",
+            description: "Transcribe with post-processing.",
+            default_binding: "ctrl_left+shift_left+super_left",
+            current_binding: "ctrl_left+shift_left+super_left",
+          },
+        },
+        shortcut_activation: "hold_or_toggle",
+        selected_language: "en",
+        selected_model: "mock",
+        app_language: "en",
+        theme: new URLSearchParams(location.search).get("theme") || "light",
+        autostart_enabled: true,
+        show_tray_icon: true,
+        overlay_style: "live",
+        overlay_position: "top",
+        vad_enabled: true,
+        filler_word_removal_enabled: true,
+        auto_submit: false,
+        append_trailing_space: false,
+        experimental_enabled: true,
+        post_process_enabled: true,
+        post_process_provider_id: "groq",
+        post_process_providers: [
+          { id: "groq", label: "Groq", base_url: "https://api.groq.com/openai/v1", allow_base_url_edit: false },
+          { id: "openrouter", label: "OpenRouter", base_url: "https://openrouter.ai/api/v1", allow_base_url_edit: false },
+          { id: "custom", label: "Custom", base_url: "http://localhost:11434/v1", allow_base_url_edit: true },
+        ],
+        post_process_api_keys: {},
+        post_process_models: {},
+        post_process_prompts: [],
+        post_process_selected_prompt_id: null,
+        custom_words: [],
+        history_limit: 5,
+        recording_retention_period: "preserve_limit",
+        transcribe_accelerator: "auto",
+        ort_accelerator: "auto",
+        mute_while_recording: false,
+        trackpad_double_tap_enabled: false,
+        keyboard_implementation: "native_keys",
+        debug_mode: false,
+      };
+      const model = {
+        id: "mock",
+        name: "Mock",
+        description: "",
+        is_downloaded: true,
+        is_downloading: false,
+        supported_languages: ["en", "hi", "fr"],
+        supports_language_selection: true,
+        supports_language_detection: true,
+        supports_translation: false,
+        supports_streaming: true,
+      };
+      const handlers = {
+        get_app_settings: () => settings,
+        get_default_settings: () => settings,
+        get_available_models: () => [model],
+        get_current_model: () => "mock",
+        get_model_info: () => model,
+        "plugin:app|version": () => "0.1.1",
+        "plugin:event|listen": () => 1,
+        "plugin:event|unlisten": () => null,
+        get_history_entries: (a) => (a && a.cursor) ? { entries: [], has_more: false } : { entries: [
+          { id: 2, file_name: "b.wav", timestamp: Math.floor(Date.now()/1000) - 600, saved: false, title: "", transcription_text: "From now on, my workflow will be very easy.", post_processed_text: null, post_process_prompt: null, post_process_requested: false },
+          { id: 1, file_name: "a.wav", timestamp: Math.floor(Date.now()/1000) - 7200, saved: true, title: "", transcription_text: "Please send the updated proposal to the client before Friday and copy the design team.", post_processed_text: null, post_process_prompt: null, post_process_requested: false },
+        ], has_more: false },
+        get_app_dir_path: () => "C:\\Users\\you\\AppData\\Roaming\\Silktone",
+        get_log_dir_path: () => "C:\\Users\\you\\AppData\\Roaming\\Silktone\\logs",
+        get_windows_microphone_permission_status: () => ({ supported: false, overall_access: "allowed" }),
+        get_keyboard_implementation: () => "native_keys",
+        get_secure_input_status: () => ({ active: false }),
+        get_available_accelerators: () => ({ transcribe: [], ort: ["auto", "cpu"], gpu_devices: [] }),
+      };
+      window.__mockCalls = [];
+      let nextId = 1;
+      window.__TAURI_INTERNALS__ = {
+        metadata: {
+          currentWindow: { label: "main" },
+          currentWebview: { label: "main", windowLabel: "main" },
+        },
+        transformCallback: () => nextId++,
+        convertFileSrc: (p) => p,
+        invoke: async (cmd, args) => {
+          window.__mockCalls.push(cmd);
+          if (handlers[cmd]) return handlers[cmd](args);
+          if (/^(get_|list_|fetch_).*(s|devices|entries|models|tools)$/.test(cmd)) return [];
+          if (/^(is_|has_|check_)/.test(cmd)) return false;
+          return null;
+        },
+      };
+      window.__TAURI_OS_PLUGIN_INTERNALS__ = {
+        platform: "windows",
+        os_type: "windows",
+        family: "windows",
+        arch: "x86_64",
+        version: "10.0.26200",
+        eol: "\r\n",
+        exe_extension: "exe",
+      };
+      window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
