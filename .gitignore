@@ -46,3 +46,7 @@ result
 
 # Python bytecode (scripts/)
 __pycache__/
+
+# Updater signing key (keep private, never commit)
+silktone-updater.key
+silktone-updater.key.pub
