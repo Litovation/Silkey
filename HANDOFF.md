@@ -155,6 +155,21 @@ and cannot dictate.
 
 Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banned`.
 
+## Updates and notifications
+
+- Installed copies check GitHub Releases on launch, download the new version
+  quietly, wait until no dictation is running, then install and restart.
+  No permission is asked (owner's choice). Code:
+  `src/components/update-checker/AutoUpdater.tsx`.
+- Notifications are cards in the sidebar above Settings
+  (`src/stores/notificationStore.ts`, `notify({...})` from anywhere).
+- Releasing: Actions tab, "Release Silktone", Run workflow, enter a version
+  higher than the last one. It builds, signs and publishes the release and
+  `latest.json`. The app version comes from that input; there is no need to
+  edit version numbers in files.
+- Copies installed before this (0.1.0 builds) cannot update themselves and
+  need one manual install.
+
 ## Placeholders that do nothing yet
 
 - CommandGo sidebar item (locked) and Refer & earn (marked "Soon").
@@ -174,6 +189,16 @@ Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banne
    post-processing model, real Refer & earn and CommandGo.
 
 ## Blockers that need the owner
+
+- **Update signing key (owner, about 5 minutes, free):** needed before the
+  first release.
+  1. On the PC, in the repo folder: `npx @tauri-apps/cli signer generate -w silktone-updater.key`
+     (choose a password or leave it empty). Keep the `.key` file private
+     and backed up: losing it means installed copies can never update again.
+  2. GitHub repo, Settings, Secrets and variables, Actions, add three
+     secrets: `TAURI_SIGNING_PRIVATE_KEY` (contents of `silktone-updater.key`),
+     `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the password, or empty), and
+     `TAURI_SIGNING_PUBLIC_KEY` (contents of `silktone-updater.key.pub`).
 
 - **Google sign-in (owner, about 10 minutes, free):**
   1. Google Cloud Console: create an OAuth client of type "Web application"

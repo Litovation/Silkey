@@ -371,9 +371,6 @@ function App() {
         <ErrorBoundary context="What's New">
           <WhatsNewGate />
         </ErrorBoundary>
-        <ErrorBoundary context="Updater">
-          <AutoUpdater />
-        </ErrorBoundary>
         {/* Main content area that takes remaining space */}
         <div className="flex-1 flex overflow-hidden">
           <Sidebar onOpenSettings={setSettingsTab} />
@@ -406,6 +403,11 @@ function App() {
   return (
     <>
       {toaster}
+      {/* Mounted outside the step switch so signed-out and blocked users
+          still receive fixes. */}
+      <ErrorBoundary context="Updater">
+        <AutoUpdater />
+      </ErrorBoundary>
       {content}
     </>
   );
