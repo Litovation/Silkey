@@ -4,7 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { LogIn, LogOut, RefreshCw, ShieldAlert, WifiOff } from "lucide-react";
 import SilktoneWordmark from "../icons/SilktoneWordmark";
 import { Button } from "../ui/Button";
-import { AuroraBackdrop } from "../ui/AuroraBackdrop";
+import { SetupBackdrop } from "../ui/SetupBackdrop";
 import { useAuthStore } from "../../stores/authStore";
 import type { BlockReason } from "../../lib/auth";
 
@@ -12,7 +12,7 @@ const SITE_URL = "https://silktone.litovation.in";
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="fixed inset-0 flex items-center justify-center overflow-hidden p-6 select-none cursor-default">
-    <AuroraBackdrop />
+    <SetupBackdrop />
     <div className="glass-panel relative flex w-full max-w-md flex-col items-center gap-6 rounded-3xl p-10 text-center">
       <SilktoneWordmark width={190} />
       {children}

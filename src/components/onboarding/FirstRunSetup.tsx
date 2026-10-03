@@ -6,7 +6,7 @@ import { Check, Loader2 } from "lucide-react";
 import { commands } from "@/bindings";
 import SilktoneWordmark from "../icons/SilktoneWordmark";
 import { Button } from "../ui/Button";
-import { AuroraBackdrop } from "../ui/AuroraBackdrop";
+import { SetupBackdrop } from "../ui/SetupBackdrop";
 import { ShortcutInput } from "../settings/ShortcutInput";
 import { TrackpadDoubleTap } from "../settings/TrackpadDoubleTap";
 import { useSettings } from "../../hooks/useSettings";
@@ -189,7 +189,7 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
 
   return (
     <div className="fixed inset-0 overflow-hidden flex items-center justify-center p-6 select-none cursor-default">
-      <AuroraBackdrop />
+      <SetupBackdrop />
       <div className="glass-panel relative flex w-full max-w-[880px] max-h-full min-h-[440px] overflow-hidden rounded-3xl">
         <aside className="flex w-56 shrink-0 flex-col gap-8 border-e border-mid-gray/15 p-7">
           <SilktoneWordmark width={150} className="text-text" />

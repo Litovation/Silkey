@@ -195,58 +195,26 @@
   }
 }
 
-/* Full-screen backdrop for sign-in and first-run: a ribbon clip blurred until
-   only its colour and movement are left, over a faint brand-pink wash. */
-.aurora {
-  /* Fixed to the window, not the parent, so it always fills the whole screen. */
+/* Full-screen backdrop for sign-in and first-run: a plain grey surface, fixed
+   to the window so it always fills the whole screen. */
+.setup-backdrop {
   position: fixed;
   inset: 0;
-  overflow: hidden;
-  background:
-    radial-gradient(
-      60% 55% at 100% 100%,
-      color-mix(in srgb, var(--color-brand-pink) 16%, transparent),
-      transparent 70%
-    ),
-    var(--color-background);
+  background: color-mix(
+    in srgb,
+    var(--color-background),
+    var(--color-mid-gray) 22%
+  );
 }
 
 /* These screens never scroll the page, so drop the reserved scrollbar gutter
    that would otherwise leave an uncovered strip at the window edges. */
-:root:has(.aurora) {
+:root:has(.setup-backdrop) {
   scrollbar-gutter: auto;
   overflow: hidden;
 }
 
-/* The clip is on white. Multiply drops the white into the light background;
-   in dark themes it is inverted (hue kept) and screened in instead. */
-.aurora-video {
-  position: absolute;
-  inset: -12%;
-  width: 124%;
-  height: 124%;
-  object-fit: cover;
-  pointer-events: none;
-  filter: blur(34px) saturate(140%);
-  opacity: 0.8;
-  mix-blend-mode: multiply;
-}
-
-:root[data-theme="dark"] .aurora-video {
-  filter: blur(34px) invert(1) hue-rotate(180deg) saturate(140%);
-  opacity: 0.55;
-  mix-blend-mode: screen;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .aurora-video {
-    filter: blur(34px) invert(1) hue-rotate(180deg) saturate(140%);
-    opacity: 0.55;
-    mix-blend-mode: screen;
-  }
-}
-
-/* Large glass surface for dialogs that sit on the aurora backdrop. */
+/* Large glass surface for dialogs that sit on the setup backdrop. */
 .glass-panel {
   background: color-mix(in srgb, var(--color-background) 62%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent);
