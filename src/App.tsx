@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useState,
@@ -18,7 +19,8 @@ import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
 import Footer from "./components/footer";
-import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
+import { AccessibilityOnboarding } from "./components/onboarding";
+import FirstRunSetup from "./components/onboarding/FirstRunSetup";
 import { type OnboardingPreviewStep } from "./components/settings";
 import {
   SettingsModal,
@@ -34,11 +36,12 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar } from "./components/Sidebar";
 import { WhatsNewGate } from "./components/whats-new";
 import { useSettings } from "./hooks/useSettings";
+import { useAutoModelSetup } from "./hooks/useAutoModelSetup";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
-type OnboardingStep = "accessibility" | "model" | "done";
+type OnboardingStep = "accessibility" | "setup" | "done";
 
 // Stable identity so preview effects do not re-run due to callback changes.
 const NOOP = () => {};
@@ -68,7 +71,12 @@ function App() {
   const isShowingOnboarding =
     onboardingPreview !== null ||
     onboardingStep === "accessibility" ||
-    onboardingStep === "model";
+    onboardingStep === "setup";
+  // The speech model is downloaded and selected automatically, for new users
+  // during setup and for anyone whose model has gone missing.
+  const { status: engineStatus, retry: retryEngine } = useAutoModelSetup(
+    onboardingStep !== null,
+  );
 
   // Classic scrollbars consume layout space. Reserve a matching gutter on the
   // opposite edge while onboarding is visible so its content stays centered in
@@ -274,16 +282,12 @@ function App() {
     }
   };
 
-  const handleAccessibilityComplete = () => {
-    // Returning users already have models, skip to main app
-    // New users need to select a model
-    setOnboardingStep(isReturningUser ? "done" : "model");
-  };
-
-  const handleModelSelected = () => {
-    // Transition to main app - user has started a download
-    setOnboardingStep("done");
-  };
+  // Stable identity: AccessibilityOnboarding re-runs its permission check
+  // whenever this changes, and download progress re-renders App often.
+  const handleAccessibilityComplete = useCallback(() => {
+    // Returning users have been through setup; new users get the walkthrough.
+    setOnboardingStep(isReturningUser ? "done" : "setup");
+  }, [isReturningUser]);
 
   // Rendered once around every step below (including onboarding) so
   // toast.error() calls surface to the user. sonner renders via a portal, so
@@ -329,7 +333,12 @@ function App() {
         {onboardingPreview === "accessibility" ? (
           <AccessibilityOnboarding onComplete={NOOP} preview />
         ) : (
-          <Onboarding onModelSelected={NOOP} preview />
+          <FirstRunSetup
+            engine={engineStatus}
+            onRetryEngine={NOOP}
+            onComplete={NOOP}
+            preview
+          />
         )}
         <button
           type="button"
@@ -344,8 +353,14 @@ function App() {
     content = (
       <AccessibilityOnboarding onComplete={handleAccessibilityComplete} />
     );
-  } else if (onboardingStep === "model") {
-    content = <Onboarding onModelSelected={handleModelSelected} />;
+  } else if (onboardingStep === "setup") {
+    content = (
+      <FirstRunSetup
+        engine={engineStatus}
+        onRetryEngine={retryEngine}
+        onComplete={() => setOnboardingStep("done")}
+      />
+    );
   } else {
     content = (
       <div

@@ -170,8 +170,12 @@ enum Effect {
 /// Commands processed sequentially by the coordinator thread.
 enum Command {
     Input(InputEvent),
-    Cancel { recording_was_active: bool },
+    Cancel {
+        recording_was_active: bool,
+    },
     ProcessingFinished,
+    /// The recorder heard nothing for the silence auto-stop window.
+    Silence,
 }
 
 /// Decide whether a key-up should be deferred (so auto-repeat can cancel it)
@@ -472,6 +476,20 @@ impl CoordinatorState {
         }
     }
 
+    /// The microphone has been silent for the auto-stop window: end the
+    /// current recording exactly as a stop press would, so the speech so far
+    /// is transcribed and pasted. A held push-to-talk key's later release
+    /// then lands on a busy or idle pipeline and is ignored.
+    fn on_silence(&mut self) -> Option<Effect> {
+        let Stage::Recording(binding_id) = &self.stage else {
+            return None;
+        };
+        let binding_id = binding_id.clone();
+        debug!("Silence auto-stop for '{binding_id}'");
+        self.pending_release = None;
+        Some(self.begin_processing(binding_id, "silence".to_string()))
+    }
+
     fn on_processing_finished(&mut self) -> Option<Effect> {
         self.stage = Stage::Idle;
         self.hold = None;
@@ -581,6 +599,11 @@ impl TranscriptionCoordinator {
                                 run_effect(&app, &mut state, effect);
                             }
                         }
+                        Command::Silence => {
+                            if let Some(effect) = state.on_silence() {
+                                run_effect(&app, &mut state, effect);
+                            }
+                        }
                     }
                 }
                 debug!("Transcription coordinator exited");
@@ -659,6 +682,13 @@ impl TranscriptionCoordinator {
             })
             .is_err()
         {
+            warn!("Transcription coordinator channel closed");
+        }
+    }
+
+    /// Called from the recorder when the silence auto-stop window elapses.
+    pub fn notify_silence(&self) {
+        if self.tx.send(Command::Silence).is_err() {
             warn!("Transcription coordinator channel closed");
         }
     }
@@ -1469,6 +1499,37 @@ mod tests {
             state.on_input(input(ShortcutActivation::Toggle, true), t0 + ms(2000)),
             Some(Effect::Stop { .. })
         ));
+    }
+
+    /// Silence ends a recording like a stop press; with nothing recording it
+    /// does nothing.
+    #[test]
+    fn silence_stops_only_an_active_recording() {
+        let mode = ShortcutActivation::Toggle;
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        assert!(state.on_silence().is_none());
+        state.on_input(input(mode, true), t0);
+        assert!(matches!(state.on_silence(), Some(Effect::Stop { .. })));
+        assert_eq!(state.stage, Stage::Processing);
+        assert!(state.on_silence().is_none());
+    }
+
+    /// A push-to-talk key still held when silence stopped the recording must
+    /// not start or stop anything when it is finally released.
+    #[test]
+    fn push_to_talk_release_after_silence_stop_is_ignored() {
+        let mode = ShortcutActivation::PushToTalk;
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        state.on_input(input(mode, true), t0);
+        assert!(matches!(state.on_silence(), Some(Effect::Stop { .. })));
+        assert!(state.on_input(input(mode, false), t0 + ms(6000)).is_none());
+        assert!(state.on_grace_expired().is_none());
+        assert!(state.on_processing_finished().is_none());
+        assert_eq!(state.stage, Stage::Idle);
     }
 
     // Hold-vs-tap classification while the previous transcription is busy.

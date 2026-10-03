@@ -335,7 +335,8 @@ pub fn change_keyboard_implementation_setting(
     }
 
     // Initialize new implementation if needed (NativeKeys needs state)
-    if new_impl == KeyboardImplementation::NativeKeys && initialize_native_keys_with_rollback(&app)? {
+    if new_impl == KeyboardImplementation::NativeKeys && initialize_native_keys_with_rollback(&app)?
+    {
         // Shortcuts already registered during init.
         crate::secure_input::reconcile_fallback(&app);
         return Ok(ImplementationChangeResult {
@@ -1272,6 +1273,15 @@ pub fn change_append_trailing_space_setting(app: AppHandle, enabled: bool) -> Re
 pub fn change_lazy_stream_close_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.lazy_stream_close = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_silence_auto_stop_setting(app: AppHandle, seconds: u32) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.silence_auto_stop_secs = seconds;
     settings::write_settings(&app, settings);
     Ok(())
 }

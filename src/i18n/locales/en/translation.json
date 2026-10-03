@@ -213,6 +213,10 @@
           "push_to_talk": "Records while you hold the shortcut",
           "toggle": "Tap the shortcut to start recording, tap again to stop"
         }
+      },
+      "silenceAutoStop": {
+        "label": "Stop When I Stop Talking",
+        "description": "After {{seconds}} seconds of silence, recording stops and what you said is pasted."
       }
     },
     "models": {
@@ -869,6 +873,38 @@
         "good": "Great pace. Keep the microphone about a hand's width from your mouth.",
         "fast": "Slow down a little and finish each word. Accuracy improves."
       }
+    }
+  },
+  "firstRun": {
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip for now",
+    "engine": {
+      "preparing": "Getting Silktone ready…",
+      "downloading": "Downloading the speech engine… {{percent}}%",
+      "ready": "Speech engine ready",
+      "failed": "The speech engine could not be downloaded.",
+      "retry": "Try again"
+    },
+    "shortcut": {
+      "title": "Your dictation shortcut",
+      "description": "Hold these keys anywhere on your PC and speak. Silktone types what you say. You can change the keys below.",
+      "trackpadHint": "On a laptop, you can also double-tap the touchpad with two fingers to start and stop dictating."
+    },
+    "practice": {
+      "title": "Try it once",
+      "description": "Click in the box, hold the keys, say the sentence below, then let go. The keys light up while you hold them.",
+      "sentence": "From now on, my workflow will be very easy",
+      "quote": "“{{sentence}}”",
+      "placeholder": "Your words will appear here…",
+      "waiting": "Waiting for the speech engine to finish downloading…",
+      "success": "Perfect. That's all there is to it."
+    },
+    "done": {
+      "title": "You're all set",
+      "description": "Silktone now waits quietly in the system tray. Press your shortcut in any app to dictate.",
+      "stillDownloading": "The speech engine is still downloading. Dictation will work as soon as it finishes.",
+      "finish": "Finish"
     }
   }
 }

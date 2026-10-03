@@ -1,35 +1,13 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useSettings } from "../../hooks/useSettings";
-import { useOsType } from "../../hooks/useOsType";
-import { formatKeyCombination } from "../../lib/utils/keyboard";
+import { useShortcutKeycaps } from "../../hooks/useShortcutKeycaps";
 import { HistorySettings } from "../settings/history/HistorySettings";
 import { ToneBanner } from "./ToneBanner";
 import { StatsCard } from "./StatsCard";
 
-const DEFAULT_KEYS = ["Ctrl", "Windows"];
-
-// "Left Ctrl + Left Super" reads better here as "Ctrl" + "Windows".
-const toKeycaps = (combination: string): string[] =>
-  combination
-    .split("+")
-    .map((key) =>
-      key
-        .trim()
-        .replace(/^(Left|Right)\s+/i, "")
-        .replace(/^(Super|Win|Meta)$/i, "Windows"),
-    )
-    .filter(Boolean);
-
 export const HomePage: React.FC = () => {
   const { t } = useTranslation();
-  const { getSetting } = useSettings();
-  const osType = useOsType();
-
-  const binding = getSetting("bindings")?.transcribe?.current_binding;
-  const keys = binding
-    ? toKeycaps(formatKeyCombination(binding, osType))
-    : DEFAULT_KEYS;
+  const keys = useShortcutKeycaps();
 
   return (
     <div className="max-w-5xl w-full mx-auto space-y-5">

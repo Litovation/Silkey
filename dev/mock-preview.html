@@ -7,8 +7,10 @@
     <script>
       // Browser-only stand-in for the Tauri backend so the settings UI can be
       // looked at without building the Rust app. Not shipped.
+      // ?firstRun=1 shows the first-launch walkthrough with the model mid-download.
+      const firstRun = new URLSearchParams(location.search).has("firstRun");
       const settings = {
-        onboarding_completed: true,
+        onboarding_completed: !firstRun,
         bindings: {
           transcribe: {
             id: "transcribe",
@@ -27,7 +29,7 @@
         },
         shortcut_activation: "hold_or_toggle",
         selected_language: "en",
-        selected_model: "mock",
+        selected_model: firstRun ? "" : "mock",
         app_language: "en",
         theme: new URLSearchParams(location.search).get("theme") || "light",
         autostart_enabled: true,
@@ -64,8 +66,10 @@
         id: "mock",
         name: "Mock",
         description: "",
-        is_downloaded: true,
+        is_downloaded: !firstRun,
         is_downloading: false,
+        is_recommended: true,
+        source: { HuggingFace: {} },
         supported_languages: ["en", "hi", "fr"],
         supports_language_selection: true,
         supports_language_detection: true,
@@ -76,7 +80,8 @@
         get_app_settings: () => settings,
         get_default_settings: () => settings,
         get_available_models: () => [model],
-        get_current_model: () => "mock",
+        get_current_model: () => settings.selected_model,
+        download_model: () => new Promise(() => {}),
         get_model_info: () => model,
         "plugin:app|version": () => "0.1.1",
         "plugin:event|listen": () => 1,

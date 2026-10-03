@@ -475,6 +475,10 @@ pub struct AppSettings {
     /// Two-finger double-tap on the touchpad toggles recording (Windows).
     #[serde(default)]
     pub trackpad_double_tap_enabled: bool,
+    /// Seconds of silence after which a recording stops and pastes on its
+    /// own. Zero turns the auto-stop off.
+    #[serde(default = "default_silence_auto_stop_secs")]
+    pub silence_auto_stop_secs: u32,
     #[serde(default)]
     pub keyboard_implementation: KeyboardImplementation,
     #[serde(default = "default_show_tray_icon")]
@@ -546,6 +550,10 @@ fn default_translate_to_english() -> bool {
 
 fn default_start_hidden() -> bool {
     false
+}
+
+fn default_silence_auto_stop_secs() -> u32 {
+    5
 }
 
 fn default_autostart_enabled() -> bool {
@@ -987,6 +995,7 @@ pub fn get_default_settings() -> AppSettings {
         experimental_enabled: false,
         lazy_stream_close: true,
         trackpad_double_tap_enabled: false,
+        silence_auto_stop_secs: default_silence_auto_stop_secs(),
         keyboard_implementation: KeyboardImplementation::default(),
         show_tray_icon: default_show_tray_icon(),
         paste_delay_ms: default_paste_delay_ms(),

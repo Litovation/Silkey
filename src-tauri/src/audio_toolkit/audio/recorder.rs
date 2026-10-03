@@ -23,7 +23,8 @@ use crate::audio_toolkit::{
 enum Cmd {
     /// Begin capturing. Carries the send timestamp so the consumer can log how
     /// long the command sat in the channel, plus a one-shot first-sample acknowledgement.
-    Start(VadPolicy, Instant, mpsc::Sender<()>),
+    /// Also carries the optional silence auto-stop window for this session.
+    Start(VadPolicy, Option<Duration>, Instant, mpsc::Sender<()>),
     Stop(mpsc::Sender<Vec<f32>>),
     Shutdown,
 }
@@ -84,6 +85,9 @@ impl VadConfig {
 /// policy while recording. Used to feed a live streaming transcription as audio arrives.
 pub type AudioFrameCallback = Arc<dyn Fn(&[f32]) + Send + Sync + 'static>;
 pub type LevelCallback = Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>;
+/// Called once per recording when VAD has heard no speech for the session's
+/// silence window. Runs on the consumer thread, so it must stay cheap.
+pub type SilenceCallback = Arc<dyn Fn() + Send + Sync + 'static>;
 
 pub struct AudioRecorder {
     device: Option<Device>,
@@ -92,6 +96,7 @@ pub struct AudioRecorder {
     vad: Option<VadConfig>,
     level_cb: Option<LevelCallback>,
     audio_cb: Option<AudioFrameCallback>,
+    silence_cb: Option<SilenceCallback>,
     /// Which input channel to use. None = average all (original behavior).
     selected_channel: Option<usize>,
     /// Preferred stream config cached per device name. The two HAL property
@@ -114,6 +119,7 @@ impl AudioRecorder {
             vad: None,
             level_cb: None,
             audio_cb: None,
+            silence_cb: None,
             selected_channel: None,
             config_cache: Arc::new(Mutex::new(None)),
             stream_error: Arc::new(AtomicBool::new(false)),
@@ -160,6 +166,17 @@ impl AudioRecorder {
         self
     }
 
+    /// Register a callback fired once per recording after a run of non-speech
+    /// frames as long as the window passed to [`AudioRecorder::start_with_silence_timeout`].
+    /// Only VAD-filtered sessions can detect silence; `VadPolicy::Disabled` never fires.
+    pub fn with_silence_callback<F>(mut self, cb: F) -> Self
+    where
+        F: Fn() + Send + Sync + 'static,
+    {
+        self.silence_cb = Some(Arc::new(cb));
+        self
+    }
+
     pub fn with_selected_channel(mut self, channel: Option<u16>) -> Self {
         self.set_selected_channel(channel);
         self
@@ -197,6 +214,7 @@ impl AudioRecorder {
         let level_cb = self.level_cb.clone();
         // Move the optional real-time audio frame callback into the worker thread
         let audio_cb = self.audio_cb.clone();
+        let silence_cb = self.silence_cb.clone();
         let selected_channel = self.selected_channel;
         let config_cache = Arc::clone(&self.config_cache);
         let stream_error = Arc::clone(&self.stream_error);
@@ -326,6 +344,7 @@ impl AudioRecorder {
                         vad,
                         level_cb,
                         audio_cb,
+                        silence_cb,
                         stream_running_at,
                     );
                     run_consumer(
@@ -381,12 +400,27 @@ impl AudioRecorder {
         &self,
         vad_policy: VadPolicy,
     ) -> Result<mpsc::Receiver<()>, Box<dyn std::error::Error>> {
+        self.start_with_silence_timeout(vad_policy, None)
+    }
+
+    /// Like [`AudioRecorder::start`], but also arms the silence callback: once
+    /// VAD has passed no speech for `silence_timeout`, it fires once.
+    pub fn start_with_silence_timeout(
+        &self,
+        vad_policy: VadPolicy,
+        silence_timeout: Option<Duration>,
+    ) -> Result<mpsc::Receiver<()>, Box<dyn std::error::Error>> {
         let tx = self
             .cmd_tx
             .as_ref()
             .ok_or_else(|| Error::other("Recorder is not open"))?;
         let (ready_tx, ready_rx) = mpsc::channel();
-        tx.send(Cmd::Start(vad_policy, Instant::now(), ready_tx))?;
+        tx.send(Cmd::Start(
+            vad_policy,
+            silence_timeout,
+            Instant::now(),
+            ready_tx,
+        ))?;
         Ok(ready_rx)
     }
 
@@ -630,13 +664,14 @@ pub fn is_no_input_device_error(error_message: &str) -> bool {
 
 /// Route one 16 kHz frame through VAD to recording and live outputs.
 /// Kept free-standing to permit disjoint borrows around resampler callbacks.
+/// Returns whether the frame was kept as speech (always true without VAD).
 fn handle_frame(
     samples: &[f32],
     vad_policy: VadPolicy,
     vad: &Option<VadConfig>,
     audio_cb: &Option<AudioFrameCallback>,
     out_buf: &mut Vec<f32>,
-) {
+) -> bool {
     let mut emit = |buf: &[f32]| {
         out_buf.extend_from_slice(buf);
         if let Some(cb) = audio_cb {
@@ -646,7 +681,7 @@ fn handle_frame(
 
     if vad_policy == VadPolicy::Disabled {
         emit(samples);
-        return;
+        return true;
     }
 
     if let Some(cfg) = vad {
@@ -655,11 +690,54 @@ fn handle_frame(
             .push_frame(samples)
             .unwrap_or(VadFrame::Speech(samples))
         {
-            VadFrame::Speech(buf) => emit(buf),
-            VadFrame::Noise => {}
+            VadFrame::Speech(buf) => {
+                emit(buf);
+                true
+            }
+            VadFrame::Noise => false,
         }
     } else {
         emit(samples);
+        true
+    }
+}
+
+/// Counts consecutive non-speech audio in one recording and reports, once,
+/// when it reaches the armed window. Time is measured in 16 kHz samples
+/// rather than wall-clock so a stalled consumer cannot fire it early.
+#[derive(Default)]
+struct SilenceWatch {
+    limit_samples: Option<usize>,
+    silent_samples: usize,
+    fired: bool,
+}
+
+impl SilenceWatch {
+    fn arm(&mut self, timeout: Option<Duration>) {
+        self.limit_samples = timeout
+            .map(|t| (t.as_secs_f64() * constants::WHISPER_SAMPLE_RATE as f64).round() as usize);
+        self.silent_samples = 0;
+        self.fired = false;
+    }
+
+    /// Record one frame; returns true exactly once, when silence reaches the limit.
+    fn observe(&mut self, frame_samples: usize, is_speech: bool) -> bool {
+        let Some(limit) = self.limit_samples else {
+            return false;
+        };
+        if self.fired {
+            return false;
+        }
+        if is_speech {
+            self.silent_samples = 0;
+            return false;
+        }
+        self.silent_samples += frame_samples;
+        if self.silent_samples >= limit {
+            self.fired = true;
+            return true;
+        }
+        false
     }
 }
 
@@ -704,6 +782,7 @@ struct CaptureProcessor {
     vad: Option<VadConfig>,
     level_cb: Option<LevelCallback>,
     audio_cb: Option<AudioFrameCallback>,
+    silence_cb: Option<SilenceCallback>,
     stream_running_at: Instant,
     visualizer: AudioVisualiser,
     frame_resampler: FrameResampler,
@@ -712,6 +791,7 @@ struct CaptureProcessor {
 
     // ---- recording-scoped: reset by `begin_recording` ------------------- //
     vad_policy: VadPolicy,
+    silence: SilenceWatch,
     processed_samples: Vec<f32>,
     awaiting_first_captured_chunk: Option<Instant>,
     capture_ready_tx: Option<mpsc::Sender<()>>,
@@ -725,6 +805,7 @@ impl CaptureProcessor {
         vad: Option<VadConfig>,
         level_cb: Option<LevelCallback>,
         audio_cb: Option<AudioFrameCallback>,
+        silence_cb: Option<SilenceCallback>,
         stream_running_at: Instant,
     ) -> Self {
         // Resample into frames sized for the active VAD backend (30 ms when
@@ -757,12 +838,14 @@ impl CaptureProcessor {
             vad,
             level_cb,
             audio_cb,
+            silence_cb,
             stream_running_at,
             visualizer,
             frame_resampler,
             max_drain_samples,
             first_chunk_logged: false,
             vad_policy: VadPolicy::Offline,
+            silence: SilenceWatch::default(),
             processed_samples: Vec::new(),
             awaiting_first_captured_chunk: None,
             capture_ready_tx: None,
@@ -772,12 +855,24 @@ impl CaptureProcessor {
     }
 
     /// Reset per-recording state and arm the first-sample acknowledgement.
-    fn begin_recording(&mut self, policy: VadPolicy, ready_tx: mpsc::Sender<()>) {
+    fn begin_recording(
+        &mut self,
+        policy: VadPolicy,
+        silence_timeout: Option<Duration>,
+        ready_tx: mpsc::Sender<()>,
+    ) {
         self.awaiting_first_captured_chunk = Some(Instant::now());
         self.capture_ready_tx = Some(ready_tx);
         self.total_dropped_samples = 0;
         self.overrun_warning_logged = false;
         self.vad_policy = policy;
+        // Without VAD every frame counts as speech, so silence can't be detected.
+        self.silence
+            .arm(if policy == VadPolicy::Disabled || self.vad.is_none() {
+                None
+            } else {
+                silence_timeout
+            });
         self.processed_samples.clear();
         self.visualizer.reset();
         self.frame_resampler.reset();
@@ -828,15 +923,23 @@ impl CaptureProcessor {
         }
 
         let vad_policy = self.vad_policy;
+        let mut silence_reached = false;
         self.frame_resampler.push(raw, |frame: &[f32]| {
-            handle_frame(
+            let is_speech = handle_frame(
                 frame,
                 vad_policy,
                 &self.vad,
                 &self.audio_cb,
                 &mut self.processed_samples,
-            )
+            );
+            silence_reached |= self.silence.observe(frame.len(), is_speech);
         });
+        if silence_reached {
+            log::debug!("Silence window reached; requesting auto-stop");
+            if let Some(callback) = &self.silence_cb {
+                callback();
+            }
+        }
 
         if let Some(started) = self.awaiting_first_captured_chunk.take() {
             log::debug!(
@@ -878,8 +981,9 @@ impl CaptureProcessor {
                 &self.vad,
                 &self.audio_cb,
                 &mut self.processed_samples,
-            )
+            );
         });
+        self.silence.arm(None);
 
         // Diagnostic for VAD audio still withheld when capture stopped; it is
         // not conclusive in either direction.
@@ -941,7 +1045,7 @@ fn run_consumer(
         loop {
             if let Some(cmd) = command.take() {
                 match cmd {
-                    Cmd::Start(policy, sent_at, ready_tx) => {
+                    Cmd::Start(policy, silence_timeout, sent_at, ready_tx) => {
                         log::debug!(
                             "Cmd::Start processed {:?} after send; capture begins with {} samples",
                             sent_at.elapsed(),
@@ -954,7 +1058,7 @@ fn run_consumer(
                         // Ignore overruns accumulated while the always-on stream
                         // was idle; only active-capture loss is relevant.
                         transport.overrun_samples.store(0, Ordering::Release);
-                        processor.begin_recording(policy, ready_tx);
+                        processor.begin_recording(policy, silence_timeout, ready_tx);
                         recording = true;
                     }
                     Cmd::Stop(reply_tx) => {

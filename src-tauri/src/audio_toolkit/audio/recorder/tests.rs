@@ -1,12 +1,13 @@
 use super::{
     is_microphone_access_denied, is_no_input_device_error, run_consumer, AudioRecorder,
-    CaptureProcessor, CaptureTransportState, ChunkDisposition, Cmd, VadConfig, VadPolicy,
+    CaptureProcessor, CaptureTransportState, ChunkDisposition, Cmd, SilenceWatch, VadConfig,
+    VadPolicy,
 };
 use crate::audio_toolkit::vad::{VadFrame, VoiceActivityDetector};
 use rtrb::RingBuffer;
 use std::{
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         mpsc, Arc, Mutex,
     },
     thread,
@@ -58,11 +59,12 @@ fn resampler_frame_size_follows_the_vad_backend() {
         Some(Arc::new(move |frame: &[f32]| {
             observed.lock().unwrap().push(frame.len())
         })),
+        None,
         Instant::now(),
     );
 
     let (ready_tx, _ready_rx) = mpsc::channel();
-    processor.begin_recording(VadPolicy::Offline, ready_tx);
+    processor.begin_recording(VadPolicy::Offline, None, ready_tx);
     processor.process_raw_chunk(&[0.0; 1024], ChunkDisposition::Capture);
     let samples = processor.finish_recording();
 
@@ -72,7 +74,7 @@ fn resampler_frame_size_follows_the_vad_backend() {
 
 #[test]
 fn idle_chunks_are_discarded_without_reaching_the_recording() {
-    let mut processor = CaptureProcessor::new(16_000, None, None, None, Instant::now());
+    let mut processor = CaptureProcessor::new(16_000, None, None, None, None, Instant::now());
     processor.process_raw_chunk(&[1.0; 480], ChunkDisposition::Discard);
     assert!(processor.finish_recording().is_empty());
 }
@@ -84,7 +86,7 @@ fn shutdown_is_processed_without_audio_samples() {
     let (done_tx, done_rx) = mpsc::channel();
     let worker = thread::spawn(move || {
         run_consumer(
-            CaptureProcessor::new(48_000, None, None, None, Instant::now()),
+            CaptureProcessor::new(48_000, None, None, None, None, Instant::now()),
             consumer,
             cmd_rx,
             Arc::new(CaptureTransportState::default()),
@@ -248,6 +250,7 @@ fn repeated_start_stop_cycles_resume_capture_without_leaking_samples() {
             Some(Arc::new(move |frame: &[f32]| {
                 streamed_cb.lock().unwrap().extend_from_slice(frame)
             })),
+            None,
             Instant::now(),
         );
         run_consumer(
@@ -270,7 +273,12 @@ fn repeated_start_stop_cycles_resume_capture_without_leaking_samples() {
     let first_input = [0.25f32, -0.5, 1.0];
     let (ready_tx, ready_rx) = mpsc::channel();
     cmd_tx
-        .send(Cmd::Start(VadPolicy::Disabled, Instant::now(), ready_tx))
+        .send(Cmd::Start(
+            VadPolicy::Disabled,
+            None,
+            Instant::now(),
+            ready_tx,
+        ))
         .expect("first start");
     AudioRecorder::write_input_to_ring(&first_input, 1, None, &mut producer, &transport);
     ready_rx
@@ -305,7 +313,12 @@ fn repeated_start_stop_cycles_resume_capture_without_leaking_samples() {
     let second_input = [0.75f32, -0.25, 0.5];
     let (ready_tx, ready_rx) = mpsc::channel();
     cmd_tx
-        .send(Cmd::Start(VadPolicy::Disabled, Instant::now(), ready_tx))
+        .send(Cmd::Start(
+            VadPolicy::Disabled,
+            None,
+            Instant::now(),
+            ready_tx,
+        ))
         .expect("second start");
     AudioRecorder::write_input_to_ring(&second_input, 1, None, &mut producer, &transport);
     ready_rx
@@ -356,7 +369,7 @@ fn missing_callback_at_stop_marks_stream_for_rebuild_and_returns_samples() {
     let worker_transport = Arc::clone(&transport);
     let worker = thread::spawn(move || {
         run_consumer(
-            CaptureProcessor::new(16_000, None, None, None, Instant::now()),
+            CaptureProcessor::new(16_000, None, None, None, None, Instant::now()),
             consumer,
             cmd_rx,
             worker_transport,
@@ -366,7 +379,12 @@ fn missing_callback_at_stop_marks_stream_for_rebuild_and_returns_samples() {
 
     let (ready_tx, _ready_rx) = mpsc::channel();
     cmd_tx
-        .send(Cmd::Start(VadPolicy::Disabled, Instant::now(), ready_tx))
+        .send(Cmd::Start(
+            VadPolicy::Disabled,
+            None,
+            Instant::now(),
+            ready_tx,
+        ))
         .expect("start");
     let (reply_tx, reply_rx) = mpsc::channel();
     cmd_tx.send(Cmd::Stop(reply_tx)).expect("stop");
@@ -415,4 +433,90 @@ fn detects_coreaudio_config_error() {
 fn does_not_match_other_errors_for_no_device() {
     assert!(!is_no_input_device_error("permission denied"));
     assert!(!is_no_input_device_error("device not found"));
+}
+
+/// Detector that calls every frame noise, so a session is all silence.
+struct AlwaysNoiseVad;
+
+impl VoiceActivityDetector for AlwaysNoiseVad {
+    fn push_frame<'a>(&'a mut self, _frame: &'a [f32]) -> anyhow::Result<VadFrame<'a>> {
+        Ok(VadFrame::Noise)
+    }
+
+    fn frame_samples(&self) -> usize {
+        480
+    }
+}
+
+fn silent_processor(fired: Arc<AtomicUsize>) -> CaptureProcessor {
+    let vad = VadConfig {
+        detector: Arc::new(Mutex::new(Box::new(AlwaysNoiseVad))),
+        frame_samples: 480,
+        offline_hangover_frames: 0,
+        streaming_hangover_frames: 0,
+    };
+    CaptureProcessor::new(
+        16_000,
+        Some(vad),
+        None,
+        None,
+        Some(Arc::new(move || {
+            fired.fetch_add(1, Ordering::SeqCst);
+        })),
+        Instant::now(),
+    )
+}
+
+#[test]
+fn silence_callback_fires_once_after_the_window() {
+    let fired = Arc::new(AtomicUsize::new(0));
+    let mut processor = silent_processor(Arc::clone(&fired));
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(
+        VadPolicy::Offline,
+        Some(Duration::from_millis(100)),
+        ready_tx,
+    );
+
+    // 90 ms of noise: below the window.
+    processor.process_raw_chunk(&[0.0; 1440], ChunkDisposition::Capture);
+    assert_eq!(fired.load(Ordering::SeqCst), 0);
+
+    // Crossing 100 ms fires, and further silence does not fire again.
+    processor.process_raw_chunk(&[0.0; 4800], ChunkDisposition::Capture);
+    assert_eq!(fired.load(Ordering::SeqCst), 1);
+    processor.process_raw_chunk(&[0.0; 4800], ChunkDisposition::Capture);
+    assert_eq!(fired.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn silence_callback_needs_vad_and_an_armed_window() {
+    let fired = Arc::new(AtomicUsize::new(0));
+    let mut processor = silent_processor(Arc::clone(&fired));
+
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(VadPolicy::Offline, None, ready_tx);
+    processor.process_raw_chunk(&[0.0; 16_000], ChunkDisposition::Capture);
+    processor.finish_recording();
+
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(
+        VadPolicy::Disabled,
+        Some(Duration::from_millis(100)),
+        ready_tx,
+    );
+    processor.process_raw_chunk(&[0.0; 16_000], ChunkDisposition::Capture);
+
+    assert_eq!(fired.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn speech_resets_the_silence_count() {
+    let mut watch = SilenceWatch::default();
+    watch.arm(Some(Duration::from_millis(60)));
+    assert!(!watch.observe(480, false));
+    assert!(!watch.observe(480, true));
+    assert!(!watch.observe(480, false));
+    assert!(watch.observe(480, false));
+    assert!(!watch.observe(480, false));
 }

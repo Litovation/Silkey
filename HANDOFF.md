@@ -90,6 +90,21 @@ It is a stand-in: it proves layout and text, not real behaviour.
 - **Installer:** logo header, install-location screen only, auto-launch, no
   portable choice.
 - **Trackpad:** two-finger double-tap to dictate (Windows), off by default.
+- **Silence auto-stop:** after 5 seconds with no speech, the recording stops
+  and what was said is pasted, exactly as if the shortcut had been pressed.
+  Setting `silence_auto_stop_secs` (0 = off); a "Stop When I Stop Talking"
+  toggle sits in Settings → General. Works only while voice detection (VAD)
+  is on, which is the default. Key files: `recorder.rs` (`SilenceWatch`),
+  `transcription_coordinator.rs` (`on_silence`).
+- **Automatic model + first-launch walkthrough:** the speech model downloads
+  and is selected on its own (`src/hooks/useAutoModelSetup.ts`), also for a
+  returning user whose model is missing. The walkthrough
+  (`src/components/onboarding/FirstRunSetup.tsx`) follows the sign-in
+  screen and has three steps: shortcut
+  (with the trackpad option explained), a practice box where the held keys
+  light up and the user says "From now on, my workflow will be very easy",
+  then "You're all set", which hides the window to the tray. Preview it with
+  `dev/mock-preview.html?firstRun=1`.
 
 Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
 `src/components/settings/SettingsModal.tsx`, `src/lib/dictationStats.ts`,
@@ -101,6 +116,13 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
 - The Rust default changes, the login-launch-to-tray change and the installer
   edits have never been compiled or run.
 - The stats card has only been seen with sample numbers, not real dictations.
+- Silence auto-stop and the walkthrough have unit tests and a browser
+  preview, but have not been tried in the real Windows app. In particular:
+  whether the held-key glow sees the Windows key, and whether the practice
+  dictation types into the practice box.
+- The walkthrough counts as finished once the model is selected (the backend
+  marks onboarding complete then), so quitting mid-walkthrough after the
+  download skips it next time.
 - Whether the speech model supports Hindi. The language list only shows
   Hindi if the model reports it.
 
@@ -142,18 +164,13 @@ Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banne
 
 1. **Get a build.** Run the Windows workflow on this branch and fix whatever
    the Rust compile or installer reports.
-2. **Stop and paste after 5 seconds of silence.** Rust, medium.
-3. **Automatic model download + first-launch walkthrough.** Medium to large.
-   Steps: sign in, set the shortcut (trackpad double-tap explained), a
-   practice box where the pressed keys glow, then say "From now on, my
-   workflow will be very easy", then finish to the tray. Shown once.
-4. **Accounts: finish and test.** Code is written
+2. **Accounts: finish and test.** Code is written
    but has never run for real: the Rust parts are uncompiled and no one has
    signed in yet. After the owner's Google step, test sign-in, sign-out,
    trial expiry, ban, and the offline rule on a real build.
-5. **Razorpay with UPI recurring (large, blocked).** Checkout link and a
+3. **Razorpay with UPI recurring (large, blocked).** Checkout link and a
    function that marks the user `paid` on Razorpay's notification.
-6. **Later:** private admin page, signed Windows builds, a local
+4. **Later:** private admin page, signed Windows builds, a local
    post-processing model, real Refer & earn and CommandGo.
 
 ## Blockers that need the owner

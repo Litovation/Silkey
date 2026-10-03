@@ -9,6 +9,7 @@ use crate::audio_toolkit::{
 use crate::helpers::clamshell;
 use crate::managers::transcription::StreamRouter;
 use crate::settings::{get_settings, write_settings, AppSettings, VadBackend};
+use crate::transcription_coordinator::TranscriptionCoordinator;
 use crate::utils;
 use log::{debug, error, info, trace, warn};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -345,6 +346,15 @@ fn create_audio_recorder(
             let router = stream_router;
             move |frame| {
                 router.feed(frame);
+            }
+        })
+        .with_silence_callback({
+            let app_handle = app_handle.clone();
+            move || {
+                // A channel send only; the coordinator thread does the stop.
+                if let Some(coordinator) = app_handle.try_state::<TranscriptionCoordinator>() {
+                    coordinator.notify_silence();
+                }
             }
         });
 
@@ -836,7 +846,10 @@ impl AudioRecordingManager {
             }
 
             if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
-                match rec.start(vad_policy) {
+                let silence_secs = get_settings(&self.app_handle).silence_auto_stop_secs;
+                let silence_timeout =
+                    (silence_secs > 0).then(|| Duration::from_secs(u64::from(silence_secs)));
+                match rec.start_with_silence_timeout(vad_policy, silence_timeout) {
                     Ok(receiver) => {
                         let generation = self.capture_generation.fetch_add(1, Ordering::AcqRel) + 1;
                         *self.is_recording.lock().unwrap() = true;

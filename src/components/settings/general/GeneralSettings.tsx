@@ -8,6 +8,7 @@ import { SettingsGroup } from "../../ui/SettingsGroup";
 import { ShortcutActivationSetting } from "../ShortcutActivation";
 import { MuteWhileRecording } from "../MuteWhileRecording";
 import { TrackpadDoubleTap } from "../TrackpadDoubleTap";
+import { SilenceAutoStop } from "../SilenceAutoStop";
 import { ModelSettingsCard } from "./ModelSettingsCard";
 
 export const GeneralSettings: React.FC = () => {
@@ -18,6 +19,7 @@ export const GeneralSettings: React.FC = () => {
       <SettingsGroup title={t("settings.general.title")}>
         <ShortcutInput shortcutId="transcribe" grouped={true} />
         <ShortcutActivationSetting descriptionMode="tooltip" grouped={true} />
+        <SilenceAutoStop descriptionMode="tooltip" grouped={true} />
         {isWindows && (
           <TrackpadDoubleTap descriptionMode="tooltip" grouped={true} />
         )}
