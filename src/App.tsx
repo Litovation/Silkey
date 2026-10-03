@@ -35,6 +35,7 @@ import { useAuthStore } from "./stores/authStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar } from "./components/Sidebar";
 import { WhatsNewGate } from "./components/whats-new";
+import AutoUpdater from "./components/update-checker";
 import { useSettings } from "./hooks/useSettings";
 import { useAutoModelSetup } from "./hooks/useAutoModelSetup";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -369,6 +370,9 @@ function App() {
       >
         <ErrorBoundary context="What's New">
           <WhatsNewGate />
+        </ErrorBoundary>
+        <ErrorBoundary context="Updater">
+          <AutoUpdater />
         </ErrorBoundary>
         {/* Main content area that takes remaining space */}
         <div className="flex-1 flex overflow-hidden">

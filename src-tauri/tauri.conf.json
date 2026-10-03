@@ -17,9 +17,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": {
-          "allow": [
-            "**"
-          ],
+          "allow": ["**"],
           "requireLiteralLeadingDot": false
         }
       }
@@ -28,12 +26,8 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": false,
-    "targets": [
-      "nsis"
-    ],
-    "resources": [
-      "resources/**/*"
-    ],
+    "targets": ["nsis"],
+    "resources": ["resources/**/*"],
     "license": "MIT",
     "licenseFile": "../LICENSE",
     "publisher": "Litovation",
@@ -54,10 +48,7 @@
     },
     "linux": {
       "deb": {
-        "depends": [
-          "libgtk-layer-shell0",
-          "libopenblas0"
-        ],
+        "depends": ["libgtk-layer-shell0", "libopenblas0"],
         "files": {
           "/usr/lib/Silktone": "transcribe-libs"
         }
@@ -94,8 +85,11 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJBQjcyMDk1MjA2NjAxRjkKUldUNUFXWWdsU0MzdXRRZi8zYzhqV2FaNUVDbDd2Rk5VM1IvWWowVXdmRFNKQ1BrMXF5RFFsLy8K",
       "endpoints": [
-        "https://updates.silktone.invalid/latest.json"
-      ]
+        "https://github.com/Litovation/Silkey/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "quiet"
+      }
     }
   }
 }

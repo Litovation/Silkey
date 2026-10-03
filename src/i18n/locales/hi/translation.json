@@ -649,6 +649,20 @@
   "whatsNew": {
     "title": "Silktone v{{version}} में नया क्या है"
   },
+  "updates": {
+    "checking": "अपडेट देखे जा रहे हैं…",
+    "upToDate": "आप नवीनतम संस्करण पर हैं",
+    "failed": "अभी अपडेट नहीं हो सका। बाद में फिर कोशिश करें।",
+    "downloadingTitle": "Silktone अपडेट हो रहा है",
+    "downloadingDescription": "संस्करण {{version}} डाउनलोड हो रहा है… {{progress}}%",
+    "waitingForDictation": "डिक्टेशन खत्म होने पर Silktone फिर से शुरू होगा।",
+    "restarting": "अपडेट पूरा करने के लिए फिर से शुरू हो रहा है…",
+    "updatedTitle": "Silktone अपडेट हो गया",
+    "updatedDescription": "अब आप संस्करण {{version}} पर हैं।",
+    "manualTitle": "अपडेट उपलब्ध है",
+    "manualDescription": "संस्करण {{version}} तैयार है। अपडेट करने के लिए इंस्टॉलर डाउनलोड करें।",
+    "manualButton": "डाउनलोड करें"
+  },
   "common": {
     "loading": "लोड हो रहा है...",
     "delete": "हटाएं",

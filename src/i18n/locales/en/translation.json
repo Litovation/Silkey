@@ -750,6 +750,20 @@
   "whatsNew": {
     "title": "New in Silktone v{{version}}"
   },
+  "updates": {
+    "checking": "Checking for updates…",
+    "upToDate": "You're on the latest version",
+    "failed": "Couldn't update right now. Try again later.",
+    "downloadingTitle": "Updating Silktone",
+    "downloadingDescription": "Downloading version {{version}}… {{progress}}%",
+    "waitingForDictation": "Silktone will restart when you finish dictating.",
+    "restarting": "Restarting to finish the update…",
+    "updatedTitle": "Silktone updated",
+    "updatedDescription": "You're now on version {{version}}.",
+    "manualTitle": "Update available",
+    "manualDescription": "Version {{version}} is ready. Download the installer to update.",
+    "manualButton": "Download"
+  },
   "common": {
     "loading": "Loading...",
     "delete": "Delete",

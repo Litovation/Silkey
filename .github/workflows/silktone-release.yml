@@ -1,0 +1,105 @@
+# Publishes a signed Windows release that installed copies update to on their
+# next launch. Run it from the Actions tab: "Release Silktone" -> Run workflow,
+# enter the new version (higher than the current one) and optional notes.
+#
+# Needs these repository secrets (Settings -> Secrets and variables -> Actions):
+#   TAURI_SIGNING_PRIVATE_KEY           contents of the .key file from `tauri signer generate`
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  the password chosen for it (may be empty)
+#   TAURI_SIGNING_PUBLIC_KEY            contents of the matching .key.pub file
+name: Release Silktone
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version, e.g. 0.1.2 (must be higher than the last release)"
+        required: true
+      notes:
+        description: "What changed (shown on the release page)"
+        required: false
+        default: "Bug fixes and improvements."
+permissions:
+  contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ inputs.version }}
+      NOTES: ${{ inputs.notes }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      TAURI_SIGNING_PUBLIC_KEY: ${{ secrets.TAURI_SIGNING_PUBLIC_KEY }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check inputs and secrets
+        shell: pwsh
+        run: |
+          if ($env:VERSION -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version '$env:VERSION' must look like 0.1.2"
+          }
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY -or -not $env:TAURI_SIGNING_PUBLIC_KEY) {
+            throw 'Add the TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PUBLIC_KEY repository secrets first.'
+          }
+      - uses: actions/checkout@v5
+      - name: Refuse an existing version
+        shell: pwsh
+        run: |
+          gh release view "v$env:VERSION" 2>$null
+          if ($LASTEXITCODE -eq 0) { throw "Release v$env:VERSION already exists." }
+          $global:LASTEXITCODE = 0
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.309.0
+          cache: true
+      - run: echo "::add-matcher::.github/rust-errors-matcher.json"
+      - name: Write release config
+        shell: pwsh
+        run: |
+          $config = @{
+            version = $env:VERSION
+            bundle  = @{ createUpdaterArtifacts = $true }
+            plugins = @{ updater = @{ pubkey = $env:TAURI_SIGNING_PUBLIC_KEY.Trim() } }
+          }
+          $path = Join-Path $env:RUNNER_TEMP 'tauri.release.json'
+          $config | ConvertTo-Json -Depth 5 | Set-Content -Path $path -Encoding utf8
+          "SILKTONE_TAURI_CONFIG=$path" >> $env:GITHUB_ENV
+      - name: Build signed installer
+        shell: pwsh
+        run: ./scripts/build-silktone-windows.ps1
+      - name: Publish release
+        shell: pwsh
+        run: |
+          $bundle = 'src-tauri/target/release/bundle/nsis'
+          $setup = Get-ChildItem $bundle -Filter "*_${env:VERSION}_*setup.exe" | Select-Object -First 1
+          if (-not $setup) { throw "No $env:VERSION installer in $bundle" }
+          $sig = "$($setup.FullName).sig"
+          if (-not (Test-Path $sig)) { throw "Missing signature $sig (is the signing key right?)" }
+
+          # A fixed, space-free asset name so the download URL below is exact.
+          $assetName = "Silktone_${env:VERSION}_x64-setup.exe"
+          $out = Join-Path $env:RUNNER_TEMP 'release'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item $setup.FullName (Join-Path $out $assetName)
+
+          $url = "https://github.com/${{ github.repository }}/releases/download/v${env:VERSION}/$assetName"
+          $entry = @{ signature = (Get-Content $sig -Raw).Trim(); url = $url }
+          $manifest = [ordered]@{
+            version   = $env:VERSION
+            notes     = $env:NOTES
+            pub_date  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            platforms = [ordered]@{
+              'windows-x86_64-nsis' = $entry
+              'windows-x86_64'      = $entry
+            }
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $out 'latest.json') -Encoding utf8
+
+          gh release create "v$env:VERSION" `
+            (Join-Path $out $assetName) (Join-Path $out 'latest.json') `
+            --target "${{ github.sha }}" --title "Silktone $env:VERSION" --notes "$env:NOTES"
+          if ($LASTEXITCODE -ne 0) { throw 'Creating the release failed.' }

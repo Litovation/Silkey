@@ -22,7 +22,12 @@ if (-not (Test-Path $vadFile)) { throw "Missing $vadFile." }
 bun install --frozen-lockfile
 if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
 
-bun run tauri build
+# The release workflow passes extra Tauri config (version, signed updater files).
+if ($env:SILKTONE_TAURI_CONFIG) {
+  bun run tauri build --config $env:SILKTONE_TAURI_CONFIG
+} else {
+  bun run tauri build
+}
 if ($LASTEXITCODE -ne 0) { throw 'Windows build failed.' }
 
 & (Join-Path $PSScriptRoot 'verify-silktone-windows.ps1')

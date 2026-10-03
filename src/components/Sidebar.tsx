@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Bot, Gift, Lock, Mic, Settings, UserRound } from "lucide-react";
 import SilktoneWordmark from "./icons/SilktoneWordmark";
 import LitovationLogo from "./icons/LitovationLogo";
+import { NotificationStack } from "./notifications";
 import type { SettingsTab } from "./settings/SettingsModal";
 import { useAuthStore } from "../stores/authStore";
 
@@ -55,7 +56,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
         </div>
       </nav>
 
-      <div className="mt-auto flex flex-col gap-1 pb-3 pt-3 border-t border-mid-gray/20">
+      <div className="mt-auto">
+        <NotificationStack />
+      </div>
+
+      <div className="flex flex-col gap-1 pb-3 pt-3 border-t border-mid-gray/20">
         <button
           type="button"
           className={`${itemClasses} hover:bg-mid-gray/15`}

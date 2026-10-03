@@ -8,7 +8,8 @@
 // if asset names or the repo slug change, and it points at the immutable
 // `releases/download/v<version>/…` tag URL instead of a moving `latest` link.
 
-export const PORTABLE_RELEASES_URL = "https://updates.silktone.invalid/";
+export const PORTABLE_RELEASES_URL =
+  "https://github.com/Litovation/Silkey/releases/latest";
 
 /**
  * Pick the NSIS installer URL for the running target out of the update manifest.

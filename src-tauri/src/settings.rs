@@ -560,8 +560,10 @@ fn default_autostart_enabled() -> bool {
     true
 }
 
+/// On by default: updates install automatically and the toggle is hidden.
+/// `SILKTONE_DISABLE_UPDATER` still turns them off for managed machines.
 fn default_update_checks_enabled() -> bool {
-    false
+    true
 }
 
 fn default_show_whats_new_on_update() -> bool {
