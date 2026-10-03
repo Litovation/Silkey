@@ -195,66 +195,46 @@
   }
 }
 
-/* Full-screen backdrop for sign-in and first-run: three soft colour fields
-   that drift slowly, so the glass panel on top has something to blur. */
+/* Full-screen backdrop for sign-in and first-run: a ribbon clip blurred until
+   only its colour and movement are left, over a faint brand-pink wash. */
 .aurora {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--color-background);
+  background:
+    radial-gradient(
+      60% 55% at 100% 100%,
+      color-mix(in srgb, var(--color-brand-pink) 16%, transparent),
+      transparent 70%
+    ),
+    var(--color-background);
 }
 
-.aurora span {
+/* The clip is on white. Multiply drops the white into the light background;
+   in dark themes it is inverted (hue kept) and screened in instead. */
+.aurora-video {
   position: absolute;
-  border-radius: 9999px;
-  filter: blur(80px);
-  animation: aurora-drift 20s ease-in-out infinite alternate;
-  will-change: transform;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  pointer-events: none;
+  filter: blur(34px) saturate(140%);
+  opacity: 0.8;
+  mix-blend-mode: multiply;
 }
 
-.aurora span:nth-child(1) {
-  width: 48vw;
-  height: 48vw;
-  left: -12vw;
-  top: -16vw;
-  background: var(--color-logo-primary);
-  opacity: 0.4;
+:root[data-theme="dark"] .aurora-video {
+  filter: blur(34px) invert(1) hue-rotate(180deg) saturate(140%);
+  opacity: 0.55;
+  mix-blend-mode: screen;
 }
 
-.aurora span:nth-child(2) {
-  width: 44vw;
-  height: 44vw;
-  right: -14vw;
-  bottom: -18vw;
-  background: var(--color-brand-pink);
-  opacity: 0.32;
-  animation-duration: 26s;
-  animation-delay: -8s;
-}
-
-.aurora span:nth-child(3) {
-  width: 30vw;
-  height: 30vw;
-  left: 42%;
-  top: 48%;
-  background: var(--color-background-ui);
-  opacity: 0.25;
-  animation-duration: 32s;
-  animation-delay: -14s;
-}
-
-@keyframes aurora-drift {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(7vw, 5vw, 0) scale(1.18);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aurora span {
-    animation: none;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .aurora-video {
+    filter: blur(34px) invert(1) hue-rotate(180deg) saturate(140%);
+    opacity: 0.55;
+    mix-blend-mode: screen;
   }
 }
 
