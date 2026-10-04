@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Languages } from "lucide-react";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { LanguageSelector } from "../LanguageSelector";
 import { useModelStore } from "../../../stores/modelStore";
@@ -32,7 +33,11 @@ export const ModelSettingsCard: React.FC = () => {
   }
 
   return (
-    <SettingsGroup title={t("settings.general.language.title")}>
+    <SettingsGroup
+      icon={Languages}
+      title={t("settings.general.groups.language.title")}
+      description={t("settings.general.groups.language.description")}
+    >
       <LanguageSelector
         descriptionMode="tooltip"
         grouped={true}

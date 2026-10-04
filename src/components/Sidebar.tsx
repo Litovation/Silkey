@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Bot, Gift, Lock, Mic, Settings, UserRound } from "lucide-react";
+import { Bot, Gift, Lock, Mic, Route, Settings, UserRound } from "lucide-react";
 import SilktoneWordmark from "./icons/SilktoneWordmark";
 import LitovationLogo from "./icons/LitovationLogo";
 import { NotificationStack } from "./notifications";
@@ -9,6 +9,7 @@ import { useAuthStore } from "../stores/authStore";
 
 interface SidebarProps {
   onOpenSettings: (tab: SettingsTab) => void;
+  onReplayWalkthrough: () => void;
 }
 
 const COMMAND_GO = "CommandGo";
@@ -19,7 +20,10 @@ const soonTagClasses =
 const itemClasses =
   "flex gap-3 items-center px-3 py-2 w-full rounded-lg cursor-pointer transition-colors text-start";
 
-export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  onOpenSettings,
+  onReplayWalkthrough,
+}) => {
   const { t } = useTranslation();
   const email = useAuthStore((state) => state.email);
 
@@ -61,6 +65,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings }) => {
       </div>
 
       <div className="flex flex-col gap-1 pb-3 pt-3 border-t border-mid-gray/20">
+        {/* Always available, but deliberately quieter than the items below. */}
+        <button
+          type="button"
+          className={`${itemClasses} text-mid-gray hover:bg-mid-gray/10 hover:text-text/80`}
+          onClick={onReplayWalkthrough}
+        >
+          <Route width={16} height={16} className="shrink-0" />
+          <span className="text-xs font-medium truncate">
+            {t("sidebar.walkthrough")}
+          </span>
+        </button>
         <button
           type="button"
           className={`${itemClasses} hover:bg-mid-gray/15`}

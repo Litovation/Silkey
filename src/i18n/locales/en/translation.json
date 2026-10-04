@@ -22,7 +22,8 @@
     "beta": "Beta",
     "comingSoon": "Coming soon",
     "soon": "Soon",
-    "referAndEarn": "Refer & earn"
+    "referAndEarn": "Refer & earn",
+    "walkthrough": "Walkthrough"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -217,6 +218,28 @@
       "silenceAutoStop": {
         "label": "Stop When I Stop Talking",
         "description": "After {{seconds}} seconds of silence, recording stops and what you said is pasted."
+      },
+      "groups": {
+        "keyboard": {
+          "title": "Keyboard shortcut",
+          "description": "The keys that start dictation from anywhere"
+        },
+        "touchpad": {
+          "title": "Touchpad",
+          "description": "Dictate without touching the keyboard"
+        },
+        "stopping": {
+          "title": "Stopping",
+          "description": "How a dictation ends on its own"
+        },
+        "language": {
+          "title": "Language",
+          "description": "The language you speak in"
+        },
+        "microphone": {
+          "title": "Microphone",
+          "description": "What Silktone listens with"
+        }
       }
     },
     "models": {

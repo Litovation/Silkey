@@ -387,7 +387,10 @@ function App() {
         </ErrorBoundary>
         {/* Main content area that takes remaining space */}
         <div className="flex-1 flex overflow-hidden">
-          <Sidebar onOpenSettings={setSettingsTab} />
+          <Sidebar
+            onOpenSettings={setSettingsTab}
+            onReplayWalkthrough={() => setReplayingWalkthrough(true)}
+          />
           {/* Scrollable content area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
