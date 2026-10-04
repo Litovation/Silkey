@@ -20,8 +20,9 @@ use crate::audio_toolkit::{
     VoiceActivityDetector,
 };
 
-/// Microphone boost as a percentage: 100 leaves the signal untouched.
-pub const DEFAULT_MIC_GAIN_PERCENT: u32 = 100;
+/// Microphone boost as a percentage: 100 leaves the signal untouched. The
+/// default lifts quiet laptop microphones a little.
+pub const DEFAULT_MIC_GAIN_PERCENT: u32 = 150;
 const MIN_MIC_GAIN_PERCENT: u32 = 50;
 const MAX_MIC_GAIN_PERCENT: u32 = 400;
 /// Below this level samples pass through unchanged; above it they are eased

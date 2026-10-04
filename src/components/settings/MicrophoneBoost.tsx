@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Slider } from "../ui/Slider";
 import { useSettings } from "../../hooks/useSettings";
 
-const DEFAULT_GAIN_PERCENT = 100;
+const DEFAULT_GAIN_PERCENT = 150;
 
 interface MicrophoneBoostProps {
   descriptionMode?: "inline" | "tooltip";
