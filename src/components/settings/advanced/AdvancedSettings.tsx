@@ -6,12 +6,9 @@ import { SettingsGroup } from "../../ui/SettingsGroup";
 import { AutostartToggle } from "../AutostartToggle";
 import { ShowTrayIcon } from "../ShowTrayIcon";
 import { AutoSubmit } from "../AutoSubmit";
-import { PostProcessingToggle } from "../PostProcessingToggle";
 import { AppendTrailingSpace } from "../AppendTrailingSpace";
 import { HistoryLimit } from "../HistoryLimit";
 import { RecordingRetentionPeriodSelector } from "../RecordingRetentionPeriod";
-import { ExperimentalToggle } from "../ExperimentalToggle";
-import { useSettings } from "../../../hooks/useSettings";
 import { VoiceActivityDetection } from "../VoiceActivityDetection";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { FillerWordRemoval } from "../FillerWordRemoval";
@@ -20,8 +17,6 @@ import { PerformanceMode } from "../PerformanceMode";
 
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { getSetting } = useSettings();
-  const experimentalEnabled = getSetting("experimental_enabled") || false;
 
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
@@ -29,7 +24,6 @@ export const AdvancedSettings: React.FC = () => {
         <AutostartToggle descriptionMode="tooltip" grouped={true} />
         <ShowTrayIcon descriptionMode="tooltip" grouped={true} />
         <ShowOverlay descriptionMode="tooltip" grouped={true} />
-        <ExperimentalToggle descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.advanced.groups.output")}>
@@ -53,12 +47,6 @@ export const AdvancedSettings: React.FC = () => {
           grouped={true}
         />
       </SettingsGroup>
-
-      {experimentalEnabled && (
-        <SettingsGroup title={t("settings.advanced.groups.experimental")}>
-          <PostProcessingToggle descriptionMode="tooltip" grouped={true} />
-        </SettingsGroup>
-      )}
     </div>
   );
 };

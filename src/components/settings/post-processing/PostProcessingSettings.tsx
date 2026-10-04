@@ -3,6 +3,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { RefreshCcw } from "lucide-react";
 import { commands } from "@/bindings";
 import { PostProcessingGuide } from "./PostProcessingGuide";
+import { PostProcessingToggle } from "../PostProcessingToggle";
 
 import { Alert } from "../../ui/Alert";
 import {
@@ -427,25 +428,36 @@ PostProcessingSettingsPrompts.displayName = "PostProcessingSettingsPrompts";
 
 export const PostProcessingSettings: React.FC = () => {
   const { t } = useTranslation();
+  const { getSetting } = useSettings();
+  const enabled = getSetting("post_process_enabled") || false;
 
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
+      <SettingsGroup>
+        <PostProcessingToggle descriptionMode="inline" grouped={true} />
+      </SettingsGroup>
+
       <PostProcessingGuide />
-      <SettingsGroup title={t("settings.postProcessing.hotkey.title")}>
-        <ShortcutInput
-          shortcutId="transcribe_with_post_process"
-          descriptionMode="tooltip"
-          grouped={true}
-        />
-      </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.api.title")}>
-        <PostProcessingSettingsApi />
-      </SettingsGroup>
+      {enabled && (
+        <>
+          <SettingsGroup title={t("settings.postProcessing.api.title")}>
+            <PostProcessingSettingsApi />
+          </SettingsGroup>
 
-      <SettingsGroup title={t("settings.postProcessing.prompts.title")}>
-        <PostProcessingSettingsPrompts />
-      </SettingsGroup>
+          <SettingsGroup title={t("settings.postProcessing.prompts.title")}>
+            <PostProcessingSettingsPrompts />
+          </SettingsGroup>
+
+          <SettingsGroup title={t("settings.postProcessing.hotkey.title")}>
+            <ShortcutInput
+              shortcutId="transcribe_with_post_process"
+              descriptionMode="tooltip"
+              grouped={true}
+            />
+          </SettingsGroup>
+        </>
+      )}
     </div>
   );
 };

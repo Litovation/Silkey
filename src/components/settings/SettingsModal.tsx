@@ -44,15 +44,15 @@ const TABS: TabConfig[] = [
     enabled: () => true,
   },
   {
-    id: "postprocessing",
-    labelKey: "sidebar.postProcessing",
-    icon: Sparkles,
-    enabled: (settings) => settings?.post_process_enabled ?? false,
-  },
-  {
     id: "account",
     labelKey: "settingsModal.tabs.account",
     icon: UserRound,
+    enabled: () => true,
+  },
+  {
+    id: "postprocessing",
+    labelKey: "sidebar.postProcessing",
+    icon: Sparkles,
     enabled: () => true,
   },
   {

@@ -23,7 +23,7 @@
     "comingSoon": "Coming soon",
     "soon": "Soon",
     "referAndEarn": "Refer & earn",
-    "walkthrough": "Walkthrough"
+    "walkthrough": "Tutorial"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -497,29 +497,83 @@
       },
       "guide": {
         "title": "Set up post-processing for free",
-        "intro": "Post-processing cleans up your dictation with an AI model. Silktone does not include one, so you connect your own. These options have a free tier or are free to run.",
+        "intro": "Post-processing tidies your dictation with an AI model: punctuation, grammar, or a rewrite in the style you ask for. Silktone does not include a model, so you connect one. Each option below is free to start; open one to see the steps.",
+        "fields": {
+          "provider": "Provider",
+          "baseUrl": "Base URL",
+          "model": "Model",
+          "command": "Command",
+          "apiKey": "API key"
+        },
         "options": {
           "groq": {
             "name": "Groq",
-            "description": "Free tier with fast open-source models. Sign in and create an API key."
+            "tag": "Easiest",
+            "summary": "Free plan, no card. Very fast open-source models.",
+            "open": "Get a Groq key",
+            "steps": [
+              "Open the Groq console and sign in with Google or email.",
+              "Click “Create API Key”, give it any name, and copy the key. It is shown only once.",
+              "In API below, choose Groq as the provider and paste the key.",
+              "Press the refresh button next to Model and pick a model. The one below is a good start."
+            ],
+            "note": "The free plan limits how many requests you can make per minute and per day. That is plenty for dictation."
+          },
+          "cerebras": {
+            "name": "Cerebras",
+            "tag": "Fastest",
+            "summary": "Free plan, no card. Open-source models with a daily allowance.",
+            "open": "Open Cerebras Cloud",
+            "steps": [
+              "Open Cerebras Cloud and create a free account.",
+              "Go to API Keys, create a key, and copy it.",
+              "In API below, choose Cerebras as the provider and paste the key.",
+              "Press the refresh button next to Model and pick one from the list."
+            ],
+            "note": "Model names change over time. If the one below is not in the list, pick any Llama or GPT-OSS model."
           },
           "openrouter": {
             "name": "OpenRouter",
-            "description": "Offers free models (names ending in “:free”). Sign in and create an API key."
+            "tag": "Most choice",
+            "summary": "One key for many models. Free ones end in “:free”.",
+            "open": "Get an OpenRouter key",
+            "steps": [
+              "Open OpenRouter and sign in.",
+              "Create a key on the Keys page and copy it.",
+              "In API below, choose OpenRouter as the provider and paste the key.",
+              "Press the refresh button next to Model and pick a model whose name ends in “:free”."
+            ],
+            "note": "Free models allow about 50 requests a day and change often. If one stops working, pick another “:free” model."
+          },
+          "gemini": {
+            "name": "Google Gemini",
+            "tag": "Google account",
+            "summary": "Free key from Google AI Studio. Uses the Custom provider.",
+            "open": "Get a Gemini key",
+            "steps": [
+              "Open Google AI Studio and sign in with your Google account.",
+              "Click “Create API key” and copy it.",
+              "In API below, choose Custom as the provider and paste the base URL shown here.",
+              "Paste the key, press the refresh button next to Model, and pick a Flash model."
+            ],
+            "note": "On the free plan Google may use what you send to improve its products. Avoid it for confidential text."
           },
           "ollama": {
             "name": "Ollama",
-            "description": "Runs a model on this computer. Free and offline, but needs a capable PC."
+            "tag": "Offline",
+            "summary": "Runs on this PC. Free forever, nothing leaves your computer.",
+            "open": "Download Ollama",
+            "steps": [
+              "Download and install Ollama.",
+              "Open Command Prompt, paste the command below, and wait for the download to finish (about 2 GB).",
+              "In API below, choose Custom as the provider. The base URL is already filled in.",
+              "Type anything as the API key, then enter the model name below."
+            ],
+            "note": "Needs a reasonably modern PC with at least 8 GB of memory. It is slower than the online options but fully private."
           }
         },
-        "steps": {
-          "choose": "Pick one option above and open its website.",
-          "key": "Groq or OpenRouter: create an API key and copy it. Ollama: install it and download a model.",
-          "model": "Below, choose the same provider (use Custom for Ollama), paste the key, and pick a model.",
-          "prompt": "Choose a prompt that describes how your text should be cleaned up.",
-          "use": "Dictate with the post-processing shortcut instead of the normal one."
-        },
-        "privacy": "With Groq or OpenRouter, the transcribed text is sent to that service. Your audio never leaves this computer."
+        "afterSetup": "When the provider is set up, choose a prompt that says how your text should be cleaned up, then dictate with the post-processing shortcut instead of the normal one.",
+        "privacy": "With an online provider, the transcribed text is sent to that service. Your audio never leaves this computer."
       }
     },
     "history": {
@@ -609,8 +663,8 @@
         "description": "Microphone to use when laptop lid is closed"
       },
       "postProcessingToggle": {
-        "label": "Post Processing",
-        "description": "Enable AI-powered text refinement after transcription"
+        "label": "Post-processing",
+        "description": "Clean up dictated text with an AI model you connect below. Off by default."
       },
       "muteWhileRecording": {
         "label": "Mute While Recording",
@@ -699,7 +753,7 @@
         }
       },
       "walkthrough": {
-        "title": "Walkthrough",
+        "title": "Tutorial",
         "description": "See the setup steps again",
         "button": "Show again"
       }
