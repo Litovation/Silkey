@@ -1012,7 +1012,8 @@
       "shortcut": "Shortcut",
       "practice": "Practice",
       "done": "Ready"
-    }
+    },
+    "skipTutorial": "Skip tutorial"
   },
   "performance": {
     "title": "Performance",

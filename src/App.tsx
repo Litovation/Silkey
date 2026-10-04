@@ -63,6 +63,8 @@ function App() {
   const { settings, updateSetting } = useSettings();
   const verdict = useAuthStore((state) => state.verdict);
   const initializeAuth = useAuthStore((state) => state.initialize);
+  const justSignedIn = useAuthStore((state) => state.justSignedIn);
+  const clearJustSignedIn = useAuthStore((state) => state.clearJustSignedIn);
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
     (state) => state.refreshAudioDevices,
@@ -100,6 +102,15 @@ function App() {
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
+
+  // Every sign-in opens the tutorial (it can be skipped). Brand-new users are
+  // already heading into first-run setup, which is the same tutorial.
+  useEffect(() => {
+    if (!justSignedIn || verdict?.state !== "allowed") return;
+    if (onboardingStep === null) return;
+    clearJustSignedIn();
+    if (onboardingStep === "done") setReplayingWalkthrough(true);
+  }, [justSignedIn, verdict, onboardingStep, clearJustSignedIn]);
 
   // Initialize RTL direction when language changes
   useEffect(() => {

@@ -189,6 +189,13 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
     }
   };
 
+  // Skipping must still leave a speech engine chosen, or nothing downloads.
+  const skip = () => {
+    if (preview) return;
+    if (tier === null) setTier("standard");
+    onComplete();
+  };
+
   const stepIndex = STEPS.indexOf(step);
 
   return (
@@ -236,7 +243,16 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
           )}
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-5 overflow-y-auto p-8">
+        <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-5 overflow-y-auto p-8">
+          {step !== "done" && (
+            <button
+              type="button"
+              onClick={skip}
+              className="absolute end-4 top-4 rounded-md px-2 py-1 text-xs font-medium text-mid-gray hover:bg-mid-gray/10 hover:text-text cursor-pointer"
+            >
+              {t("firstRun.skipTutorial")}
+            </button>
+          )}
           {step === "performance" && (
             <>
               <div className="space-y-1.5 text-center">

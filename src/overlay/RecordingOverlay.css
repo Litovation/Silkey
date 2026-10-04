@@ -38,22 +38,25 @@
   --light-s-hair: rgb(15 30 25 / 0.09);
   --dark-s-hair: color-mix(in srgb, var(--color-text) 8%, transparent);
 
-  /* Card surface. Light is frosted glass: a translucent white over a blurred,
-     saturated view of whatever is behind the overlay window, with a bright top
-     edge and a short shadow (the native window is only slightly larger than
-     the card, so a long shadow would be clipped). Dark stays the flat theme
-     surface. The island is the control pill of the Live overlay: it rides on
-     top of the text box, so it is nearly opaque to read as raised. */
+  /* Card surface. Light looks like heavily frosted glass: a bright top edge,
+     a faint gradient and a short shadow (the native window is only slightly
+     larger than the card, so a long shadow would be clipped). It is almost
+     opaque on purpose. `backdrop-filter` cannot blur other apps' windows
+     behind a transparent WebView2 window, so a see-through surface showed the
+     desktop sharp and made the text unreadable; a very heavy blur would be a
+     near-uniform pale surface anyway, which is what this draws. Dark stays the
+     flat theme surface. The island is the control pill of the Live overlay: it
+     rides on top of the text box, so it is fully opaque to read as raised. */
   --light-s-card-bg: linear-gradient(
     180deg,
-    rgb(255 255 255 / 0.68),
-    rgb(255 255 255 / 0.52)
+    rgb(255 255 255 / 0.97),
+    rgb(244 248 246 / 0.94)
   );
   --dark-s-card-bg: var(--s-surface);
   --light-s-island-bg: linear-gradient(
     180deg,
-    rgb(255 255 255 / 0.94),
-    rgb(255 255 255 / 0.84)
+    rgb(255 255 255),
+    rgb(246 249 247)
   );
   --dark-s-island-bg: var(--s-surface);
   --light-s-card-border: rgb(255 255 255 / 0.7);

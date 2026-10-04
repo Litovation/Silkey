@@ -19,6 +19,9 @@ interface AuthStore {
   signingIn: boolean;
   checking: boolean;
   error: string | null;
+  /** A sign-in just completed in this session; the app shows the tutorial once. */
+  justSignedIn: boolean;
+  clearJustSignedIn: () => void;
   initialize: () => void;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -40,6 +43,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     signingIn: false,
     checking: false,
     error: null,
+    justSignedIn: false,
+    clearJustSignedIn: () => set({ justSignedIn: false }),
 
     initialize: () => {
       if (initialized) return;
@@ -48,7 +53,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       listen<string>("oauth-callback", async (event) => {
         try {
           await completeSignIn(event.payload);
-          set({ error: null });
+          set({ error: null, justSignedIn: true });
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : String(error),
