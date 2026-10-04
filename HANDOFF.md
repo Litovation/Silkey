@@ -190,6 +190,11 @@ Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banne
   higher than the last one. It builds, signs and publishes the release and
   `latest.json`. The app version comes from that input; there is no need to
   edit version numbers in files.
+- Shortcut: the owner types `/silktone-update-push` (optionally with a
+  version and notes). It saves the current `main` as `draft-main-N`,
+  replaces `main` with `v0.1.1-ui` once its Windows build has passed, and
+  starts the release. Steps: `.claude/skills/silktone-update-push/SKILL.md`.
+  Run it only when the owner types it.
 - Copies installed before this (0.1.0 builds) cannot update themselves and
   need one manual install.
 
