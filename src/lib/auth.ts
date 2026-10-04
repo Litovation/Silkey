@@ -25,6 +25,10 @@ export interface Access {
   status: AccessStatus;
   allowed: boolean;
   trial_ends_at: string;
+  /** End of the period that has been paid for; null before the first payment. */
+  paid_until?: string | null;
+  /** The subscription will not renew after `paid_until`. */
+  cancel_at_period_end?: boolean;
 }
 
 /** Why dictation is blocked for a signed-in user. */
@@ -53,6 +57,8 @@ const CLOCK_SLACK_MS = 10 * 60 * 1000;
 const REFRESH_MARGIN_S = 60;
 // A hung connection must not keep the app on a blank screen at startup.
 const REQUEST_TIMEOUT_MS = 8000;
+// The payment functions talk to Razorpay before answering, so allow longer.
+const PAYMENT_TIMEOUT_MS = 20000;
 
 /** The server was reached and refused the session (signed out, banned, revoked). */
 class AuthRejectedError extends Error {}
@@ -272,6 +278,41 @@ export const signOut = async (): Promise<void> => {
   } catch {
     // Signed out locally either way.
   }
+};
+
+/** Call one of the payment functions as the signed-in user. */
+const callFunction = async <T>(name: string): Promise<T> => {
+  const session = getSession();
+  if (!session) throw new Error("not_signed_in");
+  const { access_token } = await freshSession(session);
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(PAYMENT_TIMEOUT_MS),
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  });
+  const data = (await response.json().catch(() => ({}))) as T & {
+    error?: string;
+  };
+  if (!response.ok) throw new Error(data.error ?? `server_${response.status}`);
+  return data;
+};
+
+/** The Razorpay payment page for this account's subscription. */
+export const createCheckoutUrl = async (): Promise<string> => {
+  const { url } = await callFunction<{ url?: string }>("create-subscription");
+  if (!url) throw new Error("server_error");
+  return url;
+};
+
+/** Stop the subscription from renewing; paid time stays usable. */
+export const cancelSubscription = async (): Promise<void> => {
+  await callFunction("cancel-subscription");
 };
 
 /** Whole days left in the trial, never negative. */

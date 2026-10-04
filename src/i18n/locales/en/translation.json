@@ -942,10 +942,33 @@
     "signedInAs": "Signed in as {{email}}",
     "checkAgain": "Check again",
     "offline": "offline",
+    "subscribe": "Subscribe",
+    "finishPayment": "Finish the payment in your browser, then come back here.",
+    "trialTooltip_one": "You still have {{count}} free day left. You can subscribe now for ₹200 a month if you like.",
+    "trialTooltip_other": "You still have {{count}} free days left. You can subscribe now for ₹200 a month if you like.",
+    "paymentError": {
+      "already_subscribed": "This account already has a subscription.",
+      "generic": "Couldn't reach the payment service. Check your connection and try again."
+    },
+    "managePlan": "Manage plan",
+    "manage": {
+      "title": "Your plan",
+      "renews": "Your subscription renews on {{date}}.",
+      "ends": "Your subscription ends on {{date}} and won't renew.",
+      "paymentDue": "Your last payment didn't go through. We'll try again; Silktone keeps working for a few days meanwhile.",
+      "cancelLink": "Cancel subscription",
+      "confirmTitle": "Cancel your subscription?",
+      "confirmBody": "You can keep using Silktone until {{date}}. After that, dictation stops until you subscribe again.",
+      "keep": "Keep subscription",
+      "confirm": "Cancel subscription"
+    },
     "plan": {
       "trial_one": "Free trial · {{count}} day left",
       "trial_other": "Free trial · {{count}} days left",
       "paid": "Subscribed",
+      "paidRenews": "Subscribed · renews {{date}}",
+      "paidEnds": "Subscribed · ends {{date}}",
+      "paymentDue": "Subscribed · payment didn't go through",
       "free_forever": "Free access",
       "expired": "Trial ended",
       "banned": "Suspended"
@@ -953,8 +976,11 @@
     "blocked": {
       "expired": {
         "title": "Your free trial has ended",
-        "body": "Subscriptions are opening soon. Visit our site to keep using Silktone.",
-        "action": "Visit silktone.litovation.in"
+        "body": "Subscribe for ₹200 a month to keep using Silktone. Cancel anytime."
+      },
+      "lapsed": {
+        "title": "Your subscription has ended",
+        "body": "Subscribe again for ₹200 a month to keep using Silktone. Cancel anytime."
       },
       "banned": {
         "title": "This account is suspended",

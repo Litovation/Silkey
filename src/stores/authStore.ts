@@ -4,7 +4,9 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { commands } from "@/bindings";
 import {
   beginSignIn,
+  cancelSubscription as requestCancel,
   completeSignIn,
+  createCheckoutUrl,
   evaluateAccess,
   getSession,
   signOut as clearSession,
@@ -12,6 +14,13 @@ import {
 } from "@/lib/auth";
 
 const RECHECK_INTERVAL_MS = 30 * 60 * 1000;
+// While the payment page is open in the browser, look for the result often,
+// then give up quietly; "Check again" and the regular re-check still work.
+const PAYMENT_POLL_MS = 5000;
+const PAYMENT_WAIT_MS = 15 * 60 * 1000;
+
+const isPaid = (verdict: Verdict | null): boolean =>
+  verdict?.state === "allowed" && verdict.access.status === "paid";
 
 interface AuthStore {
   verdict: Verdict | null;
@@ -22,6 +31,15 @@ interface AuthStore {
   /** A sign-in just completed in this session; the app shows the tutorial once. */
   justSignedIn: boolean;
   clearJustSignedIn: () => void;
+  /** The Razorpay page was opened and no payment has been seen yet. */
+  awaitingPayment: boolean;
+  /** A payment request (subscribe or cancel) is being sent. */
+  paymentBusy: boolean;
+  /** Error code from the last payment request, e.g. "already_subscribed". */
+  paymentError: string | null;
+  subscribe: () => Promise<void>;
+  /** Resolves true when the subscription was set to stop renewing. */
+  cancelSubscription: () => Promise<boolean>;
   initialize: () => void;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -37,6 +55,29 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     commands.setAccessAllowed(verdict.state === "allowed").catch(() => {});
   };
 
+  let paymentPoll: ReturnType<typeof setInterval> | undefined;
+  const stopWaitingForPayment = () => {
+    clearInterval(paymentPoll);
+    paymentPoll = undefined;
+    set({ awaitingPayment: false });
+  };
+  const waitForPayment = () => {
+    clearInterval(paymentPoll);
+    const startedAt = Date.now();
+    set({ awaitingPayment: true });
+    paymentPoll = setInterval(async () => {
+      await get().recheck();
+      const signedOut = get().verdict?.state === "signedOut";
+      const timedOut = Date.now() - startedAt > PAYMENT_WAIT_MS;
+      if (isPaid(get().verdict) || signedOut || timedOut) {
+        stopWaitingForPayment();
+      }
+    }, PAYMENT_POLL_MS);
+  };
+
+  const errorCode = (error: unknown): string =>
+    error instanceof Error ? error.message : String(error);
+
   return {
     verdict: null,
     email: getSession()?.email ?? "",
@@ -45,6 +86,36 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     error: null,
     justSignedIn: false,
     clearJustSignedIn: () => set({ justSignedIn: false }),
+    awaitingPayment: false,
+    paymentBusy: false,
+    paymentError: null,
+
+    subscribe: async () => {
+      set({ paymentBusy: true, paymentError: null });
+      try {
+        await openUrl(await createCheckoutUrl());
+        waitForPayment();
+      } catch (error) {
+        set({ paymentError: errorCode(error) });
+        // "Already subscribed" means our view is stale; refresh it.
+        await get().recheck();
+      }
+      set({ paymentBusy: false });
+    },
+
+    cancelSubscription: async () => {
+      set({ paymentBusy: true, paymentError: null });
+      let cancelled = false;
+      try {
+        await requestCancel();
+        cancelled = true;
+        await get().recheck();
+      } catch (error) {
+        set({ paymentError: errorCode(error) });
+      }
+      set({ paymentBusy: false });
+      return cancelled;
+    },
 
     initialize: () => {
       if (initialized) return;
@@ -82,6 +153,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     },
 
     signOut: async () => {
+      stopWaitingForPayment();
+      set({ paymentError: null });
       await clearSession();
       apply({ state: "signedOut" });
     },

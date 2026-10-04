@@ -67,7 +67,10 @@ It is a stand-in: it proves layout and text, not real behaviour.
 | Access control | Server decides allowed / expired / banned; all processing stays local |
 | Offline window | 3 days, then the app asks for a connection; block if the PC clock goes backwards |
 | Admin | Owner edits users in the Supabase dashboard (extend trial, free access, ban) |
-| Payments | Razorpay with UPI recurring (UPI AutoPay), later |
+| Payments | Razorpay Subscriptions, one plan at ₹200 a month, UPI AutoPay preferred (card and eMandate also on) |
+| Failed renewal | App keeps working for 3 days after the paid period, then locks |
+| Cancelling | In the app but tucked away (Settings, Account, "Manage plan" link, then a quiet "Cancel subscription" link and one confirmation). Access continues to the end of the paid period |
+| Paying during the trial | Charged at once; the paid month starts that day. A tooltip on Subscribe says how many free days are left |
 | Backend | A new, separate Supabase project named for Silktone v0.1.1 (do not reuse `agency-media`) |
 | Code signing | None for beta; buy a certificate before public launch |
 | Post-processing | Bring your own key, off by default, with an in-app guide |
@@ -155,10 +158,17 @@ Backend: Supabase project `silktone-v0-1-1` (ref `ihslofjgydhpnaadbhnv`,
 region ap-south-1). Schema is in `supabase/migrations/`.
 
 - `public.profiles`: `email`, `plan` (`trial` / `paid` / `free_forever`),
-  `trial_ends_at` (signup + 30 days), `banned`. Users can only read their own
-  row; the owner edits rows in the dashboard.
+  `trial_ends_at` (signup + 30 days), `banned`, plus the payment columns
+  `razorpay_subscription_id`, `subscription_status`, `paid_until`,
+  `cancel_at_period_end`. Users can only read their own row; the owner edits
+  rows in the dashboard (Table Editor, `profiles`): a later `trial_ends_at`
+  gives extra free time, `plan` = `free_forever` gives free access, `banned`
+  blocks. Do not set `plan` = `paid` by hand; the webhook owns it.
 - `public.silktone_get_access()`: the one call the app makes; answers with
-  the server clock.
+  the server clock. `paid` counts only while `paid_until` + 3 days is in the
+  future; after that the account falls back to trial time left, or expired.
+- `public.razorpay_events`: ids of Razorpay notifications already handled,
+  so repeats are ignored. Service role only.
 
 App side:
 
@@ -172,11 +182,59 @@ App side:
   when access is not allowed.
 - `src/bindings.ts` was edited by hand for the two new commands.
 
-Sign-in does not work until the owner finishes the Google step (see
-Blockers). Until then any build from this branch stops at the sign-in screen
-and cannot dictate.
+Google sign-in works and is open to everyone (Google app "In production",
+branding verified, 2026-10-04). The website has `privacy.html`, `terms.html`
+and Google's ownership file `googlea7df478d04457611.html`, which must stay.
 
-Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banned`.
+Preview states:
+`dev/mock-preview.html?account=trial|offline|stale|expired|banned|paid|cancelling|due|lapsed`.
+In the preview, Subscribe "succeeds" after a few seconds; add `&pay=fail` to
+see the error text.
+
+## Payments (Razorpay)
+
+Built and deployed on 2026-10-04 in Razorpay **Test Mode**. No real payment
+has been made yet, in test or live.
+
+How it works:
+
+1. Subscribe (trial-ended screen, or Settings, Account while on trial) calls
+   the `create-subscription` function, which creates a Razorpay subscription
+   and returns its hosted payment page. The app opens it in the browser.
+2. Razorpay calls `razorpay-webhook`. It checks the signature, re-reads the
+   subscription from Razorpay (notifications can arrive out of order) and
+   sets `plan` = `paid` and `paid_until` when the subscription is active.
+3. The app re-checks every 5 seconds for up to 15 minutes after opening the
+   payment page, and unlocks when it sees `paid`.
+4. `cancel-subscription` cancels at the end of the billing cycle.
+
+Where things are:
+
+- Functions: `supabase/functions/` (`_shared/razorpay.ts`,
+  `create-subscription`, `cancel-subscription`, `razorpay-webhook`). The
+  webhook is deployed with JWT verification off; the other two need a
+  signed-in user.
+- App: `createCheckoutUrl` and `cancelSubscription` in `src/lib/auth.ts`;
+  `subscribe`, `cancelSubscription`, `awaitingPayment` in
+  `src/stores/authStore.ts`; screens in `AccountScreens.tsx` and
+  `src/components/settings/account/AccountSettings.tsx`. No Rust changes.
+- Supabase Edge Function secrets: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`,
+  `RAZORPAY_PLAN_ID` (set, test values; plan `plan_Tjleob52ViYCEf`) and
+  `RAZORPAY_WEBHOOK_SECRET` (not set yet). The app holds no Razorpay keys.
+- Razorpay's cut on ₹200 at published rates: about ₹7.06 (2% + 0.99%
+  subscriptions fee + 18% GST on the fees).
+
+Known gaps:
+
+- Account and payment text is English only.
+- The ₹200 price is written in the English text, not read from the plan.
+- If a user cancels the mandate in their UPI app instead of in Silktone, the
+  app still says "renews" until the next renewal fails.
+
+Going live (about 15 minutes, no new build): in Razorpay Live Mode create the
+same plan, generate live keys, add the webhook again, then replace the four
+secrets in Supabase. Reset any profiles marked `paid` by test payments.
+Razorpay KYC is done; the website still lacks refund and contact pages.
 
 ## Updates and notifications
 
@@ -201,18 +259,16 @@ Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banne
 ## Placeholders that do nothing yet
 
 - CommandGo sidebar item (locked) and Refer & earn (marked "Soon").
-- The "trial ended" screen links to the website; there is no checkout yet.
 
 ## Still to build, in suggested order
 
 1. **Get a build.** Run the Windows workflow on this branch and fix whatever
    the Rust compile or installer reports.
-2. **Accounts: finish and test.** Code is written
-   but has never run for real: the Rust parts are uncompiled and no one has
-   signed in yet. After the owner's Google step, test sign-in, sign-out,
-   trial expiry, ban, and the offline rule on a real build.
-3. **Razorpay with UPI recurring (large, blocked).** Checkout link and a
-   function that marks the user `paid` on Razorpay's notification.
+2. **Accounts: finish testing.** Sign-in works on real builds. Still to try
+   on a real build: sign-out, trial expiry, ban, and the offline rule.
+3. **Razorpay: test, then go live.** Add the webhook (see Blockers), then on
+   a build from this branch make a test payment, cancel it, and let a renewal
+   fail. Then switch to live keys (see Payments).
 4. **Later:** private admin page, signed Windows builds, a local
    post-processing model, real Refer & earn and CommandGo.
 
@@ -228,16 +284,13 @@ Preview states: `dev/mock-preview.html?account=trial|offline|stale|expired|banne
      `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the password, or empty), and
      `TAURI_SIGNING_PUBLIC_KEY` (contents of `silktone-updater.key.pub`).
 
-- **Google sign-in (owner, about 10 minutes, free):**
-  1. Google Cloud Console: create an OAuth client of type "Web application"
-     with the authorised redirect URI
-     `https://ihslofjgydhpnaadbhnv.supabase.co/auth/v1/callback`.
-  2. Supabase dashboard, Authentication, Sign In / Providers, Google: turn it
-     on and paste the client ID and client secret.
-  3. Supabase dashboard, Authentication, URL Configuration, Redirect URLs:
-     add `http://127.0.0.1:17645/callback`.
-- **Razorpay:** account, verification, subscription plan with UPI AutoPay,
-  and keys.
+- **Razorpay webhook (owner, about 5 minutes):** in Razorpay Test Mode,
+  Account & Settings, Webhooks, add
+  `https://ihslofjgydhpnaadbhnv.supabase.co/functions/v1/razorpay-webhook`
+  with a secret of your choice and all the `subscription.*` events ticked.
+  Save the same secret in Supabase, Edge Functions, Secrets as
+  `RAZORPAY_WEBHOOK_SECRET`. Until this is done, payments succeed at
+  Razorpay but the app never unlocks.
 
 ## Open questions for the owner
 

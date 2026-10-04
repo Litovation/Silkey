@@ -125,16 +125,29 @@
       };
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
 
-      // ?account=trial|offline|stale|expired|banned fakes a signed-in account;
+      // ?account=trial|offline|stale|expired|banned|paid|cancelling|due|lapsed
+      // fakes a signed-in account;
       // without it the real sign-in screen shows.
       const account = new URLSearchParams(location.search).get("account");
       if (account) {
         const day = 24 * 60 * 60 * 1000;
+        const isPaid = ["paid", "cancelling", "due"].includes(account);
+        const blocked = ["expired", "banned", "lapsed"].includes(account);
         const access = {
-          status: account === "expired" || account === "banned" ? account : "trial",
-          allowed: !(account === "expired" || account === "banned"),
+          status: isPaid ? "paid" : account === "lapsed" ? "expired" : blocked ? account : "trial",
+          allowed: !blocked,
           trial_ends_at: new Date(Date.now() + 12 * day).toISOString(),
+          paid_until: isPaid || account === "lapsed"
+            ? new Date(Date.now() + (account === "due" ? -1 : account === "lapsed" ? -9 : 21) * day).toISOString()
+            : null,
+          cancel_at_period_end: account === "cancelling",
         };
+        const paidAccess = () => Object.assign(access, {
+          status: "paid", allowed: true, cancel_at_period_end: false,
+          paid_until: new Date(Date.now() + 30 * day).toISOString(),
+        });
+        const reply = (body, status = 200) => Promise.resolve(new Response(
+          JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } }));
         localStorage.setItem("silktone.session", JSON.stringify({
           access_token: "mock", refresh_token: "mock",
           expires_at: Math.floor(Date.now() / 1000) + 3600, email: "you@example.com",
@@ -146,7 +159,17 @@
           const url = String(input && input.url ? input.url : input);
           if (!url.includes("supabase.co")) return realFetch(input, init);
           if (account === "offline" || account === "stale") return Promise.reject(new TypeError("offline"));
-          return Promise.resolve(new Response(JSON.stringify(access), { status: 200, headers: { "Content-Type": "application/json" } }));
+          // Subscribing "succeeds" a few seconds later; ?pay=fail shows the error.
+          if (url.includes("/functions/v1/create-subscription")) {
+            if (new URLSearchParams(location.search).get("pay") === "fail") return reply({ error: "server_error" }, 500);
+            setTimeout(paidAccess, 4000);
+            return reply({ url: "https://rzp.io/rzp/mock" });
+          }
+          if (url.includes("/functions/v1/cancel-subscription")) {
+            access.cancel_at_period_end = true;
+            return reply({ ok: true });
+          }
+          return reply(access);
         };
       } else {
         localStorage.removeItem("silktone.session");

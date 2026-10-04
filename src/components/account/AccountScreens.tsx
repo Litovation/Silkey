@@ -1,14 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { LogIn, LogOut, RefreshCw, ShieldAlert, WifiOff } from "lucide-react";
 import SilktoneWordmark from "../icons/SilktoneWordmark";
 import { Button } from "../ui/Button";
 import { SetupBackdrop } from "../ui/SetupBackdrop";
 import { useAuthStore } from "../../stores/authStore";
 import type { BlockReason } from "../../lib/auth";
-
-const SITE_URL = "https://silktone.litovation.in";
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="fixed inset-0 flex items-center justify-center overflow-hidden p-6 select-none cursor-default">
@@ -68,7 +65,17 @@ export const BlockedScreen: React.FC<{ reason: BlockReason }> = ({
   const checking = useAuthStore((state) => state.checking);
   const recheck = useAuthStore((state) => state.recheck);
   const signOut = useAuthStore((state) => state.signOut);
+  const subscribe = useAuthStore((state) => state.subscribe);
+  const paymentBusy = useAuthStore((state) => state.paymentBusy);
+  const awaitingPayment = useAuthStore((state) => state.awaitingPayment);
+  const paymentError = useAuthStore((state) => state.paymentError);
+  // Someone who has paid before sees "subscription ended", not "trial ended".
+  const lapsed = useAuthStore(
+    (state) =>
+      state.verdict?.state === "blocked" && !!state.verdict.access?.paid_until,
+  );
   const Icon = REASON_ICON[reason];
+  const copy = reason === "expired" && lapsed ? "lapsed" : reason;
 
   return (
     <Shell>
@@ -77,16 +84,16 @@ export const BlockedScreen: React.FC<{ reason: BlockReason }> = ({
       </div>
       <div className="max-w-sm space-y-2">
         <h1 className="text-xl font-semibold">
-          {t(`account.blocked.${reason}.title`)}
+          {t(`account.blocked.${copy}.title`)}
         </h1>
         <p className="text-sm text-mid-gray">
-          {t(`account.blocked.${reason}.body`)}
+          {t(`account.blocked.${copy}.body`)}
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         {reason === "expired" && (
-          <Button variant="primary" onClick={() => openUrl(SITE_URL)}>
-            {t("account.blocked.expired.action")}
+          <Button variant="primary" onClick={subscribe} disabled={paymentBusy}>
+            {t("account.subscribe")}
           </Button>
         )}
         <Button
@@ -107,6 +114,16 @@ export const BlockedScreen: React.FC<{ reason: BlockReason }> = ({
           {t("account.signOut")}
         </Button>
       </div>
+      {reason === "expired" && awaitingPayment && (
+        <p className="text-xs text-mid-gray">{t("account.finishPayment")}</p>
+      )}
+      {reason === "expired" && paymentError && (
+        <p className="max-w-sm text-xs text-error">
+          {t(`account.paymentError.${paymentError}`, {
+            defaultValue: t("account.paymentError.generic"),
+          })}
+        </p>
+      )}
       {email && (
         <p className="text-xs text-mid-gray">
           {t("account.signedInAs", { email })}
