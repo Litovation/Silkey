@@ -173,6 +173,8 @@ const settingUpdaters: {
     commands.changeLazyStreamCloseSetting(value as boolean),
   trackpad_double_tap_enabled: (value) =>
     commands.changeTrackpadDoubleTapSetting(value as boolean),
+  trackpad_hold_ms: (value) =>
+    commands.changeTrackpadHoldMsSetting(value as number),
   silence_auto_stop_secs: (value) =>
     commands.changeSilenceAutoStopSetting(value as number),
   overlay_style: (value) => commands.changeOverlayStyleSetting(value as string),

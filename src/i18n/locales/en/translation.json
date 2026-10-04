@@ -282,7 +282,7 @@
       },
       "trackpadDoubleTap": {
         "label": "Two-Finger Hold to Dictate",
-        "description": "Rest two fingers on the touchpad for 1.5 seconds to start or stop dictation. Works with Windows Precision Touchpads. Off by default."
+        "description": "Rest two fingers on the touchpad to start dictating, and lift them to stop and paste. Works with Windows Precision Touchpads. Off by default."
       },
       "lazyStreamClose": {
         "label": "Keep Mic Open Between Transcriptions",
@@ -412,6 +412,11 @@
       "fillerWordRemoval": {
         "title": "Remove Filler Words",
         "description": "Removes common hesitation words from transcriptions. Turn off to keep them."
+      },
+      "trackpadHoldTime": {
+        "label": "Hold Time",
+        "description": "How long two fingers must rest before dictation starts. Shorter is quicker; longer avoids accidental starts.",
+        "value": "{{seconds}}s"
       }
     },
     "postProcessing": {
@@ -669,6 +674,11 @@
           "description": "High-performance tensor library for on-device machine learning inference",
           "details": "Silktone's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
         }
+      },
+      "walkthrough": {
+        "title": "Walkthrough",
+        "description": "See the setup steps again",
+        "button": "Show again"
       }
     },
     "voiceCommands": {
@@ -903,7 +913,7 @@
     "shortcut": {
       "title": "Your dictation shortcut",
       "description": "Hold these keys anywhere on your PC and speak. Silktone types what you say. You can change the keys below.",
-      "trackpadHint": "On a laptop, you can also rest two fingers on the touchpad for 1.5 seconds to start and stop dictating."
+      "trackpadHint": "On a laptop, you can also rest two fingers on the touchpad to dictate, and lift them when you are done."
     },
     "practice": {
       "title": "Try it once",

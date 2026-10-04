@@ -40,6 +40,8 @@ interface FirstRunSetupProps {
   onRetryEngine: () => void;
   onComplete: () => void;
   preview?: boolean;
+  /** Shown again from Settings: finishing returns to the app, not the tray. */
+  replay?: boolean;
 }
 
 const EngineLine: React.FC<{ engine: EngineStatus; onRetry: () => void }> = ({
@@ -119,6 +121,7 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
   onRetryEngine,
   onComplete,
   preview = false,
+  replay = false,
 }) => {
   const { t } = useTranslation();
   const { getSetting } = useSettings();
@@ -175,6 +178,7 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
   const finish = async () => {
     if (preview) return;
     onComplete();
+    if (replay) return;
     // Closing hides the window to the tray; without a tray it would quit.
     if (getSetting("show_tray_icon") ?? true) {
       try {

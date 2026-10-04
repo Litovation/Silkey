@@ -397,6 +397,14 @@ async changeSilenceAutoStopSetting(seconds: number) : Promise<Result<null, strin
     else return { status: "error", error: e  as any };
 }
 },
+async changeTrackpadHoldMsSetting(milliseconds: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_trackpad_hold_ms_setting", { milliseconds }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeTrackpadDoubleTapSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_trackpad_double_tap_setting", { enabled }) };
@@ -1048,7 +1056,7 @@ selected_channel?: number | null; clamshell_microphone?: string | null; selected
  * Seconds of silence after which a recording stops and pastes on its
  * own. Zero turns the auto-stop off.
  */
-silence_auto_stop_secs?: number; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
+trackpad_hold_ms?: number; silence_auto_stop_secs?: number; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
 /**
  * Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
  * after the target app actually reads the transcript, instead of after a

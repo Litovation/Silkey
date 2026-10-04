@@ -1298,6 +1298,17 @@ pub fn change_trackpad_double_tap_setting(app: AppHandle, enabled: bool) -> Resu
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_trackpad_hold_ms_setting(app: AppHandle, milliseconds: u32) -> Result<(), String> {
+    let milliseconds = crate::trackpad::clamp_hold_ms(milliseconds);
+    let mut settings = settings::get_settings(&app);
+    settings.trackpad_hold_ms = milliseconds;
+    settings::write_settings(&app, settings);
+    crate::trackpad::set_hold_ms(milliseconds);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_vad_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.vad_enabled = enabled;

@@ -1,4 +1,4 @@
-//! Resting two fingers on the touchpad toggles transcription.
+//! Resting two fingers on the touchpad dictates: hold to start, lift to stop.
 //!
 //! Windows Precision Touchpads expose raw finger contacts over HID. We read
 //! them through Raw Input (no mouse hook), so ordinary clicks, taps and
@@ -11,15 +11,35 @@
 //! the frontend bindings stay valid.
 //!
 //! [`HoldDetector`] is the pure gesture logic (finger-down/up samples in,
-//! "held long enough" out) so it can be unit tested without hardware.
+//! "started" / "released" out) so it can be unit tested without hardware.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 
-/// Two fingers must rest on the pad this long to trigger.
-pub const HOLD_FOR: Duration = Duration::from_millis(1500);
+/// How long two fingers must rest on the pad to trigger, unless changed.
+pub const DEFAULT_HOLD_MS: u32 = 1500;
+const MIN_HOLD_MS: u32 = 500;
+const MAX_HOLD_MS: u32 = 3000;
 /// No reports for this long means we missed a lift; drop all state.
 const STALE_AFTER: Duration = Duration::from_secs(5);
+
+static HOLD_MS: AtomicU32 = AtomicU32::new(DEFAULT_HOLD_MS);
+
+/// Keep a requested hold time within the range the gesture works well in.
+pub fn clamp_hold_ms(milliseconds: u32) -> u32 {
+    milliseconds.clamp(MIN_HOLD_MS, MAX_HOLD_MS)
+}
+
+/// Apply the saved hold time (call at startup and whenever it changes).
+pub fn set_hold_ms(milliseconds: u32) {
+    HOLD_MS.store(clamp_hold_ms(milliseconds), Ordering::Relaxed);
+}
+
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+fn hold_for() -> Duration {
+    Duration::from_millis(u64::from(HOLD_MS.load(Ordering::Relaxed)))
+}
 
 /// One finger's state from a touchpad report.
 #[derive(Debug, Clone, Copy)]
@@ -29,6 +49,16 @@ pub struct Sample {
     pub y: i32,
     /// Finger is touching the surface.
     pub tip: bool,
+}
+
+/// What a sample means for dictation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Gesture {
+    None,
+    /// Two fingers have rested long enough: start dictating.
+    Started,
+    /// A finger lifted after a started hold: stop and paste.
+    Released,
 }
 
 struct Contact {
@@ -42,6 +72,8 @@ pub struct HoldDetector {
     hold_started: Option<Instant>,
     /// This touch already fired or was ruled out; wait for every finger to lift.
     spent: bool,
+    /// The hold fired and the fingers have not lifted yet.
+    active: bool,
     last_event: Option<Instant>,
 }
 
@@ -57,12 +89,19 @@ impl HoldDetector {
     }
 
     /// Feed one finger sample. `move_limit` is how far (in touchpad units) a
-    /// finger may drift and still count as resting. Returns true when this
-    /// sample completes a two-finger hold.
-    pub fn on_sample(&mut self, s: Sample, now: Instant, move_limit: i32) -> bool {
+    /// finger may drift and still count as resting; `hold` is how long the
+    /// fingers must rest.
+    pub fn on_sample(
+        &mut self,
+        s: Sample,
+        now: Instant,
+        move_limit: i32,
+        hold: Duration,
+    ) -> Gesture {
         if self
             .last_event
             .is_some_and(|t| now.duration_since(t) > STALE_AFTER)
+            && !self.active
         {
             self.contacts.clear();
             self.hold_started = None;
@@ -72,12 +111,16 @@ impl HoldDetector {
 
         if !s.tip {
             if self.contacts.remove(&s.id).is_none() {
-                return false;
+                return Gesture::None;
             }
             self.hold_started = None;
             // A new hold needs a fresh touch: every finger off the pad first.
             self.spent = !self.contacts.is_empty();
-            return false;
+            if self.active {
+                self.active = false;
+                return Gesture::Released;
+            }
+            return Gesture::None;
         }
 
         let contact = self.contacts.entry(s.id).or_insert(Contact {
@@ -87,32 +130,42 @@ impl HoldDetector {
             || (s.y - contact.start.1).abs() > move_limit;
         let count = self.contacts.len();
 
+        // Once dictation has started, only lifting a finger ends it; fingers
+        // may drift while the user speaks.
+        if self.active {
+            return Gesture::None;
+        }
         // Scrolling (movement) or a three-finger gesture rules this touch out.
         if moved || count > 2 {
             self.spent = true;
             self.hold_started = None;
-            return false;
+            return Gesture::None;
         }
         if self.spent || count < 2 {
-            return false;
+            return Gesture::None;
         }
         if self.hold_started.is_none() {
             self.hold_started = Some(now);
-            return false;
+            return Gesture::None;
         }
-        self.poll(now)
+        if self.poll(now, hold) {
+            Gesture::Started
+        } else {
+            Gesture::None
+        }
     }
 
     /// Check the hold without a new sample (called from a timer). Returns
-    /// true once per touch, when two fingers have rested for [`HOLD_FOR`].
-    pub fn poll(&mut self, now: Instant) -> bool {
+    /// true once per touch, when two fingers have rested for `hold`.
+    pub fn poll(&mut self, now: Instant, hold: Duration) -> bool {
         let due = !self.spent
             && self.contacts.len() == 2
             && self
                 .hold_started
-                .is_some_and(|t| now.duration_since(t) >= HOLD_FOR);
+                .is_some_and(|t| now.duration_since(t) >= hold);
         if due {
             self.spent = true;
+            self.active = true;
             self.hold_started = None;
         }
         due
@@ -124,6 +177,7 @@ mod tests {
     use super::*;
 
     const LIMIT: i32 = 100;
+    const HOLD: Duration = Duration::from_millis(1500);
 
     fn down(id: u32, x: i32, y: i32) -> Sample {
         Sample { id, x, y, tip: true }
@@ -134,98 +188,122 @@ mod tests {
     fn ms(n: u64) -> Duration {
         Duration::from_millis(n)
     }
+    fn feed(d: &mut HoldDetector, s: Sample, t: Instant) -> Gesture {
+        d.on_sample(s, t, LIMIT, HOLD)
+    }
 
     /// Two fingers land at `t`.
     fn land_two(d: &mut HoldDetector, t: Instant) {
-        assert!(!d.on_sample(down(1, 0, 0), t, LIMIT));
-        assert!(!d.on_sample(down(2, 500, 0), t, LIMIT));
+        assert_eq!(feed(d, down(1, 0, 0), t), Gesture::None);
+        assert_eq!(feed(d, down(2, 500, 0), t), Gesture::None);
     }
 
     #[test]
-    fn resting_two_fingers_fires_once() {
+    fn resting_two_fingers_starts_once() {
         let mut d = HoldDetector::new();
         let t0 = Instant::now();
         land_two(&mut d, t0);
-        assert!(!d.on_sample(down(1, 0, 0), t0 + ms(800), LIMIT));
-        assert!(d.on_sample(down(1, 0, 0), t0 + ms(1600), LIMIT));
-        // Still resting: no second trigger from the same touch.
-        assert!(!d.on_sample(down(2, 500, 0), t0 + ms(3200), LIMIT));
-        assert!(!d.poll(t0 + ms(3300)));
+        assert_eq!(feed(&mut d, down(1, 0, 0), t0 + ms(800)), Gesture::None);
+        assert_eq!(feed(&mut d, down(1, 0, 0), t0 + ms(1600)), Gesture::Started);
+        // Still resting: no second start from the same touch.
+        assert_eq!(feed(&mut d, down(2, 500, 0), t0 + ms(3200)), Gesture::None);
+        assert!(!d.poll(t0 + ms(3300), HOLD));
     }
 
     #[test]
-    fn timer_fires_when_the_pad_sends_no_reports() {
+    fn lifting_after_a_start_releases_once() {
+        let mut d = HoldDetector::new();
+        let t0 = Instant::now();
+        land_two(&mut d, t0);
+        assert!(d.poll(t0 + ms(1600), HOLD));
+        // Drifting while speaking does not end it.
+        assert_eq!(feed(&mut d, down(1, 0, 5000), t0 + ms(4000)), Gesture::None);
+        assert_eq!(feed(&mut d, up(1, 0, 5000), t0 + ms(9000)), Gesture::Released);
+        assert_eq!(feed(&mut d, up(2, 500, 0), t0 + ms(9010)), Gesture::None);
+    }
+
+    #[test]
+    fn timer_starts_when_the_pad_sends_no_reports() {
         let mut d = HoldDetector::new();
         let t0 = Instant::now();
         land_two(&mut d, t0);
         assert!(d.hold_started().is_some());
-        assert!(!d.poll(t0 + ms(1000)));
-        assert!(d.poll(t0 + ms(1530)));
-        assert!(!d.poll(t0 + ms(1600)));
+        assert!(!d.poll(t0 + ms(1000), HOLD));
+        assert!(d.poll(t0 + ms(1530), HOLD));
+        assert!(!d.poll(t0 + ms(1600), HOLD));
     }
 
     #[test]
-    fn lifting_early_does_not_fire() {
+    fn a_shorter_hold_time_starts_sooner() {
         let mut d = HoldDetector::new();
         let t0 = Instant::now();
         land_two(&mut d, t0);
-        assert!(!d.on_sample(up(1, 0, 0), t0 + ms(900), LIMIT));
-        assert!(!d.on_sample(up(2, 500, 0), t0 + ms(900), LIMIT));
-        assert!(!d.poll(t0 + ms(1600)));
+        assert!(d.poll(t0 + ms(600), ms(500)));
     }
 
     #[test]
-    fn two_finger_scroll_does_not_fire() {
+    fn lifting_early_does_nothing() {
         let mut d = HoldDetector::new();
         let t0 = Instant::now();
         land_two(&mut d, t0);
-        assert!(!d.on_sample(down(1, 0, 5000), t0 + ms(400), LIMIT));
-        assert!(!d.on_sample(down(1, 0, 5000), t0 + ms(1700), LIMIT));
-        assert!(!d.poll(t0 + ms(1800)));
+        assert_eq!(feed(&mut d, up(1, 0, 0), t0 + ms(900)), Gesture::None);
+        assert_eq!(feed(&mut d, up(2, 500, 0), t0 + ms(900)), Gesture::None);
+        assert!(!d.poll(t0 + ms(1600), HOLD));
     }
 
     #[test]
-    fn one_finger_resting_does_not_fire() {
+    fn two_finger_scroll_does_not_start() {
         let mut d = HoldDetector::new();
         let t0 = Instant::now();
-        assert!(!d.on_sample(down(1, 0, 0), t0, LIMIT));
-        assert!(!d.on_sample(down(1, 0, 0), t0 + ms(2000), LIMIT));
-        assert!(!d.poll(t0 + ms(2100)));
+        land_two(&mut d, t0);
+        assert_eq!(feed(&mut d, down(1, 0, 5000), t0 + ms(400)), Gesture::None);
+        assert_eq!(feed(&mut d, down(1, 0, 5000), t0 + ms(1700)), Gesture::None);
+        assert!(!d.poll(t0 + ms(1800), HOLD));
     }
 
     #[test]
-    fn three_fingers_do_not_fire() {
+    fn one_finger_resting_does_not_start() {
+        let mut d = HoldDetector::new();
+        let t0 = Instant::now();
+        assert_eq!(feed(&mut d, down(1, 0, 0), t0), Gesture::None);
+        assert_eq!(feed(&mut d, down(1, 0, 0), t0 + ms(2000)), Gesture::None);
+        assert!(!d.poll(t0 + ms(2100), HOLD));
+    }
+
+    #[test]
+    fn three_fingers_do_not_start() {
         let mut d = HoldDetector::new();
         let t0 = Instant::now();
         for id in 1..=3 {
-            d.on_sample(down(id, 0, 0), t0, LIMIT);
+            feed(&mut d, down(id, 0, 0), t0);
         }
-        assert!(!d.on_sample(down(1, 0, 0), t0 + ms(1700), LIMIT));
-        assert!(!d.poll(t0 + ms(1800)));
+        assert_eq!(feed(&mut d, down(1, 0, 0), t0 + ms(1700)), Gesture::None);
+        assert!(!d.poll(t0 + ms(1800), HOLD));
     }
 
     #[test]
-    fn a_fresh_touch_can_fire_again() {
+    fn a_fresh_touch_can_start_again() {
         let mut d = HoldDetector::new();
         let t0 = Instant::now();
         land_two(&mut d, t0);
-        assert!(d.poll(t0 + ms(1600)));
-        d.on_sample(up(1, 0, 0), t0 + ms(1700), LIMIT);
-        d.on_sample(up(2, 500, 0), t0 + ms(1700), LIMIT);
+        assert!(d.poll(t0 + ms(1600), HOLD));
+        feed(&mut d, up(1, 0, 0), t0 + ms(1700));
+        feed(&mut d, up(2, 500, 0), t0 + ms(1700));
         land_two(&mut d, t0 + ms(2000));
-        assert!(d.poll(t0 + ms(3600)));
+        assert!(d.poll(t0 + ms(3600), HOLD));
     }
 }
 
 #[cfg(target_os = "windows")]
 mod platform {
-    use super::{HoldDetector, Sample, HOLD_FOR};
+    use super::{hold_for, Gesture, HoldDetector, Sample};
+    use crate::managers::audio::AudioRecordingManager;
     use log::{debug, error, info};
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::{Mutex, OnceLock};
+    use std::sync::{Arc, Mutex, OnceLock};
     use std::time::{Duration, Instant};
-    use tauri::AppHandle;
+    use tauri::{AppHandle, Manager};
     use windows::core::w;
     use windows::Win32::Devices::HumanInterfaceDevice::{
         HidP_GetCaps, HidP_GetUsageValue, HidP_GetUsages, HidP_GetValueCaps, HidP_Input, HIDP_CAPS,
@@ -392,13 +470,20 @@ mod platform {
             .or_insert_with(|| load_pad_info(raw.header.hDevice));
         let Some(pad) = pad.as_ref() else { return };
 
+        let hold = hold_for();
         let hold_before = state.detector.hold_started();
-        let mut fired = false;
+        let mut started = false;
+        let mut released = false;
         for report in data.chunks_exact(report_len) {
             for sample in parse_report(pad, report) {
-                fired |= state
+                match state
                     .detector
-                    .on_sample(sample, Instant::now(), pad.move_limit);
+                    .on_sample(sample, Instant::now(), pad.move_limit, hold)
+                {
+                    Gesture::Started => started = true,
+                    Gesture::Released => released = true,
+                    Gesture::None => {}
+                }
             }
         }
         let hold_after = state.detector.hold_started();
@@ -407,32 +492,58 @@ mod platform {
         // A pad may stop reporting while fingers rest still, so a new hold
         // also gets a timer that checks it once the hold time has passed.
         if hold_after.is_some() && hold_after != hold_before {
-            std::thread::spawn(|| {
-                std::thread::sleep(HOLD_FOR + Duration::from_millis(30));
+            std::thread::spawn(move || {
+                std::thread::sleep(hold + Duration::from_millis(30));
                 if !ENABLED.load(Ordering::Relaxed) {
                     return;
                 }
                 let due = match STATE.lock() {
                     Ok(mut guard) => guard
                         .as_mut()
-                        .is_some_and(|state| state.detector.poll(Instant::now())),
+                        .is_some_and(|state| state.detector.poll(Instant::now(), hold)),
                     Err(_) => false,
                 };
                 if due {
-                    trigger();
+                    start_dictation();
                 }
             });
         }
 
-        if fired {
-            trigger();
+        if started {
+            start_dictation();
+        }
+        if released {
+            stop_dictation();
         }
     }
 
-    fn trigger() {
+    fn is_recording(app: &AppHandle) -> bool {
+        app.try_state::<Arc<AudioRecordingManager>>()
+            .is_some_and(|manager| manager.is_recording())
+    }
+
+    /// The coordinator only offers a toggle, so each side checks the current
+    /// state first: a hold never stops a recording, and a lift never starts one
+    /// (for example after the silence auto-stop already ended it).
+    fn start_dictation() {
         if let Some(app) = APP.get() {
-            debug!("trackpad: two-finger hold");
-            crate::signal_handle::send_transcription_input(app, "transcribe", "trackpad hold");
+            if !is_recording(app) {
+                debug!("trackpad: two-finger hold, starting");
+                crate::signal_handle::send_transcription_input(app, "transcribe", "trackpad hold");
+            }
+        }
+    }
+
+    fn stop_dictation() {
+        if let Some(app) = APP.get() {
+            if is_recording(app) {
+                debug!("trackpad: fingers lifted, stopping");
+                crate::signal_handle::send_transcription_input(
+                    app,
+                    "transcribe",
+                    "trackpad release",
+                );
+            }
         }
     }
 

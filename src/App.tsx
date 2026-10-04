@@ -59,6 +59,7 @@ function App() {
   // (vs a new user who needs full onboarding including model selection)
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+  const [replayingWalkthrough, setReplayingWalkthrough] = useState(false);
   const { settings, updateSetting } = useSettings();
   const verdict = useAuthStore((state) => state.verdict);
   const initializeAuth = useAuthStore((state) => state.initialize);
@@ -329,6 +330,15 @@ function App() {
     content = <SignInScreen />;
   } else if (verdict.state === "blocked") {
     content = <BlockedScreen reason={verdict.reason} />;
+  } else if (replayingWalkthrough) {
+    content = (
+      <FirstRunSetup
+        engine={engineStatus}
+        onRetryEngine={retryEngine}
+        onComplete={() => setReplayingWalkthrough(false)}
+        replay
+      />
+    );
   } else if (onboardingPreview) {
     // Render previews in the same top-level slot as real onboarding. Keeping
     // the settings layout unmounted ensures viewport overflow behaves exactly
@@ -398,6 +408,10 @@ function App() {
           onPreviewOnboarding={(step) => {
             setSettingsTab(null);
             setOnboardingPreview(step);
+          }}
+          onReplayWalkthrough={() => {
+            setSettingsTab(null);
+            setReplayingWalkthrough(true);
           }}
         />
       </div>

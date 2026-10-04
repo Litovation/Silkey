@@ -74,6 +74,7 @@ interface SettingsModalProps {
   onTabChange: (tab: SettingsTab) => void;
   onClose: () => void;
   onPreviewOnboarding: (step: OnboardingPreviewStep) => void;
+  onReplayWalkthrough: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -81,6 +82,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onTabChange,
   onClose,
   onPreviewOnboarding,
+  onReplayWalkthrough,
 }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
@@ -114,7 +116,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       case "debug":
         return <DebugSettings onPreviewOnboarding={onPreviewOnboarding} />;
       case "about":
-        return <AboutSettings />;
+        return <AboutSettings onReplayWalkthrough={onReplayWalkthrough} />;
       default:
         return <GeneralSettings />;
     }

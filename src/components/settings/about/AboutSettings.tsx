@@ -6,8 +6,15 @@ import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
 import { AppLanguageSelector } from "../AppLanguageSelector";
 import { ThemeSelector } from "../ThemeSelector";
+import { Button } from "../../ui/Button";
 
-export const AboutSettings: React.FC = () => {
+interface AboutSettingsProps {
+  onReplayWalkthrough: () => void;
+}
+
+export const AboutSettings: React.FC<AboutSettingsProps> = ({
+  onReplayWalkthrough,
+}) => {
   const { t } = useTranslation();
   const [version, setVersion] = useState("");
 
@@ -45,6 +52,15 @@ export const AboutSettings: React.FC = () => {
         >
           {/* eslint-disable-next-line i18next/no-literal-string */}
           <span className="text-sm font-mono">v{version}</span>
+        </SettingContainer>
+        <SettingContainer
+          title={t("settings.about.walkthrough.title")}
+          description={t("settings.about.walkthrough.description")}
+          grouped={true}
+        >
+          <Button variant="secondary" onClick={onReplayWalkthrough}>
+            {t("settings.about.walkthrough.button")}
+          </Button>
         </SettingContainer>
       </SettingsGroup>
 

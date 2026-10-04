@@ -701,6 +701,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,
             shortcut::change_trackpad_double_tap_setting,
+            shortcut::change_trackpad_hold_ms_setting,
             shortcut::change_silence_auto_stop_setting,
             shortcut::change_vad_enabled_setting,
             shortcut::change_vad_backend_setting,
@@ -1021,6 +1022,7 @@ pub fn run(cli_args: CliArgs) {
             WEBVIEW_LOG_STREAMING.store(settings.debug_mode, Ordering::Relaxed);
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
+            trackpad::set_hold_ms(settings.trackpad_hold_ms);
             trackpad::apply(&app_handle, settings.trackpad_double_tap_enabled);
 
             initialize_core_logic(&app_handle);

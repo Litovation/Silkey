@@ -476,6 +476,9 @@ pub struct AppSettings {
     /// key predates the switch from a double-tap to a hold.
     #[serde(default)]
     pub trackpad_double_tap_enabled: bool,
+    /// How long two fingers must rest on the touchpad, in milliseconds.
+    #[serde(default = "default_trackpad_hold_ms")]
+    pub trackpad_hold_ms: u32,
     /// Seconds of silence after which a recording stops and pastes on its
     /// own. Zero turns the auto-stop off.
     #[serde(default = "default_silence_auto_stop_secs")]
@@ -555,6 +558,10 @@ fn default_start_hidden() -> bool {
 
 fn default_silence_auto_stop_secs() -> u32 {
     5
+}
+
+fn default_trackpad_hold_ms() -> u32 {
+    crate::trackpad::DEFAULT_HOLD_MS
 }
 
 fn default_autostart_enabled() -> bool {
@@ -998,6 +1005,7 @@ pub fn get_default_settings() -> AppSettings {
         experimental_enabled: false,
         lazy_stream_close: true,
         trackpad_double_tap_enabled: false,
+        trackpad_hold_ms: default_trackpad_hold_ms(),
         silence_auto_stop_secs: default_silence_auto_stop_secs(),
         keyboard_implementation: KeyboardImplementation::default(),
         show_tray_icon: default_show_tray_icon(),
