@@ -5,12 +5,18 @@ Last updated: 2026-10-04. Repo: `github.com/Litovation/Silkey`.
 
 Branches:
 
-- `v0.1.1-ui`: the main working branch. It holds everything: the v0.1.1
-  interface and the accounts work. A collaborator may also push here, so pull
-  before working and prefer a side branch plus pull request.
-- `silktone-accounts`: same content at the time of the merge. The `silktone-`
-  prefix makes the Windows build run on every push; `v0.1.1-ui` only builds
-  when the workflow is run by hand.
+There are two long-lived branches. On 2026-10-04 everything was folded into
+them and the older branches (`silktone-rebrand`, `silktone-accounts`,
+`silktone-model-choice`) were deleted; all their commits are in the history.
+
+- `v0.1.1-ui`: the working branch. Changes go here. A collaborator may also
+  push here, so pull before working.
+- `main`: the stable branch. Move it forward only to a commit whose Windows
+  build has passed.
+
+The Windows build runs on every push to `main`, `v0.1.1-ui` and any
+short-lived `silktone-*` side branch (docs-only pushes are skipped). A build
+takes about 27 minutes, so push once per batch of changes.
 
 ## What Silktone is
 
