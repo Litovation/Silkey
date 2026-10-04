@@ -27,7 +27,8 @@ dist-ssr
 *.sln
 *.sw?
 
-.claude/
+.claude/*
+!.claude/skills/
 
 /target/
 recording_*
