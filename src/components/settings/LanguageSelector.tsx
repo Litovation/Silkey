@@ -19,9 +19,9 @@ interface LanguageSelectorProps {
   supportsLanguageDetection?: boolean;
 }
 
-// v0.1.1 offers dictation in these languages only; the picker is narrowed to
-// them (and further to whatever the active model supports).
-const OFFERED_LANGUAGES = ["en", "hi"];
+// v0.1.1 offers dictation in these languages only, plus automatic detection;
+// the picker is narrowed to them (and further to what the active model supports).
+const OFFERED_LANGUAGES = ["auto", "en", "hi"];
 
 // Convert a concrete or aliased code to the picker entry that represents it.
 // Chinese script intents are already selectable and must remain intact; model
@@ -99,9 +99,11 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     );
     if (!supportedLanguages || supportedLanguages.length === 0) return offered;
     return offered.filter((lang) =>
-      supportsLanguageCode(supportedLanguages, lang.value),
+      lang.value === "auto"
+        ? supportsLanguageDetection
+        : supportsLanguageCode(supportedLanguages, lang.value),
     );
-  }, [supportedLanguages]);
+  }, [supportedLanguages, supportsLanguageDetection]);
 
   const filteredLanguages = useMemo(
     () =>
