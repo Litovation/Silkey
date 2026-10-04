@@ -8,6 +8,7 @@ import { ShortcutInput } from "../ShortcutInput";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { ShortcutActivationSetting } from "../ShortcutActivation";
 import { MuteWhileRecording } from "../MuteWhileRecording";
+import { MicrophoneBoost } from "../MicrophoneBoost";
 import { TrackpadDoubleTap } from "../TrackpadDoubleTap";
 import { TrackpadHoldTime } from "../TrackpadHoldTime";
 import { useSettings } from "../../../hooks/useSettings";
@@ -57,6 +58,7 @@ export const GeneralSettings: React.FC = () => {
       >
         <MicrophoneSelector descriptionMode="tooltip" grouped={true} />
         <ChannelSelector descriptionMode="tooltip" grouped={true} />
+        <MicrophoneBoost descriptionMode="tooltip" grouped={true} />
         <MuteWhileRecording descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
     </div>

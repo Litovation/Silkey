@@ -479,6 +479,9 @@ pub struct AppSettings {
     /// How long two fingers must rest on the touchpad, in milliseconds.
     #[serde(default = "default_trackpad_hold_ms")]
     pub trackpad_hold_ms: u32,
+    /// Microphone boost as a percentage; 100 leaves the signal untouched.
+    #[serde(default = "default_mic_gain_percent")]
+    pub mic_gain_percent: u32,
     /// Seconds of silence after which a recording stops and pastes on its
     /// own. Zero turns the auto-stop off.
     #[serde(default = "default_silence_auto_stop_secs")]
@@ -558,6 +561,10 @@ fn default_start_hidden() -> bool {
 
 fn default_silence_auto_stop_secs() -> u32 {
     5
+}
+
+fn default_mic_gain_percent() -> u32 {
+    crate::audio_toolkit::audio::DEFAULT_MIC_GAIN_PERCENT
 }
 
 fn default_trackpad_hold_ms() -> u32 {
@@ -1006,6 +1013,7 @@ pub fn get_default_settings() -> AppSettings {
         lazy_stream_close: true,
         trackpad_double_tap_enabled: false,
         trackpad_hold_ms: default_trackpad_hold_ms(),
+        mic_gain_percent: default_mic_gain_percent(),
         silence_auto_stop_secs: default_silence_auto_stop_secs(),
         keyboard_implementation: KeyboardImplementation::default(),
         show_tray_icon: default_show_tray_icon(),

@@ -702,6 +702,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_lazy_stream_close_setting,
             shortcut::change_trackpad_double_tap_setting,
             shortcut::change_trackpad_hold_ms_setting,
+            shortcut::change_mic_gain_setting,
             shortcut::change_silence_auto_stop_setting,
             shortcut::change_vad_enabled_setting,
             shortcut::change_vad_backend_setting,
@@ -1023,6 +1024,7 @@ pub fn run(cli_args: CliArgs) {
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
             trackpad::set_hold_ms(settings.trackpad_hold_ms);
+            audio_toolkit::audio::set_mic_gain_percent(settings.mic_gain_percent);
             trackpad::apply(&app_handle, settings.trackpad_double_tap_enabled);
 
             initialize_core_logic(&app_handle);

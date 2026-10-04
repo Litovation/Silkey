@@ -289,6 +289,11 @@
       "volume": {
         "title": "Volume",
         "description": "Adjust the volume of audio feedback sounds"
+      },
+      "microphoneBoost": {
+        "label": "Microphone Boost",
+        "description": "Makes your voice louder before it is transcribed and saved. Raise it if recordings sound quiet or words are missed; lower it if your voice sounds distorted.",
+        "value": "{{times}}×"
       }
     },
     "advanced": {

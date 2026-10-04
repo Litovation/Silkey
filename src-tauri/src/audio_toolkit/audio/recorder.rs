@@ -1,7 +1,7 @@
 use std::{
     io::Error,
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
         mpsc, Arc, Mutex,
     },
     time::{Duration, Instant},
@@ -19,6 +19,43 @@ use crate::audio_toolkit::{
     vad::{self, VadFrame},
     VoiceActivityDetector,
 };
+
+/// Microphone boost as a percentage: 100 leaves the signal untouched.
+pub const DEFAULT_MIC_GAIN_PERCENT: u32 = 100;
+const MIN_MIC_GAIN_PERCENT: u32 = 50;
+const MAX_MIC_GAIN_PERCENT: u32 = 400;
+/// Below this level samples pass through unchanged; above it they are eased
+/// toward full scale so a strong boost rounds off peaks instead of clipping.
+const SOFT_LIMIT_KNEE: f32 = 0.8;
+
+static MIC_GAIN_PERCENT: AtomicU32 = AtomicU32::new(DEFAULT_MIC_GAIN_PERCENT);
+
+/// Keep a requested boost within the range that stays usable.
+pub fn clamp_mic_gain_percent(percent: u32) -> u32 {
+    percent.clamp(MIN_MIC_GAIN_PERCENT, MAX_MIC_GAIN_PERCENT)
+}
+
+/// Apply the saved boost (call at startup and whenever it changes). Takes
+/// effect on the next audio chunk, including mid-recording.
+pub fn set_mic_gain_percent(percent: u32) {
+    MIC_GAIN_PERCENT.store(clamp_mic_gain_percent(percent), Ordering::Relaxed);
+}
+
+fn mic_gain() -> f32 {
+    MIC_GAIN_PERCENT.load(Ordering::Relaxed) as f32 / 100.0
+}
+
+/// Scale one sample by `gain`, easing anything past the knee toward +/-1.0.
+fn apply_gain(sample: f32, gain: f32) -> f32 {
+    let boosted = sample * gain;
+    let level = boosted.abs();
+    if level <= SOFT_LIMIT_KNEE {
+        return boosted;
+    }
+    let headroom = 1.0 - SOFT_LIMIT_KNEE;
+    let eased = SOFT_LIMIT_KNEE + headroom * ((level - SOFT_LIMIT_KNEE) / headroom).tanh();
+    eased.copysign(boosted)
+}
 
 enum Cmd {
     /// Begin capturing. Carries the send timestamp so the consumer can log how
@@ -915,6 +952,17 @@ impl CaptureProcessor {
         if disposition == ChunkDisposition::Discard {
             return;
         }
+
+        // Microphone boost: applied here, before the level meter, VAD,
+        // transcription and the saved recording, so all of them agree.
+        let gain = mic_gain();
+        let boosted: Vec<f32>;
+        let raw = if (gain - 1.0).abs() > f32::EPSILON {
+            boosted = raw.iter().map(|&sample| apply_gain(sample, gain)).collect();
+            boosted.as_slice()
+        } else {
+            raw
+        };
 
         if let Some(buckets) = self.visualizer.feed(raw) {
             if let Some(callback) = &self.level_cb {

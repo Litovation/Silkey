@@ -173,6 +173,7 @@ const settingUpdaters: {
     commands.changeLazyStreamCloseSetting(value as boolean),
   trackpad_double_tap_enabled: (value) =>
     commands.changeTrackpadDoubleTapSetting(value as boolean),
+  mic_gain_percent: (value) => commands.changeMicGainSetting(value as number),
   trackpad_hold_ms: (value) =>
     commands.changeTrackpadHoldMsSetting(value as number),
   silence_auto_stop_secs: (value) =>

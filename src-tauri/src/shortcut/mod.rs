@@ -1298,6 +1298,17 @@ pub fn change_trackpad_double_tap_setting(app: AppHandle, enabled: bool) -> Resu
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_mic_gain_setting(app: AppHandle, percent: u32) -> Result<(), String> {
+    let percent = crate::audio_toolkit::audio::clamp_mic_gain_percent(percent);
+    let mut settings = settings::get_settings(&app);
+    settings.mic_gain_percent = percent;
+    settings::write_settings(&app, settings);
+    crate::audio_toolkit::audio::set_mic_gain_percent(percent);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_trackpad_hold_ms_setting(app: AppHandle, milliseconds: u32) -> Result<(), String> {
     let milliseconds = crate::trackpad::clamp_hold_ms(milliseconds);
     let mut settings = settings::get_settings(&app);
