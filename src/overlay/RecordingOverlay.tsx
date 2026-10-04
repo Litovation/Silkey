@@ -14,11 +14,7 @@ import { getLanguageDirection } from "@/lib/utils/rtl";
 import { K_MARK_PATH, K_MARK_VIEWBOX } from "@/components/icons/brandPaths";
 
 type OverlayState =
-  | "recording"
-  | "streaming"
-  | "transcribing"
-  | "processing"
-  | "command";
+  "recording" | "streaming" | "transcribing" | "processing" | "command";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -236,12 +232,10 @@ const RecordingOverlay: React.FC = () => {
   );
 
   // dot (left) | waveform (center) | timer + cancel (right) — same structure for
-  // pill & panel, so the Live morph is a pure width change.
+  // the compact pill and the Live island.
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
     <div className="sbase">
-      <div className="sbase-l">
-        {kMark(captureReady ? "ready" : "arming")}
-      </div>
+      <div className="sbase-l">{kMark(captureReady ? "ready" : "arming")}</div>
       {waveform}
       <div className="sbase-r">
         {showTimer && <span className="stimer">{fmtTime(elapsed)}</span>}
@@ -254,34 +248,25 @@ const RecordingOverlay: React.FC = () => {
   // listening row, so the label is centered.
   const workingRow = (label: string, showCancel: boolean) => (
     <div className="sbase">
-      <div className="sbase-l">
-        {kMark("working")}
-      </div>
+      <div className="sbase-l">{kMark("working")}</div>
       <span className="swork-label">{label}</span>
       <div className="sbase-r">{showCancel && cancelBtn}</div>
     </div>
   );
 
-  // ---- Live overlay: a pill that sculpts open into a panel ----
+  // ---- Live overlay: a fixed control island riding on a text box ----
   if (state === "streaming") {
     const hasText =
       streamText.committed.length > 0 || streamText.tentative.length > 0;
     const working = phase === "working";
-    // Keep the panel open whenever there's text — even while finalizing — so the
-    // transcript stays put under a working spinner instead of collapsing and
-    // squishing the text mid-stream. Only fall back to the small working pill
-    // when there was no text to preserve.
+    // Keep the text box open whenever there's text — even while finalizing — so
+    // the transcript stays put under the working island instead of collapsing
+    // mid-stream. With no text there is only the island.
     const open = hasText;
-    const collapsed = working && !hasText;
 
     return (
       <div dir={direction} className={`ov-stage ${position}`}>
-        <div
-          key={session}
-          className={`scard ${open ? "open" : ""} ${collapsed ? "working" : ""} ${
-            isVisible ? "" : "leaving"
-          }`}
-        >
+        <div key={session} className={`slive ${open ? "open" : ""}`}>
           <div className="stext">
             <div className="stext-clip">
               <div
@@ -301,14 +286,16 @@ const RecordingOverlay: React.FC = () => {
               </div>
             </div>
           </div>
-          {working
-            ? workingRow(
-                workKind === "polishing"
-                  ? t("overlay.processing")
-                  : t("overlay.transcribing"),
-                true,
-              )
-            : listeningRow(open, true)}
+          <div className={`scard ${working ? "working" : ""}`}>
+            {working
+              ? workingRow(
+                  workKind === "polishing"
+                    ? t("overlay.processing")
+                    : t("overlay.transcribing"),
+                  true,
+                )
+              : listeningRow(open, true)}
+          </div>
         </div>
       </div>
     );

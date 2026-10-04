@@ -75,7 +75,7 @@ It is a stand-in: it proves layout and text, not real behaviour.
 | Speech model | Downloads automatically; never shown to the user |
 | Languages | English and Hindi only (interface and dictation) |
 | Theme | Light by default; dark available |
-| Glass effect | Toggle switches and dropdowns only |
+| Glass effect | Toggle switches, dropdowns, and the recording overlay in the light theme (dark overlay stays flat) |
 
 ## Done in v0.1.1 so far (commit `425785c` and later on `v0.1.1-ui`)
 
@@ -116,6 +116,15 @@ It is a stand-in: it proves layout and text, not real behaviour.
   then "You're all set", which hides the window to the tray. Preview it with
   `dev/mock-preview.html?firstRun=1`.
 
+- **Recording overlay:** in the light theme the overlay is frosted glass
+  (translucent white over a blur of what is behind it). The Live overlay is a
+  fixed control island (K mark, waveform, timer, cancel) that overlaps a
+  separate text box, so the two read as one object; the island no longer
+  morphs into a panel. Dark keeps its flat surface with the same layout. The
+  native overlay window grew to make room for the shadow (256x66 compact,
+  432x164 Live). Files: `src/overlay/RecordingOverlay.css`,
+  `src/overlay/RecordingOverlay.tsx`, `src-tauri/src/overlay.rs`.
+
 Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
 `src/components/settings/SettingsModal.tsx`, `src/lib/dictationStats.ts`,
 `src/hooks/useDictationStats.ts`, `src-tauri/src/settings.rs`,
@@ -130,6 +139,10 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
   preview, but have not been tried in the real Windows app. In particular:
   whether the held-key glow sees the Windows key, and whether the practice
   dictation types into the practice box.
+- The glass overlay has only been seen in a browser. Whether WebView2 blurs
+  the desktop behind the transparent overlay window on Windows is untested;
+  if it does not, the card shows as plain translucent white and the fix is a
+  native Acrylic effect on the overlay window in `overlay.rs`.
 - The walkthrough counts as finished once the model is selected (the backend
   marks onboarding complete then), so quitting mid-walkthrough after the
   download skips it next time.

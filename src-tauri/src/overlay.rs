@@ -45,13 +45,15 @@ tauri_panel! {
 //
 // Compact overlay (Minimal / transcribing / processing): the 40h pill animates
 // width from 172 (--ov-rest-w) to 216 (--ov-work-w) and expands from center, so
-// the window must fit the widest state plus a little slack.
+// the window must fit the widest state plus a little slack. The extra height is
+// room for the light theme's drop shadow under the 42h card.
 const OVERLAY_WIDTH: f64 = 256.0;
-const OVERLAY_HEIGHT: f64 = 50.0;
+const OVERLAY_HEIGHT: f64 = 66.0;
 
-// Actual is 394x118, just a little extra
-const OVERLAY_STREAM_WIDTH: f64 = 400.0;
-const OVERLAY_STREAM_HEIGHT: f64 = 120.0;
+// Live overlay: a 42h island overlapping a text box (up to 394x113) by 21, so
+// 394x134 at most, plus room on each side and below for the drop shadow.
+const OVERLAY_STREAM_WIDTH: f64 = 432.0;
+const OVERLAY_STREAM_HEIGHT: f64 = 164.0;
 
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
@@ -847,7 +849,7 @@ mod tests {
                 OVERLAY_HEIGHT,
                 OverlayPosition::Bottom,
             ),
-            (3648, 2025, 384, 75)
+            (3648, 2001, 384, 99)
         );
         assert_eq!(
             windows_overlay_bounds(
@@ -859,7 +861,7 @@ mod tests {
                 OVERLAY_HEIGHT,
                 OverlayPosition::Top,
             ),
-            (3648, 6, 384, 75)
+            (3648, 6, 384, 99)
         );
     }
 
@@ -876,7 +878,7 @@ mod tests {
                 OVERLAY_STREAM_HEIGHT,
                 OverlayPosition::Bottom,
             ),
-            (-1530, 1040, 500, 150)
+            (-1550, 985, 540, 205)
         );
     }
 
@@ -895,9 +897,9 @@ mod tests {
             OVERLAY_STREAM_HEIGHT,
             OverlayPosition::Bottom,
         );
-        // 400x120 logical at 1.25 DPI x 1.1 text, still centered horizontally.
-        assert_eq!((x, y, width, height), (-1555, 1025, 550, 165));
-        // Bottom edge unchanged from the 1.0 case above (1040 + 150).
+        // 432x164 logical at 1.25 DPI x 1.1 text, still centered horizontally.
+        assert_eq!((x, y, width, height), (-1577, 964, 594, 226));
+        // Bottom edge unchanged from the 1.0 case above (985 + 205).
         assert_eq!(y + height, 1190);
 
         let (_, top_y, _, _) = windows_overlay_bounds(
