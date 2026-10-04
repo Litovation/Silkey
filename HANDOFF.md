@@ -26,6 +26,9 @@ See `AGENTS.md` for architecture and commands.
 - Credits are limited: prefer the cheapest order of work and say what is
   blocked before starting.
 - The owner wants no manual work except account/payment setup steps.
+- Make every change locally first and check it there (type-check, lint,
+  Rust compile and tests, browser preview) before pushing to GitHub. Push
+  only work that has passed those checks.
 
 ## Environment limits on the owner's PC
 
