@@ -168,25 +168,34 @@ const capitalizeKey = (key: string): string => {
   return key.replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
+/** The OS key as each platform's keyboards label it. */
+const displayName = (name: string, osType: OSType): string => {
+  if (name === "super" || name === "meta" || name === "win") {
+    if (osType === "windows") return "Windows";
+    if (osType === "macos") return "Command";
+  }
+  return capitalizeKey(name);
+};
+
 /**
  * Format a single key part for display.
- * Handles _left/_right suffixes and capitalizes names.
- * e.g. "shift_left" -> "Left Shift", "option" -> "Option", "space" -> "Space"
+ * Left-hand modifiers are the ones people mean by default, so only the
+ * right-hand variant is spelled out.
+ * e.g. "ctrl_left" -> "Ctrl", "shift_right" -> "Right Shift",
+ * "super_left" -> "Windows" (on Windows), "space" -> "Space"
  */
-const formatKeyPart = (part: string): string => {
+const formatKeyPart = (part: string, osType: OSType): string => {
   const trimmed = part.trim();
   if (!trimmed) return "";
 
   if (trimmed.endsWith("_left")) {
-    const name = trimmed.slice(0, -5);
-    return `Left ${capitalizeKey(name)}`;
+    return displayName(trimmed.slice(0, -5), osType);
   }
   if (trimmed.endsWith("_right")) {
-    const name = trimmed.slice(0, -6);
-    return `Right ${capitalizeKey(name)}`;
+    return `Right ${displayName(trimmed.slice(0, -6), osType)}`;
   }
 
-  return capitalizeKey(trimmed);
+  return displayName(trimmed, osType);
 };
 
 /**
@@ -196,10 +205,13 @@ const formatKeyPart = (part: string): string => {
  */
 export const formatKeyCombination = (
   combination: string,
-  _osType: OSType,
+  osType: OSType,
 ): string => {
   if (!combination) return "";
-  return combination.split("+").map(formatKeyPart).join(" + ");
+  return combination
+    .split("+")
+    .map((part) => formatKeyPart(part, osType))
+    .join(" + ");
 };
 
 /**

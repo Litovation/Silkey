@@ -92,7 +92,8 @@ It is a stand-in: it proves layout and text, not real behaviour.
   English, light theme.
 - **Installer:** logo header, install-location screen only, auto-launch, no
   portable choice.
-- **Trackpad:** two-finger double-tap to dictate (Windows), off by default.
+- **Trackpad:** rest two fingers for 1.5 seconds to dictate (Windows), off
+  by default. The setting key is still `trackpad_double_tap_enabled`.
 - **Silence auto-stop:** after 5 seconds with no speech, the recording stops
   and what was said is pasted, exactly as if the shortcut had been pressed.
   Setting `silence_auto_stop_secs` (0 = off); a "Stop When I Stop Talking"

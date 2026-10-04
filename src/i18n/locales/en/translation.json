@@ -281,8 +281,8 @@
         "description": "Enable experimental features that are still in development."
       },
       "trackpadDoubleTap": {
-        "label": "Two-Finger Double-Tap to Dictate",
-        "description": "Double-tap the touchpad with two fingers to start or stop dictation. Works with Windows Precision Touchpads. Off by default."
+        "label": "Two-Finger Hold to Dictate",
+        "description": "Rest two fingers on the touchpad for 1.5 seconds to start or stop dictation. Works with Windows Precision Touchpads. Off by default."
       },
       "lazyStreamClose": {
         "label": "Keep Mic Open Between Transcriptions",
@@ -903,7 +903,7 @@
     "shortcut": {
       "title": "Your dictation shortcut",
       "description": "Hold these keys anywhere on your PC and speak. Silktone types what you say. You can change the keys below.",
-      "trackpadHint": "On a laptop, you can also double-tap the touchpad with two fingers to start and stop dictating."
+      "trackpadHint": "On a laptop, you can also rest two fingers on the touchpad for 1.5 seconds to start and stop dictating."
     },
     "practice": {
       "title": "Try it once",
@@ -919,6 +919,26 @@
       "description": "Silktone now waits quietly in the system tray. Press your shortcut in any app to dictate.",
       "stillDownloading": "The speech engine is still downloading. Dictation will work as soon as it finishes.",
       "finish": "Finish"
+    },
+    "steps": {
+      "performance": "Performance",
+      "shortcut": "Shortcut",
+      "practice": "Practice",
+      "done": "Ready"
+    }
+  },
+  "performance": {
+    "title": "Performance",
+    "description": "Standard suits most PCs. Light is for older or slower PCs. Changing this downloads the other speech engine once.",
+    "chooseTitle": "How should Silktone run on this PC?",
+    "chooseDescription": "Pick what fits your computer. You can change it later in Settings.",
+    "standard": {
+      "title": "Standard",
+      "description": "Recommended for most PCs. Your words appear live as you speak. English and Hindi."
+    },
+    "light": {
+      "title": "Light",
+      "description": "For older or slower PCs. Smaller download. English only, and text appears when you stop speaking."
     }
   }
 }

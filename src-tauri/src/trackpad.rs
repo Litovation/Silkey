@@ -1,22 +1,25 @@
-//! Two-finger double-tap on the touchpad toggles transcription.
+//! Resting two fingers on the touchpad toggles transcription.
 //!
 //! Windows Precision Touchpads expose raw finger contacts over HID. We read
-//! them through Raw Input (no mouse hook), so ordinary clicks and mouse
-//! double-clicks never trigger this. Other platforms have no listener; the
-//! setting is stored but inert there.
+//! them through Raw Input (no mouse hook), so ordinary clicks, taps and
+//! two-finger scrolls never trigger this. Other platforms have no listener;
+//! the setting is stored but inert there.
 //!
-//! [`TapDetector`] is the pure gesture logic (finger-down/up samples in,
-//! "double tap" out) so it can be unit tested without hardware.
+//! The gesture used to be a two-finger double-tap, which some touchpads
+//! cannot produce reliably, so it is now a two-finger hold. The setting key
+//! (`trackpad_double_tap_enabled`) keeps its old name so stored settings and
+//! the frontend bindings stay valid.
+//!
+//! [`HoldDetector`] is the pure gesture logic (finger-down/up samples in,
+//! "held long enough" out) so it can be unit tested without hardware.
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-/// A two-finger touch shorter than this counts as a tap, not a scroll/hold.
-const TAP_MAX: Duration = Duration::from_millis(220);
-/// Max gap between the end of the first tap and the end of the second.
-const DOUBLE_TAP_MAX: Duration = Duration::from_millis(450);
+/// Two fingers must rest on the pad this long to trigger.
+pub const HOLD_FOR: Duration = Duration::from_millis(1500);
 /// No reports for this long means we missed a lift; drop all state.
-const STALE_AFTER: Duration = Duration::from_millis(600);
+const STALE_AFTER: Duration = Duration::from_secs(5);
 
 /// One finger's state from a touchpad report.
 #[derive(Debug, Clone, Copy)]
@@ -32,83 +35,87 @@ struct Contact {
     start: (i32, i32),
 }
 
-struct Session {
-    started: Instant,
-    two_finger: bool,
-    valid: bool,
-}
-
 #[derive(Default)]
-pub struct TapDetector {
+pub struct HoldDetector {
     contacts: HashMap<u32, Contact>,
-    session: Option<Session>,
-    last_tap: Option<Instant>,
+    /// When exactly two still fingers came to rest, if they are still there.
+    hold_started: Option<Instant>,
+    /// This touch already fired or was ruled out; wait for every finger to lift.
+    spent: bool,
     last_event: Option<Instant>,
 }
 
-impl TapDetector {
+impl HoldDetector {
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// When the current two-finger hold began. Callers arm a timer off this,
+    /// because a pad may send no further reports while fingers rest still.
+    pub fn hold_started(&self) -> Option<Instant> {
+        self.hold_started
+    }
+
     /// Feed one finger sample. `move_limit` is how far (in touchpad units) a
-    /// finger may drift and still count as a tap. Returns true when this
-    /// sample completes a two-finger double-tap.
+    /// finger may drift and still count as resting. Returns true when this
+    /// sample completes a two-finger hold.
     pub fn on_sample(&mut self, s: Sample, now: Instant, move_limit: i32) -> bool {
         if self
             .last_event
             .is_some_and(|t| now.duration_since(t) > STALE_AFTER)
         {
             self.contacts.clear();
-            self.session = None;
-            self.last_tap = None;
+            self.hold_started = None;
+            self.spent = false;
         }
         self.last_event = Some(now);
 
-        if s.tip {
-            let contact = self.contacts.entry(s.id).or_insert(Contact {
-                start: (s.x, s.y),
-            });
-            let moved = (s.x - contact.start.0).abs() > move_limit
-                || (s.y - contact.start.1).abs() > move_limit;
-
-            let count = self.contacts.len();
-            let session = self.session.get_or_insert(Session {
-                started: now,
-                two_finger: false,
-                valid: true,
-            });
-            if count >= 2 {
-                session.two_finger = true;
+        if !s.tip {
+            if self.contacts.remove(&s.id).is_none() {
+                return false;
             }
-            if count >= 3 || moved {
-                session.valid = false;
-            }
+            self.hold_started = None;
+            // A new hold needs a fresh touch: every finger off the pad first.
+            self.spent = !self.contacts.is_empty();
             return false;
         }
 
-        if self.contacts.remove(&s.id).is_none() || !self.contacts.is_empty() {
-            return false;
-        }
+        let contact = self.contacts.entry(s.id).or_insert(Contact {
+            start: (s.x, s.y),
+        });
+        let moved = (s.x - contact.start.0).abs() > move_limit
+            || (s.y - contact.start.1).abs() > move_limit;
+        let count = self.contacts.len();
 
-        // Last finger lifted: evaluate the touch session.
-        let Some(session) = self.session.take() else {
-            return false;
-        };
-        let is_tap =
-            session.valid && session.two_finger && now.duration_since(session.started) <= TAP_MAX;
-        if !is_tap {
-            // Any other touch activity breaks a pending double-tap.
-            self.last_tap = None;
+        // Scrolling (movement) or a three-finger gesture rules this touch out.
+        if moved || count > 2 {
+            self.spent = true;
+            self.hold_started = None;
             return false;
         }
-        match self.last_tap.take() {
-            Some(prev) if now.duration_since(prev) <= DOUBLE_TAP_MAX => true,
-            _ => {
-                self.last_tap = Some(now);
-                false
-            }
+        if self.spent || count < 2 {
+            return false;
         }
+        if self.hold_started.is_none() {
+            self.hold_started = Some(now);
+            return false;
+        }
+        self.poll(now)
+    }
+
+    /// Check the hold without a new sample (called from a timer). Returns
+    /// true once per touch, when two fingers have rested for [`HOLD_FOR`].
+    pub fn poll(&mut self, now: Instant) -> bool {
+        let due = !self.spent
+            && self.contacts.len() == 2
+            && self
+                .hold_started
+                .is_some_and(|t| now.duration_since(t) >= HOLD_FOR);
+        if due {
+            self.spent = true;
+            self.hold_started = None;
+        }
+        due
     }
 }
 
@@ -124,88 +131,100 @@ mod tests {
     fn up(id: u32, x: i32, y: i32) -> Sample {
         Sample { id, x, y, tip: false }
     }
+    fn ms(n: u64) -> Duration {
+        Duration::from_millis(n)
+    }
 
-    /// Two fingers down at `t`, both up `dur_ms` later. Returns whether the
-    /// final lift completed a double-tap.
-    fn two_finger_touch(d: &mut TapDetector, t: Instant, dur_ms: u64, drift: i32) -> bool {
+    /// Two fingers land at `t`.
+    fn land_two(d: &mut HoldDetector, t: Instant) {
         assert!(!d.on_sample(down(1, 0, 0), t, LIMIT));
         assert!(!d.on_sample(down(2, 500, 0), t, LIMIT));
-        let end = t + Duration::from_millis(dur_ms);
-        assert!(!d.on_sample(down(1, drift, 0), end, LIMIT));
-        assert!(!d.on_sample(up(1, drift, 0), end, LIMIT));
-        d.on_sample(up(2, 500, 0), end, LIMIT)
     }
 
     #[test]
-    fn two_quick_two_finger_taps_fire() {
-        let mut d = TapDetector::new();
+    fn resting_two_fingers_fires_once() {
+        let mut d = HoldDetector::new();
         let t0 = Instant::now();
-        assert!(!two_finger_touch(&mut d, t0, 80, 0));
-        assert!(two_finger_touch(&mut d, t0 + Duration::from_millis(200), 80, 0));
+        land_two(&mut d, t0);
+        assert!(!d.on_sample(down(1, 0, 0), t0 + ms(800), LIMIT));
+        assert!(d.on_sample(down(1, 0, 0), t0 + ms(1600), LIMIT));
+        // Still resting: no second trigger from the same touch.
+        assert!(!d.on_sample(down(2, 500, 0), t0 + ms(3200), LIMIT));
+        assert!(!d.poll(t0 + ms(3300)));
     }
 
     #[test]
-    fn single_tap_does_not_fire() {
-        let mut d = TapDetector::new();
-        assert!(!two_finger_touch(&mut d, Instant::now(), 80, 0));
-    }
-
-    #[test]
-    fn slow_second_tap_does_not_fire() {
-        let mut d = TapDetector::new();
+    fn timer_fires_when_the_pad_sends_no_reports() {
+        let mut d = HoldDetector::new();
         let t0 = Instant::now();
-        assert!(!two_finger_touch(&mut d, t0, 80, 0));
-        assert!(!two_finger_touch(&mut d, t0 + Duration::from_millis(900), 80, 0));
+        land_two(&mut d, t0);
+        assert!(d.hold_started().is_some());
+        assert!(!d.poll(t0 + ms(1000)));
+        assert!(d.poll(t0 + ms(1530)));
+        assert!(!d.poll(t0 + ms(1600)));
     }
 
     #[test]
-    fn scroll_swipe_is_not_a_tap() {
-        let mut d = TapDetector::new();
+    fn lifting_early_does_not_fire() {
+        let mut d = HoldDetector::new();
         let t0 = Instant::now();
-        assert!(!two_finger_touch(&mut d, t0, 80, 5000));
-        assert!(!two_finger_touch(&mut d, t0 + Duration::from_millis(200), 80, 5000));
+        land_two(&mut d, t0);
+        assert!(!d.on_sample(up(1, 0, 0), t0 + ms(900), LIMIT));
+        assert!(!d.on_sample(up(2, 500, 0), t0 + ms(900), LIMIT));
+        assert!(!d.poll(t0 + ms(1600)));
     }
 
     #[test]
-    fn long_press_is_not_a_tap() {
-        let mut d = TapDetector::new();
+    fn two_finger_scroll_does_not_fire() {
+        let mut d = HoldDetector::new();
         let t0 = Instant::now();
-        assert!(!two_finger_touch(&mut d, t0, 500, 0));
+        land_two(&mut d, t0);
+        assert!(!d.on_sample(down(1, 0, 5000), t0 + ms(400), LIMIT));
+        assert!(!d.on_sample(down(1, 0, 5000), t0 + ms(1700), LIMIT));
+        assert!(!d.poll(t0 + ms(1800)));
     }
 
     #[test]
-    fn one_finger_taps_are_ignored() {
-        let mut d = TapDetector::new();
+    fn one_finger_resting_does_not_fire() {
+        let mut d = HoldDetector::new();
         let t0 = Instant::now();
-        for i in 0..2u64 {
-            let t = t0 + Duration::from_millis(i * 150);
-            assert!(!d.on_sample(down(1, 0, 0), t, LIMIT));
-            assert!(!d.on_sample(up(1, 0, 0), t + Duration::from_millis(50), LIMIT));
-        }
+        assert!(!d.on_sample(down(1, 0, 0), t0, LIMIT));
+        assert!(!d.on_sample(down(1, 0, 0), t0 + ms(2000), LIMIT));
+        assert!(!d.poll(t0 + ms(2100)));
     }
 
     #[test]
-    fn three_fingers_are_not_a_tap() {
-        let mut d = TapDetector::new();
-        let t = Instant::now();
+    fn three_fingers_do_not_fire() {
+        let mut d = HoldDetector::new();
+        let t0 = Instant::now();
         for id in 1..=3 {
-            d.on_sample(down(id, 0, 0), t, LIMIT);
+            d.on_sample(down(id, 0, 0), t0, LIMIT);
         }
-        let end = t + Duration::from_millis(60);
-        d.on_sample(up(1, 0, 0), end, LIMIT);
-        d.on_sample(up(2, 0, 0), end, LIMIT);
-        assert!(!d.on_sample(up(3, 0, 0), end, LIMIT));
+        assert!(!d.on_sample(down(1, 0, 0), t0 + ms(1700), LIMIT));
+        assert!(!d.poll(t0 + ms(1800)));
+    }
+
+    #[test]
+    fn a_fresh_touch_can_fire_again() {
+        let mut d = HoldDetector::new();
+        let t0 = Instant::now();
+        land_two(&mut d, t0);
+        assert!(d.poll(t0 + ms(1600)));
+        d.on_sample(up(1, 0, 0), t0 + ms(1700), LIMIT);
+        d.on_sample(up(2, 500, 0), t0 + ms(1700), LIMIT);
+        land_two(&mut d, t0 + ms(2000));
+        assert!(d.poll(t0 + ms(3600)));
     }
 }
 
 #[cfg(target_os = "windows")]
 mod platform {
-    use super::{Sample, TapDetector};
+    use super::{HoldDetector, Sample, HOLD_FOR};
     use log::{debug, error, info};
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Mutex, OnceLock};
-    use std::time::Instant;
+    use std::time::{Duration, Instant};
     use tauri::AppHandle;
     use windows::core::w;
     use windows::Win32::Devices::HumanInterfaceDevice::{
@@ -250,7 +269,7 @@ mod platform {
 
     struct ListenerState {
         pads: HashMap<isize, Option<PadInfo>>,
-        detector: TapDetector,
+        detector: HoldDetector,
     }
 
     /// Turn the gesture on or off. The listener thread starts lazily the first
@@ -364,7 +383,7 @@ mod platform {
         let Ok(mut guard) = STATE.lock() else { return };
         let state = guard.get_or_insert_with(|| ListenerState {
             pads: HashMap::new(),
-            detector: TapDetector::new(),
+            detector: HoldDetector::new(),
         });
         let device_key = raw.header.hDevice.0 as isize;
         let pad = state
@@ -373,6 +392,7 @@ mod platform {
             .or_insert_with(|| load_pad_info(raw.header.hDevice));
         let Some(pad) = pad.as_ref() else { return };
 
+        let hold_before = state.detector.hold_started();
         let mut fired = false;
         for report in data.chunks_exact(report_len) {
             for sample in parse_report(pad, report) {
@@ -381,17 +401,38 @@ mod platform {
                     .on_sample(sample, Instant::now(), pad.move_limit);
             }
         }
+        let hold_after = state.detector.hold_started();
         drop(guard);
 
+        // A pad may stop reporting while fingers rest still, so a new hold
+        // also gets a timer that checks it once the hold time has passed.
+        if hold_after.is_some() && hold_after != hold_before {
+            std::thread::spawn(|| {
+                std::thread::sleep(HOLD_FOR + Duration::from_millis(30));
+                if !ENABLED.load(Ordering::Relaxed) {
+                    return;
+                }
+                let due = match STATE.lock() {
+                    Ok(mut guard) => guard
+                        .as_mut()
+                        .is_some_and(|state| state.detector.poll(Instant::now())),
+                    Err(_) => false,
+                };
+                if due {
+                    trigger();
+                }
+            });
+        }
+
         if fired {
-            if let Some(app) = APP.get() {
-                debug!("trackpad: two-finger double-tap");
-                crate::signal_handle::send_transcription_input(
-                    app,
-                    "transcribe",
-                    "trackpad double-tap",
-                );
-            }
+            trigger();
+        }
+    }
+
+    fn trigger() {
+        if let Some(app) = APP.get() {
+            debug!("trackpad: two-finger hold");
+            crate::signal_handle::send_transcription_input(app, "transcribe", "trackpad hold");
         }
     }
 
@@ -455,7 +496,7 @@ mod platform {
             preparsed,
             slots,
             count_link,
-            // A finger may drift ~4% of the pad width and still be a tap.
+            // A resting finger may drift ~4% of the pad width.
             move_limit: (x_range / 25).max(1),
         })
     }

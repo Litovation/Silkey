@@ -472,7 +472,8 @@ pub struct AppSettings {
     pub experimental_enabled: bool,
     #[serde(default)]
     pub lazy_stream_close: bool,
-    /// Two-finger double-tap on the touchpad toggles recording (Windows).
+    /// Resting two fingers on the touchpad toggles recording (Windows). The
+    /// key predates the switch from a double-tap to a hold.
     #[serde(default)]
     pub trackpad_double_tap_enabled: bool,
     /// Seconds of silence after which a recording stops and pastes on its
@@ -530,7 +531,7 @@ fn default_model() -> String {
     "".to_string()
 }
 
-const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 2;
+const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 3;
 
 fn default_settings_schema_version() -> u32 {
     CURRENT_SETTINGS_SCHEMA_VERSION
@@ -1199,6 +1200,16 @@ fn apply_settings_migrations(
         // transcribe.cpp 0.2 replaced integer registry indices with opaque
         // process-local handles. Clear every old index once.
         settings.transcribe_gpu_device = default_transcribe_gpu_device();
+        settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
+        updated = true;
+    }
+    if stored_schema_version < 3 {
+        // v0.1.1 made light the default look. Older stores only held the
+        // previous "follow the OS" default, so move those across once; an
+        // explicit choice of System made afterwards is kept.
+        if settings.theme == Theme::System {
+            settings.theme = Theme::Light;
+        }
         settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
         updated = true;
     }

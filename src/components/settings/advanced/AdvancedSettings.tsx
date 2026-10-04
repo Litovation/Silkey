@@ -16,6 +16,7 @@ import { VoiceActivityDetection } from "../VoiceActivityDetection";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { FillerWordRemoval } from "../FillerWordRemoval";
 import { VadBackendSelector } from "../VadBackendSelector";
+import { PerformanceMode } from "../PerformanceMode";
 
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -41,6 +42,7 @@ export const AdvancedSettings: React.FC = () => {
         <FillerWordRemoval descriptionMode="tooltip" grouped={true} />
         <CustomWords descriptionMode="tooltip" grouped />
         <AppendTrailingSpace descriptionMode="tooltip" grouped={true} />
+        <PerformanceMode descriptionMode="tooltip" grouped={true} />
         <AccelerationSelector descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
