@@ -21,6 +21,8 @@ check below. Never run this skill on your own initiative.
 ## Arguments
 
 `$ARGUMENTS` may hold a version (`X.Y.Z`) and/or release notes, in that order.
+If it says "no release" (or "don't publish"), do steps 1–5 only and skip the
+release.
 
 - No version given: take the latest GitHub release tag `vX.Y.Z` and add one
   to the last number (0.1.4 -> 0.1.5). If there is no release yet, ask the
@@ -35,6 +37,8 @@ check below. Never run this skill on your own initiative.
 Report progress to the owner in short plain lines; they are not a developer.
 
 1. **Sync the working branch.**
+   Other people and other AI sessions also push to `v0.1.1-ui`, so always
+   start from GitHub's copy, never from an old local one:
    `git fetch origin main v0.1.1-ui --prune` and also fetch all
    `draft-main-*` branches (`git ls-remote --heads origin 'draft-main-*'`).
    If there are local commits on `v0.1.1-ui` that are not pushed, push them
@@ -51,10 +55,13 @@ Report progress to the owner in short plain lines; they are not a developer.
    `silktone-windows.yml`) for the tip of `origin/v0.1.1-ui`.
    - Success: continue.
    - Running or queued: tell the owner it is still building and stop.
-   - Failed or cancelled: stop and report the failure.
-   - No run for the tip: allowed only if every commit after the last
-     successfully built commit touches nothing but `*.md` files (docs pushes
-     skip the build). Otherwise stop: "This version was never built."
+   - Failed: stop and report the failure.
+   - Cancelled, or no run for the tip: allowed only if nothing that goes
+     into the app changed since the last successfully built commit, i.e.
+     `git diff --name-only <last good sha> origin/v0.1.1-ui` lists only
+     `*.md`, `.gitignore`, `.claude/**` or `.github/workflows/**` files.
+     Show the owner that list. Otherwise stop: "This version was never
+     built."
 
 4. **Save the old main.** Next number N = highest existing
    `draft-main-N` + 1 (start at 1). Then
@@ -63,8 +70,11 @@ Report progress to the owner in short plain lines; they are not a developer.
    stop: main must never be replaced without its backup.
 
 5. **Replace main with the working branch.**
-   `git push --force-with-lease=main:<old main sha> origin origin/v0.1.1-ui:refs/heads/main`
-   (`<old main sha>` is what was just saved). Then verify
+   Fetch `v0.1.1-ui` once more first; if it moved since step 3 (someone
+   pushed meanwhile), go back to step 3 for the new tip. Then
+   `git push --force-with-lease=main:<old main sha> origin <checked v0.1.1-ui sha>:refs/heads/main`
+   (`<old main sha>` is what was just saved; push the exact sha that passed
+   step 3, not whatever the branch points at now). Then verify
    `origin/main` equals `origin/v0.1.1-ui`. If the push is refused (branch
    protection, permissions), report exactly that; the backup stays.
 
