@@ -19,7 +19,12 @@ export interface Session {
 }
 
 export type AccessStatus =
-  "trial" | "paid" | "free_forever" | "expired" | "banned";
+  | "trial"
+  | "paid"
+  | "free_forever"
+  | "beta"
+  | "expired"
+  | "banned";
 
 export interface Access {
   status: AccessStatus;
@@ -277,6 +282,62 @@ export const signOut = async (): Promise<void> => {
     });
   } catch {
     // Signed out locally either way.
+  }
+};
+
+/** Why an invite code was not accepted. */
+export type InviteError =
+  | "invalid"
+  | "used"
+  | "full"
+  | "beta_over"
+  | "not_needed"
+  | "banned"
+  | "not_signed_in"
+  | "network";
+
+// SILK-7KQ2-M9XD, also typed with spaces, without dashes or in lower case.
+const INVITE_PATTERN =
+  /\bSILK[-\s]?([2-9A-HJKMNP-Z]{4})[-\s]?([2-9A-HJKMNP-Z]{4})\b/i;
+
+/** The first invite code in a piece of text, normalised, or null. */
+export const findInviteCode = (text: string): string | null => {
+  const match = INVITE_PATTERN.exec(text);
+  return match ? `SILK-${match[1]}-${match[2]}`.toUpperCase() : null;
+};
+
+/**
+ * Turn a beta invite code into free access for the whole beta. The server
+ * checks the code is real, unused and that seats are left.
+ */
+export const redeemInviteCode = async (
+  code: string,
+): Promise<InviteError | null> => {
+  const session = getSession();
+  if (!session) return "not_signed_in";
+  try {
+    const { access_token } = await freshSession(session);
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/rpc/silktone_redeem_beta_code`,
+      {
+        method: "POST",
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ invite_code: code }),
+      },
+    );
+    if (!response.ok) return "network";
+    const result = (await response.json()) as {
+      ok: boolean;
+      error?: InviteError;
+    };
+    return result.ok ? null : (result.error ?? "invalid");
+  } catch {
+    return "network";
   }
 };
 

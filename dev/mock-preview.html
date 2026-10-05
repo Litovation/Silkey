@@ -125,7 +125,8 @@
       };
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
 
-      // ?account=trial|offline|stale|expired|banned|paid|cancelling|due|lapsed
+      // ?account=trial|offline|stale|expired|banned|paid|cancelling|due|lapsed|beta
+      // (&invite=used|full|... makes redeeming an invite code fail that way)
       // fakes a signed-in account;
       // without it the real sign-in screen shows.
       const account = new URLSearchParams(location.search).get("account");
@@ -134,7 +135,7 @@
         const isPaid = ["paid", "cancelling", "due"].includes(account);
         const blocked = ["expired", "banned", "lapsed"].includes(account);
         const access = {
-          status: isPaid ? "paid" : account === "lapsed" ? "expired" : blocked ? account : "trial",
+          status: account === "beta" ? "beta" : isPaid ? "paid" : account === "lapsed" ? "expired" : blocked ? account : "trial",
           allowed: !blocked,
           trial_ends_at: new Date(Date.now() + 12 * day).toISOString(),
           paid_until: isPaid || account === "lapsed"
@@ -164,6 +165,12 @@
             if (new URLSearchParams(location.search).get("pay") === "fail") return reply({ error: "server_error" }, 500);
             setTimeout(paidAccess, 4000);
             return reply({ url: "https://rzp.io/rzp/mock" });
+          }
+          if (url.includes("/rpc/silktone_redeem_beta_code")) {
+            const invite = new URLSearchParams(location.search).get("invite");
+            if (invite) return reply({ ok: false, error: invite });
+            Object.assign(access, { status: "beta", allowed: true });
+            return reply({ ok: true });
           }
           if (url.includes("/functions/v1/cancel-subscription")) {
             access.cancel_at_period_end = true;

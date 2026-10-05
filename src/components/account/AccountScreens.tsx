@@ -6,6 +6,7 @@ import { Button } from "../ui/Button";
 import { SetupBackdrop } from "../ui/SetupBackdrop";
 import { useAuthStore } from "../../stores/authStore";
 import type { BlockReason } from "../../lib/auth";
+import { InviteCodeForm } from "./InviteCodeForm";
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="fixed inset-0 flex items-center justify-center overflow-hidden p-6 select-none cursor-default">
@@ -114,6 +115,7 @@ export const BlockedScreen: React.FC<{ reason: BlockReason }> = ({
           {t("account.signOut")}
         </Button>
       </div>
+      {reason === "expired" && <InviteCodeForm className="w-full max-w-sm" />}
       {reason === "expired" && awaitingPayment && (
         <p className="text-xs text-mid-gray">{t("account.finishPayment")}</p>
       )}

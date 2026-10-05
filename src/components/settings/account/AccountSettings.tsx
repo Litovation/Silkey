@@ -7,6 +7,7 @@ import { Dialog } from "../../ui/Dialog";
 import { Tooltip } from "../../ui/Tooltip";
 import { useAuthStore } from "../../../stores/authStore";
 import { trialDaysLeft, type Access } from "../../../lib/auth";
+import { InviteCodeForm } from "../../account/InviteCodeForm";
 
 const usePaidDate = (access: Access | null): string => {
   const { i18n } = useTranslation();
@@ -199,6 +200,7 @@ export const AccountSettings: React.FC = () => {
                 {t("account.finishPayment")}
               </p>
             )}
+            {onTrial && !offline && <InviteCodeForm className="mt-2" />}
             {onTrial && paymentError && (
               <p className="mt-1 text-xs text-error">
                 {t(`account.paymentError.${paymentError}`, {

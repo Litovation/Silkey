@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Silktone beta invite</title>
+    <!--
+      Personal beta invite page. Upload next to privacy.html on
+      silktone.litovation.in. Each tester gets
+      https://silktone.litovation.in/beta.html?code=SILK-XXXX-XXXX
+      Copying the code here lets the app redeem it on its own after sign-in.
+    -->
+    <style>
+      :root {
+        --text: #0c150e;
+        --muted: #5b6b61;
+        --bg: #f6f9f7;
+        --card: #ffffff;
+        --border: #dce7e0;
+        --accent: #1e8f58;
+        --pink: #f650ae;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --text: #eef4f0;
+          --muted: #9db0a5;
+          --bg: #0f1813;
+          --card: #16231b;
+          --border: #24372b;
+          --accent: #2fd592;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        width: 100%;
+        max-width: 440px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 32px 28px;
+        text-align: center;
+      }
+      .brand {
+        color: var(--text);
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        margin: 0 0 4px;
+      }
+      .brand span {
+        color: var(--pink);
+      }
+      h1 {
+        font-size: 20px;
+        margin: 20px 0 8px;
+      }
+      p {
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 0;
+        font-size: 15px;
+      }
+      .code {
+        margin: 22px 0;
+        padding: 14px;
+        border: 1px dashed var(--accent);
+        border-radius: 12px;
+        font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        user-select: all;
+      }
+      button {
+        width: 100%;
+        padding: 13px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .note {
+        margin-top: 10px;
+        font-size: 13px;
+        min-height: 18px;
+      }
+      ol {
+        text-align: left;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 22px 0 0;
+        padding-left: 20px;
+      }
+      .phone {
+        display: none;
+        margin-top: 16px;
+        font-size: 13px;
+      }
+      @media (pointer: coarse) {
+        .phone {
+          display: block;
+        }
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="brand">Sil<span>k</span>tone</p>
+
+      <section id="invite" hidden>
+        <h1>You're invited to the beta</h1>
+        <p>
+          Silktone is free for you for the whole beta. This code is yours and
+          works once.
+        </p>
+        <div class="code" id="code"></div>
+        <button id="go" type="button">Copy code and download</button>
+        <p class="note" id="note"></p>
+        <ol>
+          <li>Install Silktone on your Windows PC.</li>
+          <li>Sign in with Google.</li>
+          <li>
+            Silktone finds your copied code and turns on your beta access by
+            itself.
+          </li>
+        </ol>
+        <p class="phone">
+          On your phone? Open this link on your Windows PC to install.
+        </p>
+      </section>
+
+      <section id="missing" hidden>
+        <h1>This invite link is incomplete</h1>
+        <p>Open the full link from your invite message again.</p>
+      </section>
+    </main>
+
+    <script>
+      const DOWNLOAD_URL =
+        "https://github.com/Litovation/Silkey/releases/latest";
+      const match = /^SILK-?([2-9A-HJKMNP-Z]{4})-?([2-9A-HJKMNP-Z]{4})$/i.exec(
+        (new URLSearchParams(location.search).get("code") || "").trim(),
+      );
+
+      if (!match) {
+        document.getElementById("missing").hidden = false;
+      } else {
+        const code = `SILK-${match[1]}-${match[2]}`.toUpperCase();
+        document.getElementById("invite").hidden = false;
+        document.getElementById("code").textContent = code;
+
+        const note = document.getElementById("note");
+        document.getElementById("go").addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(code);
+            note.textContent = "Code copied. Your download is opening.";
+          } catch {
+            note.textContent =
+              "Couldn't copy automatically. Select the code above and copy it.";
+          }
+          window.open(DOWNLOAD_URL, "_blank", "noopener");
+        });
+      }
+    </script>
+  </body>
+</html>

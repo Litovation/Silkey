@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "core:window:allow-close",
+    "clipboard-manager:allow-read-text",
     "opener:default",
     "store:default",
     "updater:default",

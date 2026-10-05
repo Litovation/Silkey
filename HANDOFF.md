@@ -191,6 +191,36 @@ Preview states:
 In the preview, Subscribe "succeeds" after a few seconds; add `&pay=fail` to
 see the error text.
 
+## Beta invites
+
+Built locally on 2026-10-05; not yet pushed or applied to Supabase.
+
+- Up to 20 hand-picked people get Silktone free for the whole beta (plan
+  `beta`). Migration: `supabase/migrations/20261005090000_beta_invites.sql`.
+- `public.beta_codes`: `code`, `label` (who it was sent to; fill in by hand),
+  `redeemed_by`, `redeemed_at`. `public.beta_program`: `max_seats` (20) and
+  `ends_at`.
+- Make codes (Supabase SQL editor):
+  `select * from public.silktone_create_beta_codes(20);` returns each code
+  and its personal link,
+  `https://silktone.litovation.in/beta.html?code=SILK-XXXX-XXXX`.
+- The link page is `website/beta.html`; upload it next to `privacy.html`.
+  "Copy code and download" copies the code and opens the latest release.
+- The app redeems a code on its own when one is on the clipboard after
+  sign-in or when the window comes back into focus, while the account is on
+  trial or trial-ended. People can also type it: "Have a beta invite code?"
+  in Settings, Account, and on the trial-ended screen.
+- The server checks: code exists, unused, fewer than `max_seats` redeemed,
+  beta not ended, account not banned, not already paid or free.
+- Ending the beta when the new version ships:
+  `update public.beta_program set ends_at = now();` Beta accounts then fall
+  back to trial time left, or to "trial ended" and the Subscribe button.
+- Tested on a local Postgres with a stand-in for Supabase's auth tables, and
+  in the browser preview (`?account=expired`, `?account=beta`,
+  `&invite=used`). Not yet tried on a real build. The clipboard read needs
+  the new `clipboard-manager:allow-read-text` permission, so it only works in
+  a build that includes this change.
+
 ## Payments (Razorpay)
 
 Built and deployed on 2026-10-04 in Razorpay **Test Mode**. No real payment
