@@ -193,9 +193,11 @@ see the error text.
 
 ## Beta invites ("referral codes")
 
-Built 2026-10-06 on `v0.1.1-ui`; **not yet applied to Supabase**. Migration
-`supabase/migrations/20261005090000_beta_invites.sql` (rewritten from the
-earlier 20-seat version, which was never applied).
+Live on Supabase since 2026-10-06 (all switches start off). Migrations:
+`20261005090000_beta_invites.sql` and `20261006120000_telegram_join_codes.sql`.
+The second was applied in pieces with execute_sql (the Supabase tool waits
+for an approval on DROP and on UPDATE without WHERE, then times out), so it
+has no row in `supabase_migrations.schema_migrations`.
 
 How it works (owner's decisions):
 
@@ -204,15 +206,19 @@ How it works (owner's decisions):
   keys opens a pop-up with a code box (`BetaLockDialog`). The code box is also
   in Settings, Account, "Referral code", and in the tutorial's practice step.
 - A code gives the `beta` plan: full access until the beta ends. Each code
-  works once, for the first account that uses it. One person may use several
-  Gmail accounts; that is fine.
-- Codes **drop one at a time**: when the live code is used, the next one is
-  made and goes live after `drop_delay` (1 hour, adjustable). There is no
-  expiry: until the live code is used, no new one appears. Unlimited codes
-  until the owner stops the drops.
-- A pg_cron job (every minute) posts each new code and each claim to the
-  owner's **Telegram channel** through a bot. The owner can copy codes to X
-  by hand.
+  works once, for one Silktone account. One person may use several Gmail
+  or Telegram accounts; that is fine.
+- **Codes come from Telegram.** The channel `t.me/silktone_beta` is set to
+  "Approve new members". Each join request goes to the `telegram-webhook`
+  Edge Function, then `silktone_handle_telegram_update()`: the bot
+  (@Litsilk_bot) sends that person a personal code privately and approves
+  the request. One code per Telegram account (rejoining sends the same code);
+  no wait, no expiry. No /start command.
+- **Paused, or after the beta ends: no codes.** Joiners are still approved
+  (the channel carries updates) but get no message. Remember: once the beta
+  ends, codes stop for good.
+- The earlier one-at-a-time public drops are switched off (`drops_open`
+  false); their every-minute job is still scheduled but has nothing to do.
 - Old 0.1.1 installs do not know the "locked" status and show the
   trial-ended screen; they update themselves on next launch, so release the
   new version **before** turning `invite_only` on.
@@ -221,37 +227,21 @@ Owner controls (Supabase SQL editor):
 
 | What | SQL |
 |---|---|
-| Lock code-less accounts | `update public.beta_program set invite_only = true;` |
-| Start drops (makes the first code) | `select * from public.silktone_start_beta_drops();` |
-| See the live code (e.g. for X) | `select * from public.silktone_live_beta_code();` |
-| Change the wait between codes | `update public.beta_program set drop_delay = interval '30 minutes';` |
-| Stop new codes | `select public.silktone_stop_beta_drops();` |
-| Extra codes by hand | `select * from public.silktone_create_beta_codes(5);` |
-| End the beta | `update public.beta_program set ends_at = now();` |
+| Lock code-less accounts | `update public.beta_program set invite_only = true where id;` |
+| Pause codes for new joiners | `update public.beta_program set join_codes_open = false where id;` |
+| Resume codes | `update public.beta_program set join_codes_open = true where id;` |
+| Extra codes by hand (e.g. for X) | `select * from public.silktone_create_beta_codes(5);` |
+| End the beta (codes stop, lock lifts) | `update public.beta_program set ends_at = now() where id;` |
+| Reconnect the bot (after a token change) | `select public.silktone_telegram_connect();` |
 
-Ending the beta also lifts the invite-only lock; beta accounts fall back to
-trial time left, or to "trial ended" and Subscribe.
-
-Telegram setup (owner, once, about 5 minutes):
-
-1. In Telegram, create a public channel (e.g. "Silktone Beta").
-2. Message @BotFather, send `/newbot`, follow the steps, copy the bot token.
-3. Add the bot to the channel as an administrator allowed to post.
-4. In the Supabase SQL editor (the token stays in Supabase Vault, never in
-   the repo):
-   `select vault.create_secret('<bot token>', 'telegram_bot_token');`
-   `select vault.create_secret('@<channel username>', 'telegram_chat_id');`
-5. Put the channel link in `src/lib/constants/community.ts`
-   (`TELEGRAM_CHANNEL_URL`) so the app shows "Get a code on Telegram".
+Telegram pieces: bot token in Vault (`telegram_bot_token`), channel
+`@silktone_beta` (`telegram_chat_id`), webhook secret
+(`telegram_webhook_secret`, random). The bot must be a channel admin with
+"Post messages" and "Add subscribers"/"Invite users" (needed to approve).
 
 Tested on a local Postgres 16 with stand-ins for Supabase auth, Vault,
-pg_net and pg_cron (redeem in any format, used code refused, next code only
-after the delay, one live drop code at a time, messages posted once, stop,
-end). App screens checked in the browser preview:
-`dev/mock-preview.html?account=locked`, then `window.__lockPopup()` in the
-console fakes pressing the dictation keys. Not yet tried on a real build or
-the real Telegram API. `website/beta.html` (from the earlier version) still
-copies any code from `?code=` and opens the download; optional.
+pg_net and pg_cron. Webhook confirmed by Telegram (`getWebhookInfo`). A real
+join request has not been tried yet.
 
 ## Payments (Razorpay)
 

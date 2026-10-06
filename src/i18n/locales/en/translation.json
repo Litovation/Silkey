@@ -1017,10 +1017,10 @@
     "referral": {
       "title": "Referral code",
       "hint": "Have a referral code? Enter it for full access for the whole beta.",
-      "lockedHint": "Silktone is in private beta. Enter a referral code to unlock dictation; each code works once, for the first person who uses it.",
+      "lockedHint": "Silktone is in private beta. Enter your referral code to unlock dictation. Join our Telegram channel to get your personal code; each code works only once.",
       "lockedTitle": "Silktone is in private beta",
-      "lockedBody": "Dictation unlocks with a referral code. Codes are released one at a time, and the first person to use a code gets full access for the whole beta.",
-      "getCode": "Get a code on Telegram",
+      "lockedBody": "Dictation unlocks with a referral code. Join our Telegram channel and the bot sends you a personal code right away. It works only once.",
+      "getCode": "Get your code on Telegram",
       "active": "Code activated · full access for the whole beta"
     }
   },
