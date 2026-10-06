@@ -28,10 +28,11 @@ const PAYMENT_WAIT_MS = 15 * 60 * 1000;
 const isPaid = (verdict: Verdict | null): boolean =>
   verdict?.state === "allowed" && verdict.access.status === "paid";
 
-/** Only trial and trial-ended accounts can still use a beta invite. */
-const canRedeemInvite = (verdict: Verdict | null): boolean =>
+/** Trial, locked and trial-ended accounts can still use a referral code. */
+export const canRedeemInvite = (verdict: Verdict | null): boolean =>
   (verdict?.state === "allowed" && verdict.access.status === "trial") ||
-  (verdict?.state === "blocked" && verdict.reason === "expired");
+  (verdict?.state === "blocked" &&
+    (verdict.reason === "expired" || verdict.reason === "locked"));
 
 // Codes already tried from the clipboard, so one is never sent twice.
 const TRIED_INVITES_KEY = "silktone.triedInvites";

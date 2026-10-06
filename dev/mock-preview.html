@@ -84,7 +84,10 @@
         download_model: () => new Promise(() => {}),
         get_model_info: () => model,
         "plugin:app|version": () => "0.1.1",
-        "plugin:event|listen": () => 1,
+        "plugin:event|listen": (a) => {
+          (eventListeners[a.event] ||= []).push(a.handler);
+          return a.handler;
+        },
         "plugin:event|unlisten": () => null,
         get_history_entries: (a) => (a && a.cursor) ? { entries: [], has_more: false } : { entries: [
           { id: 2, file_name: "b.wav", timestamp: Math.floor(Date.now()/1000) - 600, saved: false, title: "", transcription_text: "From now on, my workflow will be very easy.", post_processed_text: null, post_process_prompt: null, post_process_requested: false },
@@ -99,12 +102,22 @@
       };
       window.__mockCalls = [];
       let nextId = 1;
+      const callbacks = {};
+      const eventListeners = {};
+      // Fake a backend event, e.g. window.__emit("access-refused").
+      window.__emit = (event, payload = null) =>
+        (eventListeners[event] || []).forEach((id) => callbacks[id] && callbacks[id]({ event, payload, id }));
+      window.__lockPopup = () => window.__emit("access-refused");
       window.__TAURI_INTERNALS__ = {
         metadata: {
           currentWindow: { label: "main" },
           currentWebview: { label: "main", windowLabel: "main" },
         },
-        transformCallback: () => nextId++,
+        transformCallback: (fn) => {
+          const id = nextId++;
+          callbacks[id] = fn;
+          return id;
+        },
         convertFileSrc: (p) => p,
         invoke: async (cmd, args) => {
           window.__mockCalls.push(cmd);
@@ -125,15 +138,16 @@
       };
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
 
-      // ?account=trial|offline|stale|expired|banned|paid|cancelling|due|lapsed|beta
-      // (&invite=used|full|... makes redeeming an invite code fail that way)
+      // ?account=trial|offline|stale|expired|banned|paid|cancelling|due|lapsed|beta|locked
+      // (&invite=used|invalid|... makes redeeming a referral code fail that way;
+      // with account=locked, window.__lockPopup() fakes pressing the dictation keys)
       // fakes a signed-in account;
       // without it the real sign-in screen shows.
       const account = new URLSearchParams(location.search).get("account");
       if (account) {
         const day = 24 * 60 * 60 * 1000;
         const isPaid = ["paid", "cancelling", "due"].includes(account);
-        const blocked = ["expired", "banned", "lapsed"].includes(account);
+        const blocked = ["expired", "banned", "lapsed", "locked"].includes(account);
         const access = {
           status: account === "beta" ? "beta" : isPaid ? "paid" : account === "lapsed" ? "expired" : blocked ? account : "trial",
           allowed: !blocked,

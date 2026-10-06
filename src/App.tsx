@@ -31,6 +31,7 @@ import {
   BlockedScreen,
   SignInScreen,
 } from "./components/account/AccountScreens";
+import { BetaLockDialog } from "./components/account/BetaLockDialog";
 import { useAuthStore } from "./stores/authStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar } from "./components/Sidebar";
@@ -62,6 +63,10 @@ function App() {
   const [replayingWalkthrough, setReplayingWalkthrough] = useState(false);
   const { settings, updateSetting } = useSettings();
   const verdict = useAuthStore((state) => state.verdict);
+  // Invite-only beta without a code: the app stays usable, dictation is
+  // refused and explained by BetaLockDialog.
+  const betaLocked =
+    verdict?.state === "blocked" && verdict.reason === "locked";
   const initializeAuth = useAuthStore((state) => state.initialize);
   const justSignedIn = useAuthStore((state) => state.justSignedIn);
   const clearJustSignedIn = useAuthStore((state) => state.clearJustSignedIn);
@@ -106,11 +111,11 @@ function App() {
   // Every sign-in opens the tutorial (it can be skipped). Brand-new users are
   // already heading into first-run setup, which is the same tutorial.
   useEffect(() => {
-    if (!justSignedIn || verdict?.state !== "allowed") return;
+    if (!justSignedIn || (verdict?.state !== "allowed" && !betaLocked)) return;
     if (onboardingStep === null) return;
     clearJustSignedIn();
     if (onboardingStep === "done") setReplayingWalkthrough(true);
-  }, [justSignedIn, verdict, onboardingStep, clearJustSignedIn]);
+  }, [justSignedIn, verdict, betaLocked, onboardingStep, clearJustSignedIn]);
 
   // Initialize RTL direction when language changes
   useEffect(() => {
@@ -339,7 +344,7 @@ function App() {
   let content: ReactNode;
   if (verdict.state === "signedOut") {
     content = <SignInScreen />;
-  } else if (verdict.state === "blocked") {
+  } else if (verdict.state === "blocked" && !betaLocked) {
     content = <BlockedScreen reason={verdict.reason} />;
   } else if (replayingWalkthrough) {
     content = (
@@ -396,6 +401,7 @@ function App() {
         <ErrorBoundary context="What's New">
           <WhatsNewGate />
         </ErrorBoundary>
+        <BetaLockDialog />
         {/* Main content area that takes remaining space */}
         <div className="flex-1 flex overflow-hidden">
           <Sidebar

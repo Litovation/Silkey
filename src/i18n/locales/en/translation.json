@@ -972,7 +972,8 @@
       "free_forever": "Free access",
       "expired": "Trial ended",
       "banned": "Suspended",
-      "beta": "Beta tester · free for the whole beta"
+      "beta": "Beta tester · free for the whole beta",
+      "locked": "Beta · referral code needed"
     },
     "blocked": {
       "expired": {
@@ -990,25 +991,37 @@
       "offline": {
         "title": "Connect to the internet to continue",
         "body": "Silktone works offline for up to 3 days, then needs to check your account once."
+      },
+      "locked": {
+        "title": "Silktone is in private beta",
+        "body": "Enter a referral code to unlock dictation."
       }
     },
     "invite": {
-      "haveCode": "Have a beta invite code?",
+      "haveCode": "Have a referral code?",
       "placeholder": "SILK-XXXX-XXXX",
-      "redeem": "Redeem",
-      "welcomeTitle": "You're a beta tester",
-      "welcomeBody": "Silktone is free for you for the whole beta. Thank you for helping us test it.",
-      "failedTitle": "Invite code not accepted",
+      "redeem": "Submit",
+      "welcomeTitle": "Unlocked: you're a beta tester",
+      "welcomeBody": "You have full access to Silktone for the whole beta. Thank you for helping us test it.",
+      "failedTitle": "Referral code not accepted",
       "error": {
         "invalid": "That code isn't valid. Check it and try again.",
         "used": "This code has already been used.",
-        "full": "Sorry, all beta places are taken.",
-        "beta_over": "The beta has ended, so invite codes no longer work.",
+        "beta_over": "The beta has ended, so referral codes no longer work.",
         "not_needed": "Your account already has full access.",
-        "banned": "This account can't use invite codes.",
+        "banned": "This account can't use referral codes.",
         "not_signed_in": "Sign in first, then enter your code.",
         "network": "Couldn't reach the server. Check your connection and try again."
       }
+    },
+    "referral": {
+      "title": "Referral code",
+      "hint": "Have a referral code? Enter it for full access for the whole beta.",
+      "lockedHint": "Silktone is in private beta. Enter a referral code to unlock dictation; each code works once, for the first person who uses it.",
+      "lockedTitle": "Silktone is in private beta",
+      "lockedBody": "Dictation unlocks with a referral code. Codes are released one at a time, and the first person to use a code gets full access for the whole beta.",
+      "getCode": "Get a code on Telegram",
+      "active": "Code activated · full access for the whole beta"
     }
   },
   "stats": {
@@ -1059,11 +1072,29 @@
     },
     "steps": {
       "performance": "Performance",
+      "language": "Language",
       "shortcut": "Shortcut",
       "practice": "Practice",
       "done": "Ready"
     },
-    "skipTutorial": "Skip tutorial"
+    "skipTutorial": "Skip tutorial",
+    "language": {
+      "title": "Which language will you speak?",
+      "description": "Silktone types what you say in this language.",
+      "en": {
+        "title": "English",
+        "description": "Best for English. Recommended."
+      },
+      "hi": {
+        "title": "हिन्दी (Hindi)",
+        "description": "Speak in Hindi."
+      },
+      "auto": {
+        "title": "Auto detect",
+        "description": "Silktone works out the language each time."
+      },
+      "changeLater": "You can change this anytime in Settings."
+    }
   },
   "performance": {
     "title": "Performance",

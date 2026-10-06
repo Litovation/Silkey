@@ -6,7 +6,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 const DEBOUNCE: Duration = Duration::from_millis(30);
 const RELEASE_GRACE: Duration = Duration::from_millis(50);
@@ -719,11 +719,15 @@ fn run_effect(app: &AppHandle, state: &mut CoordinatorState, effect: Effect) {
 /// Execute a start effect; returns whether recording actually began, so the
 /// state machine can roll back its optimistic transition on failure.
 fn start(app: &AppHandle, binding_id: &str, hotkey_string: &str) -> bool {
-    // Signed out, trial over or banned: bring up the window that explains why
-    // instead of recording.
+    // Signed out, trial over, banned or beta-locked: bring up the window that
+    // explains why instead of recording. The event opens the referral-code
+    // pop-up when the account only lacks a beta code.
     if !crate::access::is_allowed() {
         debug!("Start for '{binding_id}' refused: account access not allowed");
         crate::show_main_window(app);
+        if let Err(e) = app.emit("access-refused", ()) {
+            warn!("Failed to notify the window that access was refused: {e}");
+        }
         return false;
     }
     let Some(action) = ACTION_MAP.get(binding_id) else {

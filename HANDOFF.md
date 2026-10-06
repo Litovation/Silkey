@@ -191,35 +191,67 @@ Preview states:
 In the preview, Subscribe "succeeds" after a few seconds; add `&pay=fail` to
 see the error text.
 
-## Beta invites
+## Beta invites ("referral codes")
 
-Built locally on 2026-10-05; not yet pushed or applied to Supabase.
+Built 2026-10-06 on `v0.1.1-ui`; **not yet applied to Supabase**. Migration
+`supabase/migrations/20261005090000_beta_invites.sql` (rewritten from the
+earlier 20-seat version, which was never applied).
 
-- Up to 20 hand-picked people get Silktone free for the whole beta (plan
-  `beta`). Migration: `supabase/migrations/20261005090000_beta_invites.sql`.
-- `public.beta_codes`: `code`, `label` (who it was sent to; fill in by hand),
-  `redeemed_by`, `redeemed_at`. `public.beta_program`: `max_seats` (20) and
-  `ends_at`.
-- Make codes (Supabase SQL editor):
-  `select * from public.silktone_create_beta_codes(20);` returns each code
-  and its personal link,
-  `https://silktone.litovation.in/beta.html?code=SILK-XXXX-XXXX`.
-- The link page is `website/beta.html`; upload it next to `privacy.html`.
-  "Copy code and download" copies the code and opens the latest release.
-- The app redeems a code on its own when one is on the clipboard after
-  sign-in or when the window comes back into focus, while the account is on
-  trial or trial-ended. People can also type it: "Have a beta invite code?"
-  in Settings, Account, and on the trial-ended screen.
-- The server checks: code exists, unused, fewer than `max_seats` redeemed,
-  beta not ended, account not banned, not already paid or free.
-- Ending the beta when the new version ships:
-  `update public.beta_program set ends_at = now();` Beta accounts then fall
-  back to trial time left, or to "trial ended" and the Subscribe button.
-- Tested on a local Postgres with a stand-in for Supabase's auth tables, and
-  in the browser preview (`?account=expired`, `?account=beta`,
-  `&invite=used`). Not yet tried on a real build. The clipboard read needs
-  the new `clipboard-manager:allow-read-text` permission, so it only works in
-  a build that includes this change.
+How it works (owner's decisions):
+
+- While the beta is **invite-only**, anyone can sign in and open Silktone,
+  but dictation is locked until they redeem a code. Pressing the dictation
+  keys opens a pop-up with a code box (`BetaLockDialog`). The code box is also
+  in Settings, Account, "Referral code", and in the tutorial's practice step.
+- A code gives the `beta` plan: full access until the beta ends. Each code
+  works once, for the first account that uses it. One person may use several
+  Gmail accounts; that is fine.
+- Codes **drop one at a time**: when the live code is used, the next one is
+  made and goes live after `drop_delay` (1 hour, adjustable). There is no
+  expiry: until the live code is used, no new one appears. Unlimited codes
+  until the owner stops the drops.
+- A pg_cron job (every minute) posts each new code and each claim to the
+  owner's **Telegram channel** through a bot. The owner can copy codes to X
+  by hand.
+- Old 0.1.1 installs do not know the "locked" status and show the
+  trial-ended screen; they update themselves on next launch, so release the
+  new version **before** turning `invite_only` on.
+
+Owner controls (Supabase SQL editor):
+
+| What | SQL |
+|---|---|
+| Lock code-less accounts | `update public.beta_program set invite_only = true;` |
+| Start drops (makes the first code) | `select * from public.silktone_start_beta_drops();` |
+| See the live code (e.g. for X) | `select * from public.silktone_live_beta_code();` |
+| Change the wait between codes | `update public.beta_program set drop_delay = interval '30 minutes';` |
+| Stop new codes | `select public.silktone_stop_beta_drops();` |
+| Extra codes by hand | `select * from public.silktone_create_beta_codes(5);` |
+| End the beta | `update public.beta_program set ends_at = now();` |
+
+Ending the beta also lifts the invite-only lock; beta accounts fall back to
+trial time left, or to "trial ended" and Subscribe.
+
+Telegram setup (owner, once, about 5 minutes):
+
+1. In Telegram, create a public channel (e.g. "Silktone Beta").
+2. Message @BotFather, send `/newbot`, follow the steps, copy the bot token.
+3. Add the bot to the channel as an administrator allowed to post.
+4. In the Supabase SQL editor (the token stays in Supabase Vault, never in
+   the repo):
+   `select vault.create_secret('<bot token>', 'telegram_bot_token');`
+   `select vault.create_secret('@<channel username>', 'telegram_chat_id');`
+5. Put the channel link in `src/lib/constants/community.ts`
+   (`TELEGRAM_CHANNEL_URL`) so the app shows "Get a code on Telegram".
+
+Tested on a local Postgres 16 with stand-ins for Supabase auth, Vault,
+pg_net and pg_cron (redeem in any format, used code refused, next code only
+after the delay, one live drop code at a time, messages posted once, stop,
+end). App screens checked in the browser preview:
+`dev/mock-preview.html?account=locked`, then `window.__lockPopup()` in the
+console fakes pressing the dictation keys. Not yet tried on a real build or
+the real Telegram API. `website/beta.html` (from the earlier version) still
+copies any code from `?code=` and opens the download; optional.
 
 ## Payments (Razorpay)
 

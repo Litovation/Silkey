@@ -23,6 +23,8 @@ export type AccessStatus =
   | "paid"
   | "free_forever"
   | "beta"
+  /** Invite-only beta: signed in, but no referral code redeemed yet. */
+  | "locked"
   | "expired"
   | "banned";
 
@@ -36,8 +38,17 @@ export interface Access {
   cancel_at_period_end?: boolean;
 }
 
-/** Why dictation is blocked for a signed-in user. */
-export type BlockReason = "expired" | "banned" | "offline";
+/**
+ * Why dictation is blocked for a signed-in user. "locked" keeps the app usable
+ * (settings, history) and only refuses dictation until a code is redeemed.
+ */
+export type BlockReason = "expired" | "banned" | "offline" | "locked";
+
+const blockReason = (access: Access): BlockReason => {
+  if (access.status === "banned") return "banned";
+  if (access.status === "locked") return "locked";
+  return "expired";
+};
 
 export type Verdict =
   | { state: "signedOut" }
@@ -229,7 +240,7 @@ const offlineVerdict = (now: number): Verdict => {
   if (!cache.access.allowed || trialOver) {
     return {
       state: "blocked",
-      reason: cache.access.status === "banned" ? "banned" : "expired",
+      reason: blockReason(cache.access),
       access: cache.access,
     };
   }
@@ -254,7 +265,7 @@ export const evaluateAccess = async (): Promise<Verdict> => {
     if (access.allowed) return { state: "allowed", access, offline: false };
     return {
       state: "blocked",
-      reason: access.status === "banned" ? "banned" : "expired",
+      reason: blockReason(access),
       access,
     };
   } catch (error) {
@@ -289,7 +300,6 @@ export const signOut = async (): Promise<void> => {
 export type InviteError =
   | "invalid"
   | "used"
-  | "full"
   | "beta_over"
   | "not_needed"
   | "banned"

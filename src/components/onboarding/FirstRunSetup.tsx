@@ -16,10 +16,21 @@ import {
 } from "../../hooks/useShortcutKeycaps";
 import type { EngineStatus } from "../../hooks/useAutoModelSetup";
 import { useModelTierStore, type ModelTier } from "../../stores/modelTierStore";
+import { useAuthStore } from "../../stores/authStore";
+import { InviteCodeForm } from "../account/InviteCodeForm";
+import { TelegramCodeButton } from "../account/BetaLockDialog";
 
-type Step = "performance" | "shortcut" | "practice" | "done";
-const STEPS: Step[] = ["performance", "shortcut", "practice", "done"];
+type Step = "performance" | "language" | "shortcut" | "practice" | "done";
+const STEPS: Step[] = [
+  "performance",
+  "language",
+  "shortcut",
+  "practice",
+  "done",
+];
 const TIERS: ModelTier[] = ["standard", "light"];
+/** Dictation languages offered in the tutorial; English is the default. */
+const LANGUAGES = ["en", "hi", "auto"] as const;
 
 /** Enough of the practice sentence came through to call it a success. */
 const matchesPractice = (typed: string, sentence: string) => {
@@ -124,7 +135,12 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
   replay = false,
 }) => {
   const { t } = useTranslation();
-  const { getSetting } = useSettings();
+  const { getSetting, updateSetting } = useSettings();
+  const verdict = useAuthStore((state) => state.verdict);
+  const betaLocked =
+    verdict?.state === "blocked" && verdict.reason === "locked";
+  const savedLanguage = getSetting("selected_language");
+  const language = LANGUAGES.find((code) => code === savedLanguage) ?? "en";
   const keys = useShortcutKeycaps();
   const isWindows = type() === "windows";
   const tier = useModelTierStore((state) => state.tier);
@@ -291,8 +307,59 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
               <div className="flex justify-end">
                 <Button
                   disabled={tier === null && !preview}
-                  onClick={() => setStep("shortcut")}
+                  onClick={() => setStep("language")}
                 >
+                  {t("firstRun.next")}
+                </Button>
+              </div>
+            </>
+          )}
+
+          {step === "language" && (
+            <>
+              <div className="space-y-1.5 text-center">
+                <h1 className="text-xl font-semibold">
+                  {t("firstRun.language.title")}
+                </h1>
+                <p className="text-sm text-text/70">
+                  {t("firstRun.language.description")}
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {LANGUAGES.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() =>
+                      !preview && updateSetting("selected_language", option)
+                    }
+                    aria-pressed={language === option}
+                    className={`rounded-xl border p-4 text-start cursor-pointer transition-colors ${
+                      language === option
+                        ? "border-logo-primary bg-logo-primary/10"
+                        : "border-mid-gray/20 hover:border-logo-primary/60"
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-2 text-sm font-semibold">
+                      {t(`firstRun.language.${option}.title`)}
+                      {language === option && (
+                        <Check className="w-4 h-4 text-logo-primary" />
+                      )}
+                    </span>
+                    <span className="mt-1 block text-xs text-text/70">
+                      {t(`firstRun.language.${option}.description`)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-text/60 text-center">
+                {t("firstRun.language.changeLater")}
+              </p>
+              <div className="flex justify-between">
+                <Button variant="ghost" onClick={() => setStep("performance")}>
+                  {t("firstRun.back")}
+                </Button>
+                <Button onClick={() => setStep("shortcut")}>
                   {t("firstRun.next")}
                 </Button>
               </div>
@@ -324,7 +391,7 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
                 </p>
               )}
               <div className="flex justify-between">
-                <Button variant="ghost" onClick={() => setStep("performance")}>
+                <Button variant="ghost" onClick={() => setStep("language")}>
                   {t("firstRun.back")}
                 </Button>
                 <Button onClick={() => setStep("practice")}>
@@ -347,6 +414,15 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
               <div className="flex justify-center">
                 <Keycaps keys={keys} pressed={pressed} />
               </div>
+              {betaLocked && (
+                <div className="space-y-2 rounded-xl border border-logo-primary/30 bg-logo-primary/5 p-3">
+                  <p className="text-xs text-text/80">
+                    {t("account.referral.lockedHint")}
+                  </p>
+                  <InviteCodeForm alwaysOpen />
+                  <TelegramCodeButton />
+                </div>
+              )}
               <p className="text-center text-lg font-medium">
                 {t("firstRun.practice.quote", { sentence: practiceSentence })}
               </p>

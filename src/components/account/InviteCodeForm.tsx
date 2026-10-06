@@ -6,17 +6,20 @@ import { useAuthStore } from "../../stores/authStore";
 import { findInviteCode } from "../../lib/auth";
 
 /**
- * Typing in a beta invite code by hand. Codes copied from the invite page are
+ * Typing in a referral (beta invite) code by hand. Codes on the clipboard are
  * usually redeemed on their own when the user comes back to Silktone.
  */
-export const InviteCodeForm: React.FC<{ className?: string }> = ({
-  className = "",
-}) => {
+export const InviteCodeForm: React.FC<{
+  className?: string;
+  /** Show the field straight away instead of a "Have a code?" link. */
+  alwaysOpen?: boolean;
+  onRedeemed?: () => void;
+}> = ({ className = "", alwaysOpen = false, onRedeemed }) => {
   const { t } = useTranslation();
   const redeemInvite = useAuthStore((state) => state.redeemInvite);
   const inviteBusy = useAuthStore((state) => state.inviteBusy);
   const inviteError = useAuthStore((state) => state.inviteError);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(alwaysOpen);
   const [value, setValue] = useState("");
   const [formatError, setFormatError] = useState(false);
 
@@ -38,7 +41,8 @@ export const InviteCodeForm: React.FC<{ className?: string }> = ({
     setFormatError(!code);
     if (code && (await redeemInvite(code))) {
       setValue("");
-      setOpen(false);
+      setOpen(alwaysOpen);
+      onRedeemed?.();
     }
   };
 
@@ -50,7 +54,7 @@ export const InviteCodeForm: React.FC<{ className?: string }> = ({
         <div className="glass-control flex flex-1 items-center gap-2 rounded-lg px-3 py-1.5">
           <Ticket width={14} height={14} className="shrink-0 text-mid-gray" />
           <input
-            autoFocus
+            autoFocus={!alwaysOpen}
             value={value}
             onChange={(event) => setValue(event.target.value)}
             placeholder={t("account.invite.placeholder")}

@@ -1,13 +1,14 @@
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LogOut, UserRound } from "lucide-react";
+import { CheckCircle2, LogOut, UserRound } from "lucide-react";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { Tooltip } from "../../ui/Tooltip";
-import { useAuthStore } from "../../../stores/authStore";
+import { canRedeemInvite, useAuthStore } from "../../../stores/authStore";
 import { trialDaysLeft, type Access } from "../../../lib/auth";
 import { InviteCodeForm } from "../../account/InviteCodeForm";
+import { TelegramCodeButton } from "../../account/BetaLockDialog";
 
 const usePaidDate = (access: Access | null): string => {
   const { i18n } = useTranslation();
@@ -152,6 +153,45 @@ const ManagePlanDialog: React.FC<{
   );
 };
 
+/**
+ * Where a referral (beta invite) code is entered. Once redeemed it shows that
+ * the account has full access for the beta.
+ */
+const ReferralCodeSection: React.FC = () => {
+  const { t } = useTranslation();
+  const verdict = useAuthStore((state) => state.verdict);
+  const isBeta =
+    verdict?.state === "allowed" && verdict.access.status === "beta";
+  const offline = verdict?.state === "allowed" && verdict.offline;
+
+  if (isBeta) {
+    return (
+      <SettingsGroup title={t("account.referral.title")}>
+        <p className="flex items-center gap-2 px-4 py-4 text-sm">
+          <CheckCircle2 width={16} height={16} className="text-green-500" />
+          {t("account.referral.active")}
+        </p>
+      </SettingsGroup>
+    );
+  }
+  if (!canRedeemInvite(verdict) || offline) return null;
+
+  const locked = verdict?.state === "blocked" && verdict.reason === "locked";
+  return (
+    <SettingsGroup title={t("account.referral.title")}>
+      <div className="space-y-3 px-4 py-4">
+        <p className="text-xs text-mid-gray">
+          {locked
+            ? t("account.referral.lockedHint")
+            : t("account.referral.hint")}
+        </p>
+        <InviteCodeForm alwaysOpen />
+        <TelegramCodeButton />
+      </div>
+    </SettingsGroup>
+  );
+};
+
 export const AccountSettings: React.FC = () => {
   const { t } = useTranslation();
   const email = useAuthStore((state) => state.email);
@@ -162,8 +202,10 @@ export const AccountSettings: React.FC = () => {
   const [managing, setManaging] = useState(false);
 
   const access = verdict?.state === "allowed" ? verdict.access : null;
+  const locked = verdict?.state === "blocked" && verdict.reason === "locked";
   const paidDate = usePaidDate(access);
-  const planLabel = usePlanLabel(access, paidDate);
+  const accessLabel = usePlanLabel(access, paidDate);
+  const planLabel = locked ? t("account.plan.locked") : accessLabel;
   const offline = verdict?.state === "allowed" && verdict.offline;
   const onTrial = access?.status === "trial";
   const subscribed = access?.status === "paid" && !!paidDate;
@@ -200,7 +242,6 @@ export const AccountSettings: React.FC = () => {
                 {t("account.finishPayment")}
               </p>
             )}
-            {onTrial && !offline && <InviteCodeForm className="mt-2" />}
             {onTrial && paymentError && (
               <p className="mt-1 text-xs text-error">
                 {t(`account.paymentError.${paymentError}`, {
@@ -220,6 +261,7 @@ export const AccountSettings: React.FC = () => {
           </Button>
         </div>
       </SettingsGroup>
+      <ReferralCodeSection />
       {managing && access && (
         <ManagePlanDialog
           access={access}

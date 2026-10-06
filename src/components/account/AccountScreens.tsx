@@ -1,6 +1,13 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { LogIn, LogOut, RefreshCw, ShieldAlert, WifiOff } from "lucide-react";
+import {
+  Lock,
+  LogIn,
+  LogOut,
+  RefreshCw,
+  ShieldAlert,
+  WifiOff,
+} from "lucide-react";
 import SilktoneWordmark from "../icons/SilktoneWordmark";
 import { Button } from "../ui/Button";
 import { SetupBackdrop } from "../ui/SetupBackdrop";
@@ -56,6 +63,7 @@ const REASON_ICON: Record<BlockReason, typeof ShieldAlert> = {
   expired: ShieldAlert,
   banned: ShieldAlert,
   offline: WifiOff,
+  locked: Lock,
 };
 
 export const BlockedScreen: React.FC<{ reason: BlockReason }> = ({
@@ -115,7 +123,9 @@ export const BlockedScreen: React.FC<{ reason: BlockReason }> = ({
           {t("account.signOut")}
         </Button>
       </div>
-      {reason === "expired" && <InviteCodeForm className="w-full max-w-sm" />}
+      {(reason === "expired" || reason === "locked") && (
+        <InviteCodeForm className="w-full max-w-sm" />
+      )}
       {reason === "expired" && awaitingPayment && (
         <p className="text-xs text-mid-gray">{t("account.finishPayment")}</p>
       )}
