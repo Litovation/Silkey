@@ -13,7 +13,9 @@ import {
   findInviteCode,
   getSession,
   redeemInviteCode,
+  requestBetaAccess,
   signOut as clearSession,
+  type AccessRequestError,
   type InviteError,
   type Verdict,
 } from "@/lib/auth";
@@ -72,6 +74,11 @@ interface AuthStore {
   /** An invite code is being redeemed. */
   inviteBusy: boolean;
   inviteError: InviteError | null;
+  /** A "Request beta access" is being sent. */
+  accessRequestBusy: boolean;
+  accessRequestError: AccessRequestError | null;
+  /** Ask for beta access; unlocks at once when the server approves it. */
+  requestAccess: () => Promise<void>;
   /** Resolves true when the code gave this account free beta access. */
   redeemInvite: (code: string) => Promise<boolean>;
   /**
@@ -89,6 +96,7 @@ interface AuthStore {
 }
 
 let initialized = false;
+let lastFocusRecheck = 0;
 let clipboardCheckRunning = false;
 
 export const useAuthStore = create<AuthStore>()((set, get) => {
@@ -157,6 +165,41 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
     paymentError: null,
     inviteBusy: false,
     inviteError: null,
+    accessRequestBusy: false,
+    accessRequestError: null,
+
+    requestAccess: async () => {
+      set({ accessRequestBusy: true, accessRequestError: null });
+      const result = await requestBetaAccess();
+      set({
+        accessRequestBusy: false,
+        accessRequestError: result.ok ? null : result.error,
+      });
+      // "Full today" still saves the request, so refresh to show it waiting.
+      if (!result.ok) {
+        if (result.error === "full_today") await get().recheck();
+        return;
+      }
+      await get().recheck();
+      const notify = useNotificationStore.getState().notify;
+      if (result.status === "approved") {
+        notify({
+          id: "beta-invite",
+          tone: "success",
+          title: i18n.t("account.invite.welcomeTitle"),
+          description: i18n.t("account.invite.welcomeBody"),
+          autoHideMs: 15000,
+        });
+      } else {
+        notify({
+          id: "beta-invite",
+          tone: "info",
+          title: i18n.t("account.request.sentTitle"),
+          description: i18n.t("account.request.pending"),
+          autoHideMs: 15000,
+        });
+      }
+    },
 
     redeemInvite: async (code) => {
       set({ inviteBusy: true, inviteError: null });
@@ -236,6 +279,17 @@ export const useAuthStore = create<AuthStore>()((set, get) => {
       // The invite page copies the code; coming back to Silktone redeems it.
       window.addEventListener("focus", () => {
         get().redeemInviteFromClipboard();
+        // A request approved by the owner unlocks without waiting for the
+        // half-hourly check.
+        const verdict = get().verdict;
+        const waiting =
+          verdict?.state === "blocked" &&
+          verdict.reason === "locked" &&
+          verdict.access?.beta_request === "pending";
+        if (waiting && Date.now() - lastFocusRecheck > 60_000) {
+          lastFocusRecheck = Date.now();
+          get().recheck();
+        }
       });
     },
 

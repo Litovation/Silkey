@@ -17,8 +17,7 @@ import {
 import type { EngineStatus } from "../../hooks/useAutoModelSetup";
 import { useModelTierStore, type ModelTier } from "../../stores/modelTierStore";
 import { useAuthStore } from "../../stores/authStore";
-import { InviteCodeForm } from "../account/InviteCodeForm";
-import { TelegramCodeButton } from "../account/BetaLockDialog";
+import { RequestAccess } from "../account/RequestAccess";
 
 type Step = "performance" | "language" | "shortcut" | "practice" | "done";
 const STEPS: Step[] = [
@@ -419,8 +418,7 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
                   <p className="text-xs text-text/80">
                     {t("account.referral.lockedHint")}
                   </p>
-                  <InviteCodeForm alwaysOpen />
-                  <TelegramCodeButton />
+                  <RequestAccess />
                 </div>
               )}
               <p className="text-center text-lg font-medium">

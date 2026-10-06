@@ -140,7 +140,8 @@
 
       // ?account=trial|offline|stale|expired|banned|paid|cancelling|due|lapsed|beta|locked
       // (&invite=used|invalid|... makes redeeming a referral code fail that way;
-      // with account=locked, window.__lockPopup() fakes pressing the dictation keys)
+      // with account=locked, window.__lockPopup() fakes pressing the dictation keys;
+      // &request=pending|full_today|closed changes the "Request beta access" answer)
       // fakes a signed-in account;
       // without it the real sign-in screen shows.
       const account = new URLSearchParams(location.search).get("account");
@@ -179,6 +180,18 @@
             if (new URLSearchParams(location.search).get("pay") === "fail") return reply({ error: "server_error" }, 500);
             setTimeout(paidAccess, 4000);
             return reply({ url: "https://rzp.io/rzp/mock" });
+          }
+          // "Request beta access": approved at once, or ?request=pending|full_today|closed.
+          if (url.includes("/rpc/silktone_request_beta_access")) {
+            const request = new URLSearchParams(location.search).get("request");
+            if (request === "pending") {
+              access.beta_request = "pending";
+              return reply({ ok: true, status: "pending" });
+            }
+            if (request === "full_today") access.beta_request = "pending";
+            if (request) return reply({ ok: false, error: request });
+            Object.assign(access, { status: "beta", allowed: true, beta_request: "approved" });
+            return reply({ ok: true, status: "approved" });
           }
           if (url.includes("/rpc/silktone_redeem_beta_code")) {
             const invite = new URLSearchParams(location.search).get("invite");

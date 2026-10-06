@@ -36,6 +36,8 @@ export interface Access {
   paid_until?: string | null;
   /** The subscription will not renew after `paid_until`. */
   cancel_at_period_end?: boolean;
+  /** A "Request beta access" from this account, if any. */
+  beta_request?: "pending" | "approved" | null;
 }
 
 /**
@@ -348,6 +350,49 @@ export const redeemInviteCode = async (
     return result.ok ? null : (result.error ?? "invalid");
   } catch {
     return "network";
+  }
+};
+
+/** Why a beta access request was not approved straight away. */
+export type AccessRequestError =
+  | "full_today"
+  | "closed"
+  | "beta_over"
+  | "not_needed"
+  | "banned"
+  | "not_signed_in"
+  | "network";
+
+export type AccessRequestResult =
+  | { ok: true; status: "approved" | "pending" }
+  | { ok: false; error: AccessRequestError };
+
+/**
+ * Ask for beta access from inside the app. The server approves it at once
+ * when auto-approve is on and today's spots are not used up.
+ */
+export const requestBetaAccess = async (): Promise<AccessRequestResult> => {
+  const session = getSession();
+  if (!session) return { ok: false, error: "not_signed_in" };
+  try {
+    const { access_token } = await freshSession(session);
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/rpc/silktone_request_beta_access`,
+      {
+        method: "POST",
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: "{}",
+      },
+    );
+    if (!response.ok) return { ok: false, error: "network" };
+    return (await response.json()) as AccessRequestResult;
+  } catch {
+    return { ok: false, error: "network" };
   }
 };
 

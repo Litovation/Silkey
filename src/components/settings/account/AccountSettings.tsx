@@ -8,7 +8,7 @@ import { Tooltip } from "../../ui/Tooltip";
 import { canRedeemInvite, useAuthStore } from "../../../stores/authStore";
 import { trialDaysLeft, type Access } from "../../../lib/auth";
 import { InviteCodeForm } from "../../account/InviteCodeForm";
-import { TelegramCodeButton } from "../../account/BetaLockDialog";
+import { RequestAccess } from "../../account/RequestAccess";
 
 const usePaidDate = (access: Access | null): string => {
   const { i18n } = useTranslation();
@@ -177,16 +177,23 @@ const ReferralCodeSection: React.FC = () => {
   if (!canRedeemInvite(verdict) || offline) return null;
 
   const locked = verdict?.state === "blocked" && verdict.reason === "locked";
+  if (locked) {
+    return (
+      <SettingsGroup title={t("account.request.title")}>
+        <div className="space-y-3 px-4 py-4">
+          <p className="text-xs text-mid-gray">
+            {t("account.referral.lockedHint")}
+          </p>
+          <RequestAccess />
+        </div>
+      </SettingsGroup>
+    );
+  }
   return (
     <SettingsGroup title={t("account.referral.title")}>
       <div className="space-y-3 px-4 py-4">
-        <p className="text-xs text-mid-gray">
-          {locked
-            ? t("account.referral.lockedHint")
-            : t("account.referral.hint")}
-        </p>
+        <p className="text-xs text-mid-gray">{t("account.referral.hint")}</p>
         <InviteCodeForm alwaysOpen />
-        <TelegramCodeButton />
       </div>
     </SettingsGroup>
   );

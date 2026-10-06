@@ -973,7 +973,7 @@
       "expired": "Trial ended",
       "banned": "Suspended",
       "beta": "Beta tester · free for the whole beta",
-      "locked": "Beta · referral code needed"
+      "locked": "Beta · access needed"
     },
     "blocked": {
       "expired": {
@@ -1017,11 +1017,25 @@
     "referral": {
       "title": "Referral code",
       "hint": "Have a referral code? Enter it for full access for the whole beta.",
-      "lockedHint": "Silktone is in private beta. Enter your referral code to unlock dictation. Join our Telegram channel to get your personal code; each code works only once.",
+      "lockedHint": "Silktone is in private beta. Request access and you're usually in within seconds.",
       "lockedTitle": "Silktone is in private beta",
-      "lockedBody": "Dictation unlocks with a referral code. Join our Telegram channel and the bot sends you a personal code right away. It works only once.",
-      "getCode": "Get your code on Telegram",
+      "lockedBody": "Dictation unlocks once you're in the beta. Request access below; it usually takes a few seconds.",
       "active": "Code activated · full access for the whole beta"
+    },
+    "request": {
+      "title": "Beta access",
+      "button": "Request beta access",
+      "sentTitle": "Request sent",
+      "pending": "Request sent. Silktone unlocks as soon as it's approved.",
+      "error": {
+        "full_today": "Today's spots are full. Try again tomorrow; your request is saved.",
+        "closed": "Beta requests are closed right now.",
+        "beta_over": "The beta has ended.",
+        "not_needed": "Your account already has full access.",
+        "banned": "This account can't join the beta.",
+        "not_signed_in": "Sign in first, then request access.",
+        "network": "Couldn't reach the server. Check your connection and try again."
+      }
     }
   },
   "stats": {

@@ -191,57 +191,57 @@ Preview states:
 In the preview, Subscribe "succeeds" after a few seconds; add `&pay=fail` to
 see the error text.
 
-## Beta invites ("referral codes")
+## Private beta: "Request beta access" and referral codes
 
-Live on Supabase since 2026-10-06 (all switches start off). Migrations:
-`20261005090000_beta_invites.sql` and `20261006120000_telegram_join_codes.sql`.
-The second was applied in pieces with execute_sql (the Supabase tool waits
-for an approval on DROP and on UPDATE without WHERE, then times out), so it
-has no row in `supabase_migrations.schema_migrations`.
+No Telegram and no Discord (owner's decision, 2026-10-06: t.me links are
+blocked for many users in India). Everything happens inside the app.
 
-How it works (owner's decisions):
+How it works:
 
-- While the beta is **invite-only**, anyone can sign in and open Silktone,
-  but dictation is locked until they redeem a code. Pressing the dictation
-  keys opens a pop-up with a code box (`BetaLockDialog`). The code box is also
-  in Settings, Account, "Referral code", and in the tutorial's practice step.
-- A code gives the `beta` plan: full access until the beta ends. Each code
-  works once, for one Silktone account. One person may use several Gmail
-  or Telegram accounts; that is fine.
-- **Codes come from Telegram.** The channel `t.me/silktone_beta` is set to
-  "Approve new members". Each join request goes to the `telegram-webhook`
-  Edge Function, then `silktone_handle_telegram_update()`: the bot
-  (@Litsilk_bot) sends that person a personal code privately and approves
-  the request. One code per Telegram account (rejoining sends the same code);
-  no wait, no expiry. No /start command.
-- **Paused, or after the beta ends: no codes.** Joiners are still approved
-  (the channel carries updates) but get no message. Remember: once the beta
-  ends, codes stop for good.
-- The earlier one-at-a-time public drops are switched off (`drops_open`
-  false); their every-minute job is still scheduled but has nothing to do.
-- Old 0.1.1 installs do not know the "locked" status and show the
-  trial-ended screen; they update themselves on next launch, so release the
-  new version **before** turning `invite_only` on.
+- While the beta is **invite-only** (`beta_program.invite_only`), anyone can
+  sign in and open Silktone, but dictation is locked. Pressing the dictation
+  keys opens a pop-up (`BetaLockDialog`) with **Request beta access**; the
+  same panel (`RequestAccess`) is in Settings, Account, "Beta access" and in
+  the tutorial's practice step.
+- **Request beta access**: with `auto_approve` on, the server approves at
+  once (within `daily_limit`, counted per day on India time) and the app
+  unlocks. Otherwise the request waits as `pending` in `beta_requests`; the
+  app shows "Request sent" and re-checks when its window is focused. When
+  today's limit is reached the request is saved as pending and the user sees
+  "Today's spots are full".
+- **Referral codes** ("Have a referral code?"): codes the owner makes and
+  hands out (WhatsApp, X, ...). Each works once, for one account.
+- Either way the account gets the `beta` plan: full access until the beta
+  ends. Ending the beta also lifts the lock; requests and codes stop.
+- Old 0.1.1/0.1.2 installs do not have "Request beta access"; release the
+  version that has it **before** turning `invite_only` on.
 
 Owner controls (Supabase SQL editor):
 
 | What | SQL |
 |---|---|
-| Lock code-less accounts | `update public.beta_program set invite_only = true where id;` |
-| Pause codes for new joiners | `update public.beta_program set join_codes_open = false where id;` |
-| Resume codes | `update public.beta_program set join_codes_open = true where id;` |
-| Extra codes by hand (e.g. for X) | `select * from public.silktone_create_beta_codes(5);` |
-| End the beta (codes stop, lock lifts) | `update public.beta_program set ends_at = now() where id;` |
-| Reconnect the bot (after a token change) | `select public.silktone_telegram_connect();` |
+| Lock accounts without access | `update public.beta_program set invite_only = true where id;` |
+| Approve by hand instead of automatically | `update public.beta_program set auto_approve = false where id;` |
+| Limit approvals per day | `update public.beta_program set daily_limit = 20 where id;` |
+| No daily limit | `update public.beta_program set daily_limit = null where id;` |
+| Stop new requests | `update public.beta_program set access_requests_open = false where id;` |
+| Approve a waiting request | `select public.silktone_approve_beta_request('person@gmail.com');` (or set `status` to `approved` in Table Editor, `beta_requests`) |
+| Referral codes to hand out | `select * from public.silktone_create_beta_codes(5);` |
+| End the beta | `update public.beta_program set ends_at = now() where id;` |
 
-Telegram pieces: bot token in Vault (`telegram_bot_token`), channel
-`@silktone_beta` (`telegram_chat_id`), webhook secret
-(`telegram_webhook_secret`, random). The bot must be a channel admin with
-"Post messages" and "Add subscribers"/"Invite users" (needed to approve).
+Migrations: `20261005090000_beta_invites.sql` (lock, plan, codes),
+`20261006180000_beta_access_requests.sql` (requests),
+`20261006190000_remove_telegram.sql` (removes the Telegram pieces that were
+live for a day: functions, columns, Vault secrets, cron job; disconnects the
+bot). Also delete the `telegram-webhook` Edge Function in the dashboard.
 
-Tested on a local Postgres 16 with stand-ins for Supabase auth, Vault,
-pg_net and pg_cron. Webhook confirmed by Telegram (`getWebhookInfo`). A real
-join request has not been tried yet.
+Applying to the live project: the Supabase tool waits for an approval on DROP,
+DELETE and UPDATE without WHERE and then times out, so run
+`20261006190000_remove_telegram.sql` in the SQL editor by hand (or approve
+the prompt). Tested on a local Postgres 16, both from scratch and from a copy
+of the live schema; screens checked in `dev/mock-preview.html?account=locked`
+(`&request=pending|full_today|closed`; `window.__lockPopup()` fakes pressing
+the dictation keys).
 
 ## Payments (Razorpay)
 

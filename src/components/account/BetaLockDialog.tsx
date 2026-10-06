@@ -1,29 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { Lock, Send } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Dialog } from "../ui/Dialog";
-import { Button } from "../ui/Button";
 import { useAuthStore } from "../../stores/authStore";
-import { TELEGRAM_CHANNEL_URL } from "../../lib/constants/community";
-import { InviteCodeForm } from "./InviteCodeForm";
-
-/** "Get a code" link to the Telegram channel; hidden until one is set. */
-export const TelegramCodeButton: React.FC = () => {
-  const { t } = useTranslation();
-  if (!TELEGRAM_CHANNEL_URL) return null;
-  return (
-    <Button
-      variant="secondary"
-      onClick={() => openUrl(TELEGRAM_CHANNEL_URL)}
-      className="flex items-center gap-2 whitespace-nowrap"
-    >
-      <Send width={14} height={14} />
-      {t("account.referral.getCode")}
-    </Button>
-  );
-};
+import { RequestAccess } from "./RequestAccess";
 
 /**
  * Shown when someone without a referral code presses the dictation keys
@@ -60,8 +41,7 @@ export const BetaLockDialog: React.FC = () => {
     >
       <div className="space-y-4">
         <p className="text-sm">{t("account.referral.lockedBody")}</p>
-        <InviteCodeForm alwaysOpen onRedeemed={() => setOpen(false)} />
-        <TelegramCodeButton />
+        <RequestAccess onUnlocked={() => setOpen(false)} />
       </div>
     </Dialog>
   );
