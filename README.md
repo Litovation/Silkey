@@ -27,7 +27,7 @@ The installer lands in `src-tauri/target/release/bundle/nsis/`. It is not code-s
 
 ## Updates
 
-Update checks are locked off until Silktone update hosting exists. To enable them, publish a signed `latest.json`, replace the updater endpoint and public key in `src-tauri/tauri.conf.json`, and build with `SILKTONE_UPDATES_ENABLED=1`.
+Installed copies update themselves from GitHub Releases (`latest.json`, signed with the key in `src-tauri/tauri.conf.json`). The updater is compiled in only when building with `SILKTONE_UPDATES_ENABLED=1`; both Windows workflows set it. Builds without it have updates locked off.
 
 ## License
 

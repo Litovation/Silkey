@@ -215,6 +215,11 @@ How it works:
   ends. Ending the beta also lifts the lock; requests and codes stop.
 - Old 0.1.1/0.1.2 installs do not have "Request beta access"; they update
   to 0.1.3 or later on their next start.
+- The updater is compiled in only with `SILKTONE_UPDATES_ENABLED=1` (see
+  `update_checks_forced_disabled` in `settings.rs`). Releases 0.1.1 to 0.1.4
+  were built without it, so they can never update themselves; their users
+  must install the first release built with it (0.1.5 or later) once by
+  hand. Both workflows set it since 2026-10-08.
 - Copies installed from a "Build Silktone for Windows" artifact made before
   2026-10-08 carry a placeholder updater key and can never update
   themselves; reinstall them once from the Releases page. Since then the

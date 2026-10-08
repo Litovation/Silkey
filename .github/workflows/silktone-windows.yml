@@ -16,6 +16,9 @@ jobs:
   windows:
     runs-on: windows-2022
     timeout-minutes: 90
+    env:
+      # Test builds update themselves like releases (see settings.rs).
+      SILKTONE_UPDATES_ENABLED: "1"
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
