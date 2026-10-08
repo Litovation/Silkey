@@ -213,8 +213,13 @@ How it works:
   hands out (WhatsApp, X, ...). Each works once, for one account.
 - Either way the account gets the `beta` plan: full access until the beta
   ends. Ending the beta also lifts the lock; requests and codes stop.
-- Old 0.1.1/0.1.2 installs do not have "Request beta access"; release the
-  version that has it **before** turning `invite_only` on.
+- Old 0.1.1/0.1.2 installs do not have "Request beta access"; they update
+  to 0.1.3 or later on their next start.
+- Copies installed from a "Build Silktone for Windows" artifact made before
+  2026-10-08 carry a placeholder updater key and can never update
+  themselves; reinstall them once from the Releases page. Since then the
+  real public key is in `src-tauri/tauri.conf.json`, so test builds update
+  like releases.
 
 Owner controls (Supabase SQL editor):
 
@@ -235,10 +240,11 @@ Migrations: `20261005090000_beta_invites.sql` (lock, plan, codes),
 live for a day: functions, columns, Vault secrets, cron job; disconnects the
 bot). Also delete the `telegram-webhook` Edge Function in the dashboard.
 
-Applying to the live project: the Supabase tool waits for an approval on DROP,
-DELETE and UPDATE without WHERE and then times out, so run
-`20261006190000_remove_telegram.sql` in the SQL editor by hand (or approve
-the prompt). Tested on a local Postgres 16, both from scratch and from a copy
+Live since 2026-10-07: all three migrations applied (the clean-up was run by
+the owner in the SQL editor, because the Supabase tool waits for an approval
+on DROP, DELETE and UPDATE without WHERE and then times out), the
+telegram-webhook function deleted, and `invite_only` turned on after 0.1.3
+was published. Tested on a local Postgres 16, both from scratch and from a copy
 of the live schema; screens checked in `dev/mock-preview.html?account=locked`
 (`&request=pending|full_today|closed`; `window.__lockPopup()` fakes pressing
 the dictation keys).
