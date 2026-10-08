@@ -14,15 +14,17 @@ check below. Never run this skill on your own initiative.
 ## Branches
 
 - **Working branch:** `v0.1.1-ui` (all edits happen here).
-- **Running branch:** `main` (what users get; releases are built from it).
+- **Running branch:** `main`. Owner's rule: `main` must always equal what
+  users run, so `main` only changes together with a release, never on its
+  own.
 - **Backups:** `draft-main-1`, `draft-main-2`, … Each run saves the old
   `main` under the next free number. Backups are never deleted or reused.
 
 ## Arguments
 
 `$ARGUMENTS` may hold a version (`X.Y.Z`) and/or release notes, in that order.
-If it says "no release" (or "don't publish"), do steps 1–5 only and skip the
-release.
+There is no "no release" mode: if the owner asks to skip the release, do not
+change `main` either; tell them `main` and the release go together.
 
 - No version given: take the latest GitHub release tag `vX.Y.Z` and add one
   to the last number (0.1.4 -> 0.1.5). If there is no release yet, ask the
