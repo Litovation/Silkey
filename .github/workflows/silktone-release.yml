@@ -52,6 +52,12 @@ jobs:
           $global:LASTEXITCODE = 0
       - uses: oven-sh/setup-bun@v2
       - uses: dtolnay/rust-toolchain@stable
+      # Keeps compiled dependencies (speech engine, Tauri, ...) between runs,
+      # so a build only recompiles what changed. Shared by both workflows.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          shared-key: silktone-windows
       - uses: humbletim/install-vulkan-sdk@v1.2
         with:
           version: 1.4.309.0
