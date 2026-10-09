@@ -403,6 +403,11 @@ pub struct AppSettings {
     pub selected_model: String,
     #[serde(default)]
     pub onboarding_completed: bool,
+    /// The newest tutorial this user has finished (see `CURRENT_TUTORIAL_VERSION`).
+    /// Below the current one, the app opens the tutorial on start and refuses
+    /// dictation outside it, for new and upgrading users alike.
+    #[serde(default)]
+    pub tutorial_version: u32,
     #[serde(default = "default_always_on_microphone")]
     pub always_on_microphone: bool,
     #[serde(default)]
@@ -537,14 +542,18 @@ fn default_model() -> String {
     "".to_string()
 }
 
-const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 3;
+const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 4;
+
+/// Raised whenever the tutorial changes enough that everyone must go through
+/// it again. 1: the guided tutorial with three practice rounds (v0.1.6).
+pub const CURRENT_TUTORIAL_VERSION: u32 = 1;
 
 fn default_settings_schema_version() -> u32 {
     CURRENT_SETTINGS_SCHEMA_VERSION
 }
 
 fn default_hold_threshold_ms() -> u64 {
-    300
+    100
 }
 
 fn default_always_on_microphone() -> bool {
@@ -560,7 +569,7 @@ fn default_start_hidden() -> bool {
 }
 
 fn default_silence_auto_stop_secs() -> u32 {
-    5
+    0
 }
 
 fn default_mic_gain_percent() -> u32 {
@@ -625,15 +634,15 @@ fn default_log_level() -> LogLevel {
 }
 
 fn default_word_correction_threshold() -> f64 {
-    0.18
+    0.3
 }
 
 fn default_paste_delay_ms() -> u64 {
-    60
+    10
 }
 
 fn default_paste_delay_after_ms() -> u64 {
-    60
+    10
 }
 
 fn default_auto_submit() -> bool {
@@ -978,6 +987,7 @@ pub fn get_default_settings() -> AppSettings {
         whats_new_last_seen_version: default_whats_new_last_seen_version(),
         selected_model: "".to_string(),
         onboarding_completed: false,
+        tutorial_version: 0,
         always_on_microphone: false,
         selected_microphone: None,
         selected_channel: None,
@@ -1225,6 +1235,33 @@ fn apply_settings_migrations(
         // explicit choice of System made afterwards is kept.
         if settings.theme == Theme::System {
             settings.theme = Theme::Light;
+        }
+        settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
+        updated = true;
+    }
+    if stored_schema_version < 4 {
+        // v0.1.6 defaults: stopping on silence is off (it cut people off
+        // mid-thought); the microphone boost is 1.5x; pasting waits 10 ms
+        // either side instead of 60; a press held 100 ms (not 300) counts as
+        // a hold; custom words match a little more eagerly (0.3, was 0.18).
+        // Stores still holding the earlier defaults move across once.
+        if settings.paste_delay_ms == 60 {
+            settings.paste_delay_ms = default_paste_delay_ms();
+        }
+        if settings.paste_delay_after_ms == 60 {
+            settings.paste_delay_after_ms = default_paste_delay_after_ms();
+        }
+        if (settings.word_correction_threshold - 0.18).abs() < 1e-9 {
+            settings.word_correction_threshold = default_word_correction_threshold();
+        }
+        if settings.hold_threshold_ms == 300 {
+            settings.hold_threshold_ms = default_hold_threshold_ms();
+        }
+        if settings.silence_auto_stop_secs == 5 {
+            settings.silence_auto_stop_secs = 0;
+        }
+        if settings.mic_gain_percent == 100 {
+            settings.mic_gain_percent = crate::audio_toolkit::audio::DEFAULT_MIC_GAIN_PERCENT;
         }
         settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
         updated = true;

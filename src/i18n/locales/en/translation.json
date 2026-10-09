@@ -1066,32 +1066,60 @@
     },
     "shortcut": {
       "title": "Your dictation shortcut",
-      "description": "Hold these keys anywhere on your PC and speak. Silktone types what you say. You can change the keys below.",
-      "trackpadHint": "On a laptop, you can also rest two fingers on the touchpad to dictate, and lift them when you are done."
+      "description": "These keys start dictation in any app. Use the suggested ones or click the box to set your own (for example Ctrl + Windows).",
+      "trackpadHint": "On a laptop you can also dictate with the touchpad. Turn it on here and the tutorial will show you how."
     },
     "practice": {
       "title": "Try it once",
-      "description": "Click in the box, hold the keys, say the sentence below, then let go. The keys light up while you hold them.",
+      "description": {
+        "hold": "Click in the box. Hold your keys down, say the sentence, then let go. Your words appear in the box.",
+        "tap": "Click in the box. Tap your keys once and let go, say the sentence, then tap them again. Your words appear in the box."
+      },
       "sentence": "From now on, my workflow will be very easy",
       "quote": "“{{sentence}}”",
       "placeholder": "Your words will appear here…",
       "waiting": "Waiting for the speech engine to finish downloading…",
-      "success": "Perfect. That's all there is to it."
+      "success": "Perfect. Silktone is unlocked.",
+      "titleStyle": {
+        "hold": "Hold to talk",
+        "tap": "Tap to talk"
+      },
+      "how": {
+        "hold": "Keep holding while you speak. Let go when you finish.",
+        "tap": "Tap, speak, tap again. No need to keep holding."
+      },
+      "round": "Practice {{n}} of 3",
+      "sentence2": "Silktone types what I say in any app",
+      "sentence3": "Speaking is much faster than typing",
+      "sentencePad": "I can dictate with my touchpad too",
+      "successMore": "Well done.",
+      "almost": "Silktone heard: “{{text}}”. Not quite the sentence, try again a little slower.",
+      "required": "This first try is required. After it you can skip the rest.",
+      "lockedHint": "You can practise as soon as your beta access is on. Request it below, it usually takes seconds."
     },
     "done": {
       "title": "You're all set",
       "description": "Silktone now waits quietly in the system tray. Press your shortcut in any app to dictate.",
       "stillDownloading": "The speech engine is still downloading. Dictation will work as soon as it finishes.",
-      "finish": "Finish"
+      "finish": "Finish",
+      "tip": {
+        "hold": "Hold your keys, speak, let go: that's it, in any app.",
+        "tap": "Tap your keys, speak, tap again: that's it, in any app.",
+        "settings": "Keys, Hold or Tap, and touchpad timing can all be changed in Settings."
+      }
     },
     "steps": {
       "performance": "Performance",
       "language": "Language",
-      "shortcut": "Shortcut",
-      "practice": "Practice",
+      "shortcut": "Your keys",
+      "practice1": "First try",
+      "modes": "Hold & tap",
+      "practice2": "Practice 2",
+      "practice3": "Practice 3",
+      "touchpad": "Touchpad",
       "done": "Ready"
     },
-    "skipTutorial": "Skip tutorial",
+    "skipTutorial": "Skip the rest",
     "language": {
       "title": "Which language will you speak?",
       "description": "Silktone types what you say in this language.",
@@ -1108,6 +1136,32 @@
         "description": "Silktone works out the language each time."
       },
       "changeLater": "You can change this anytime in Settings."
+    },
+    "skipRound": "Skip this one",
+    "later": "Finish later",
+    "modes": {
+      "title": "Two ways to use your keys",
+      "description": "Both work in every app. Next you will practise each one.",
+      "hold": {
+        "title": "Hold",
+        "body": "Hold the keys while you speak, let go to finish. Best for short messages."
+      },
+      "tap": {
+        "title": "Tap",
+        "body": "Tap once to start, speak as long as you like, tap again to finish. Best for long text."
+      },
+      "changeLater": "Auto lets you do both. You can change this anytime in Settings, General."
+    },
+    "touchpad": {
+      "title": "Dictate with your touchpad",
+      "description": "Rest two fingers on the touchpad and keep them still. When the bar fills, speak. Lift your fingers to finish.",
+      "tryIt": "Set how long to rest your fingers, then try it here (optional)."
+    },
+    "animation": {
+      "keys": "These are your keys",
+      "hold": "Hold · speak · let go",
+      "tap": "Tap · speak · tap again",
+      "touchpad": "Rest two fingers · speak · lift"
     }
   },
   "performance": {

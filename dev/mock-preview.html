@@ -11,6 +11,10 @@
       const firstRun = new URLSearchParams(location.search).has("firstRun");
       const settings = {
         onboarding_completed: !firstRun,
+        // ?tutorial=1: an upgrading user who has not done the new tutorial.
+        tutorial_version: firstRun || new URLSearchParams(location.search).has("tutorial") ? 0 : 1,
+        // ?touchpad=1 adds the touchpad step to the tutorial.
+        trackpad_double_tap_enabled: new URLSearchParams(location.search).has("touchpad"),
         bindings: {
           transcribe: {
             id: "transcribe",
@@ -58,7 +62,6 @@
         transcribe_accelerator: "auto",
         ort_accelerator: "auto",
         mute_while_recording: false,
-        trackpad_double_tap_enabled: false,
         keyboard_implementation: "native_keys",
         debug_mode: false,
       };
@@ -78,6 +81,7 @@
       };
       const handlers = {
         get_app_settings: () => settings,
+        complete_tutorial: () => { settings.tutorial_version = 1; return null; },
         get_default_settings: () => settings,
         get_available_models: () => [model],
         get_current_model: () => settings.selected_model,
@@ -108,6 +112,11 @@
       window.__emit = (event, payload = null) =>
         (eventListeners[event] || []).forEach((id) => callbacks[id] && callbacks[id]({ event, payload, id }));
       window.__lockPopup = () => window.__emit("access-refused");
+      // Pretend a dictation finished, e.g. window.__dictate("From now on ...").
+      window.__dictate = (text) => window.__emit("history-update-payload", {
+        action: "added",
+        entry: { id: Date.now(), file_name: "x.wav", timestamp: 0, saved: false, title: "", transcription_text: text, post_processed_text: null, post_process_prompt: null, post_process_requested: false },
+      });
       window.__TAURI_INTERNALS__ = {
         metadata: {
           currentWindow: { label: "main" },

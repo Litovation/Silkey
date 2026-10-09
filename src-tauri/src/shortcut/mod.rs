@@ -1286,6 +1286,17 @@ pub fn change_silence_auto_stop_setting(app: AppHandle, seconds: u32) -> Result<
     Ok(())
 }
 
+/// Records that the user finished the tutorial, which lifts the
+/// dictation-only-in-the-tutorial rule.
+#[tauri::command]
+#[specta::specta]
+pub fn complete_tutorial(app: AppHandle) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.tutorial_version = settings::CURRENT_TUTORIAL_VERSION;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn change_trackpad_double_tap_setting(app: AppHandle, enabled: bool) -> Result<(), String> {

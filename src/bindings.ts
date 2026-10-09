@@ -397,6 +397,18 @@ async changeSilenceAutoStopSetting(seconds: number) : Promise<Result<null, strin
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Records that the user finished the tutorial, which lifts the
+ * dictation-only-in-the-tutorial rule.
+ */
+async completeTutorial() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("complete_tutorial") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeMicGainSetting(percent: number) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_mic_gain_setting", { percent }) };
@@ -1054,7 +1066,13 @@ hold_threshold_ms?: number; audio_feedback?: boolean; audio_feedback_volume?: nu
  * upgrading from before this key existed are blanked by the migration so they
  * see the current release's notes — see `apply_settings_migrations`.
  */
-whats_new_last_seen_version?: string; selected_model?: string; onboarding_completed?: boolean; always_on_microphone?: boolean; selected_microphone?: string | null; 
+whats_new_last_seen_version?: string; selected_model?: string; onboarding_completed?: boolean; 
+/**
+ * The newest tutorial this user has finished (see `CURRENT_TUTORIAL_VERSION`).
+ * Below the current one, the app opens the tutorial on start and refuses
+ * dictation outside it, for new and upgrading users alike.
+ */
+tutorial_version?: number; always_on_microphone?: boolean; selected_microphone?: string | null; 
 /**
  * Which input channel to use on the selected microphone device.
  * None means "average all channels" (original behavior).

@@ -704,6 +704,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_trackpad_hold_ms_setting,
             shortcut::change_mic_gain_setting,
             shortcut::change_silence_auto_stop_setting,
+            shortcut::complete_tutorial,
             shortcut::change_vad_enabled_setting,
             shortcut::change_vad_backend_setting,
             shortcut::change_filler_word_removal_enabled_setting,

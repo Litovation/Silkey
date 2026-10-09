@@ -730,6 +730,14 @@ fn start(app: &AppHandle, binding_id: &str, hotkey_string: &str) -> bool {
         }
         return false;
     }
+    // Until the tutorial is finished, dictation only works inside it (its
+    // practice box is in the main window); anywhere else brings the tutorial
+    // back to the front instead.
+    if tutorial_unfinished(app) && !main_window_focused(app) {
+        debug!("Start for '{binding_id}' refused: tutorial not finished");
+        crate::show_main_window(app);
+        return false;
+    }
     let Some(action) = ACTION_MAP.get(binding_id) else {
         warn!("No action in ACTION_MAP for '{binding_id}'");
         return false;
@@ -742,6 +750,16 @@ fn start(app: &AppHandle, binding_id: &str, hotkey_string: &str) -> bool {
         debug!("Start for '{binding_id}' did not begin recording; staying idle");
     }
     recording
+}
+
+fn tutorial_unfinished(app: &AppHandle) -> bool {
+    crate::settings::get_settings(app).tutorial_version < crate::settings::CURRENT_TUTORIAL_VERSION
+}
+
+fn main_window_focused(app: &AppHandle) -> bool {
+    app.get_webview_window("main")
+        .and_then(|window| window.is_focused().ok())
+        .unwrap_or(false)
 }
 
 fn stop(app: &AppHandle, binding_id: &str, hotkey_string: &str) {

@@ -20,7 +20,7 @@ export const WordCorrectionThreshold: React.FC<
 
   return (
     <Slider
-      value={settings?.word_correction_threshold ?? 0.18}
+      value={settings?.word_correction_threshold ?? 0.3}
       onChange={handleThresholdChange}
       onReset={() => resetSetting("word_correction_threshold")}
       isResetting={isUpdating("word_correction_threshold")}

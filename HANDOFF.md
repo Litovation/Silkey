@@ -111,13 +111,26 @@ It is a stand-in: it proves layout and text, not real behaviour.
   `transcription_coordinator.rs` (`on_silence`).
 - **Automatic model + first-launch walkthrough:** the speech model downloads
   and is selected on its own (`src/hooks/useAutoModelSetup.ts`), also for a
-  returning user whose model is missing. The walkthrough
+  returning user whose model is missing. The tutorial
   (`src/components/onboarding/FirstRunSetup.tsx`) follows the sign-in
-  screen and has three steps: shortcut
-  (with the trackpad option explained), a practice box where the held keys
-  light up and the user says "From now on, my workflow will be very easy",
-  then "You're all set", which hides the window to the tray. Preview it with
-  `dev/mock-preview.html?firstRun=1`.
+  screen: performance, language, your keys (with the touchpad option),
+  practice 1, hold & tap (with the Shortcut Behavior setting), practice 2
+  (hold), practice 3 (tap), touchpad (only when it is on: hold time + an
+  optional try), ready. A looping animation on the left acts out each step
+  (`TutorialAnimation.tsx`, CSS in `App.css`, transform/opacity only).
+- **The tutorial is mandatory (since 0.1.6):** practice 1 must succeed
+  before anything else can be skipped; a success is a finished dictation
+  matching the sentence (any words for Hindi/auto, or after 3 tries).
+  That success saves `tutorial_version` (settings.rs
+  `CURRENT_TUTORIAL_VERSION`, mirrored as `TUTORIAL_VERSION` in `App.tsx`).
+  Below it, the app opens the tutorial on start (also for upgrading users,
+  who skip the performance step) and the backend refuses dictation unless
+  the Silktone window has focus. Raise both numbers together to make
+  everyone take a changed tutorial again. Beta-locked accounts can only
+  "Finish later"; it comes back once they have access.
+  Preview: `dev/mock-preview.html?firstRun=1&account=beta` (new user),
+  `?tutorial=1&account=beta&touchpad=1` (upgrading user with the touchpad
+  step); in the console `__dictate("text")` fakes a finished dictation.
 
 - **Recording overlay:** in the light theme the overlay is frosted glass
   (translucent white over a blur of what is behind it). The Live overlay is a

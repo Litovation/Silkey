@@ -46,6 +46,10 @@ import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
 type OnboardingStep = "accessibility" | "setup" | "done";
 
+/** Matches CURRENT_TUTORIAL_VERSION in settings.rs: anyone below it goes
+ * through the tutorial (again) before they can dictate. */
+const TUTORIAL_VERSION = 1;
+
 // Stable identity so preview effects do not re-run due to callback changes.
 const NOOP = () => {};
 
@@ -59,6 +63,10 @@ function App() {
   // Track if this is a returning user who just needs to grant permissions
   // (vs a new user who needs full onboarding including model selection)
   const [isReturningUser, setIsReturningUser] = useState(false);
+  // Returning users who have not finished the current tutorial get it once.
+  const [tutorialNeeded, setTutorialNeeded] = useState(false);
+  // A beta-locked account put the tutorial off; it returns with access.
+  const [tutorialDeferred, setTutorialDeferred] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [replayingWalkthrough, setReplayingWalkthrough] = useState(false);
   const { settings, updateSetting } = useSettings();
@@ -116,6 +124,12 @@ function App() {
     clearJustSignedIn();
     if (onboardingStep === "done") setReplayingWalkthrough(true);
   }, [justSignedIn, verdict, betaLocked, onboardingStep, clearJustSignedIn]);
+
+  useEffect(() => {
+    if (!tutorialDeferred || verdict?.state !== "allowed") return;
+    setTutorialDeferred(false);
+    setOnboardingStep("setup");
+  }, [tutorialDeferred, verdict]);
 
   // Initialize RTL direction when language changes
   useEffect(() => {
@@ -252,6 +266,10 @@ function App() {
         settingsResult.status === "ok" &&
         settingsResult.data.onboarding_completed === true;
       const currentPlatform = platform();
+      const needsTutorial =
+        settingsResult.status !== "ok" ||
+        (settingsResult.data.tutorial_version ?? 0) < TUTORIAL_VERSION;
+      setTutorialNeeded(needsTutorial);
 
       if (hasCompletedOnboarding) {
         // Returning user - check if they need to grant permissions first
@@ -292,6 +310,13 @@ function App() {
           }
         }
 
+        if (needsTutorial) {
+          // Upgrading users go through the new tutorial once, even when the
+          // app was started hidden.
+          await revealMainWindowForPermissions();
+          setOnboardingStep("setup");
+          return;
+        }
         setOnboardingStep("done");
       } else {
         // New user - start full onboarding
@@ -308,8 +333,8 @@ function App() {
   // whenever this changes, and download progress re-renders App often.
   const handleAccessibilityComplete = useCallback(() => {
     // Returning users have been through setup; new users get the walkthrough.
-    setOnboardingStep(isReturningUser ? "done" : "setup");
-  }, [isReturningUser]);
+    setOnboardingStep(isReturningUser && !tutorialNeeded ? "done" : "setup");
+  }, [isReturningUser, tutorialNeeded]);
 
   // Rendered once around every step below (including onboarding) so
   // toast.error() calls surface to the user. sonner renders via a portal, so
@@ -352,6 +377,7 @@ function App() {
         engine={engineStatus}
         onRetryEngine={retryEngine}
         onComplete={() => setReplayingWalkthrough(false)}
+        onLater={() => setReplayingWalkthrough(false)}
         replay
       />
     );
@@ -389,7 +415,15 @@ function App() {
       <FirstRunSetup
         engine={engineStatus}
         onRetryEngine={retryEngine}
-        onComplete={() => setOnboardingStep("done")}
+        onComplete={() => {
+          setTutorialNeeded(false);
+          setOnboardingStep("done");
+        }}
+        onLater={() => {
+          setTutorialDeferred(true);
+          setOnboardingStep("done");
+        }}
+        returning={isReturningUser}
       />
     );
   } else {

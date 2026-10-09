@@ -238,3 +238,361 @@
       0 30px 80px color-mix(in srgb, black 55%, transparent);
   }
 }
+
+/* Tutorial animation (TutorialAnimation.tsx). One 4.8s loop per scene,
+   animating transform and opacity only so it stays cheap. */
+.tut-stage {
+  --tut-cycle: 4.8s;
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 10px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-mid-gray), transparent 80%);
+  background: color-mix(in srgb, var(--color-mid-gray), transparent 94%);
+}
+.tut-keys {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.tut-key {
+  position: relative;
+  overflow: hidden;
+  min-width: 34px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--color-mid-gray), transparent 55%);
+  border-bottom-width: 3px;
+  background: var(--color-background);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.tut-key-glow {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-logo-primary), transparent 70%);
+  opacity: 0;
+}
+.tut-voice {
+  display: flex;
+  height: 22px;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+}
+.tut-bar {
+  width: 4px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--color-logo-primary);
+  transform: scaleY(0.3);
+  animation: tut-bar 0.6s ease-in-out infinite alternate;
+}
+.tut-textbox {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-mid-gray), transparent 70%);
+  background: var(--color-background);
+}
+.tut-line {
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-text), transparent 55%);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.tut-line-short {
+  width: 60%;
+}
+.tut-pad {
+  position: relative;
+  width: 120px;
+  height: 64px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-mid-gray), transparent 50%);
+  background: var(--color-background);
+}
+.tut-finger {
+  position: absolute;
+  top: 16px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-logo-primary), transparent 35%);
+  opacity: 0;
+}
+.tut-finger-a {
+  left: 38px;
+}
+.tut-finger-b {
+  left: 62px;
+}
+.tut-timer {
+  position: absolute;
+  right: 14px;
+  bottom: 9px;
+  left: 14px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-mid-gray), transparent 75%);
+}
+.tut-timer-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-logo-primary);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.tut-scene-keys .tut-key {
+  animation: tut-key-shine 2.4s ease-in-out infinite;
+}
+.tut-scene-keys .tut-key-glow {
+  animation: tut-glow-shine 2.4s ease-in-out infinite;
+  animation-delay: inherit;
+}
+.tut-scene-hold .tut-key {
+  animation: tut-key-hold var(--tut-cycle) ease-in-out infinite;
+}
+.tut-scene-hold .tut-key-glow {
+  animation: tut-glow-hold var(--tut-cycle) ease-in-out infinite;
+}
+.tut-scene-hold .tut-voice {
+  animation: tut-voice-hold var(--tut-cycle) ease-in-out infinite;
+}
+.tut-scene-tap .tut-key {
+  animation: tut-key-tap var(--tut-cycle) ease-in-out infinite;
+}
+.tut-scene-tap .tut-key-glow {
+  animation: tut-glow-tap var(--tut-cycle) ease-in-out infinite;
+}
+.tut-scene-tap .tut-voice {
+  animation: tut-voice-tap var(--tut-cycle) ease-in-out infinite;
+}
+.tut-scene-touchpad .tut-finger {
+  animation: tut-finger var(--tut-cycle) ease-in-out infinite;
+}
+.tut-scene-touchpad .tut-timer-fill {
+  animation: tut-timer var(--tut-cycle) linear infinite;
+}
+.tut-scene-touchpad .tut-voice {
+  animation: tut-voice-pad var(--tut-cycle) ease-in-out infinite;
+}
+.tut-scene-hold .tut-line,
+.tut-scene-tap .tut-line {
+  animation: tut-line var(--tut-cycle) ease-out infinite;
+}
+.tut-scene-touchpad .tut-line {
+  animation: tut-line-pad var(--tut-cycle) ease-out infinite;
+}
+
+@keyframes tut-bar {
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes tut-key-shine {
+  0%,
+  45%,
+  100% {
+    transform: translateY(0);
+  }
+  18% {
+    transform: translateY(2px);
+  }
+}
+@keyframes tut-glow-shine {
+  0%,
+  45%,
+  100% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+}
+@keyframes tut-key-hold {
+  0%,
+  6%,
+  64%,
+  100% {
+    transform: translateY(0);
+  }
+  10%,
+  60% {
+    transform: translateY(2px);
+  }
+}
+@keyframes tut-glow-hold {
+  0%,
+  6%,
+  64%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  60% {
+    opacity: 1;
+  }
+}
+@keyframes tut-voice-hold {
+  0%,
+  12%,
+  62%,
+  100% {
+    opacity: 0;
+  }
+  16%,
+  58% {
+    opacity: 1;
+  }
+}
+@keyframes tut-key-tap {
+  0%,
+  5%,
+  13%,
+  57%,
+  65%,
+  100% {
+    transform: translateY(0);
+  }
+  8%,
+  10%,
+  60%,
+  62% {
+    transform: translateY(2px);
+  }
+}
+@keyframes tut-glow-tap {
+  0%,
+  5%,
+  13%,
+  57%,
+  65%,
+  100% {
+    opacity: 0;
+  }
+  8%,
+  10%,
+  60%,
+  62% {
+    opacity: 1;
+  }
+}
+@keyframes tut-voice-tap {
+  0%,
+  12%,
+  58%,
+  100% {
+    opacity: 0;
+  }
+  16%,
+  55% {
+    opacity: 1;
+  }
+}
+@keyframes tut-line {
+  0%,
+  66% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  80%,
+  94% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+@keyframes tut-finger {
+  0%,
+  3% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  8%,
+  68% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  76%,
+  100% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+@keyframes tut-timer {
+  0%,
+  8% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  30%,
+  68% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  74%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+@keyframes tut-voice-pad {
+  0%,
+  30%,
+  70%,
+  100% {
+    opacity: 0;
+  }
+  34%,
+  66% {
+    opacity: 1;
+  }
+}
+@keyframes tut-line-pad {
+  0%,
+  72% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  86%,
+  94% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: one still frame of the finished action. */
+@media (prefers-reduced-motion: reduce) {
+  .tut-stage *,
+  .tut-stage {
+    animation: none !important;
+  }
+  .tut-stage .tut-voice,
+  .tut-stage .tut-finger {
+    opacity: 1;
+  }
+  .tut-stage .tut-line,
+  .tut-stage .tut-timer-fill {
+    transform: scaleX(1);
+  }
+}
