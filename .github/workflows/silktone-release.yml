@@ -53,11 +53,14 @@ jobs:
           gh release view "v$env:VERSION" 2>$null
           if ($LASTEXITCODE -eq 0) { throw "Release v$env:VERSION already exists." }
           $global:LASTEXITCODE = 0
-      # Pinned: the newest Bun download (1.4.4) kept failing with HTTP 504,
-      # and 1.4.2 is what the last good builds used.
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
+      # Bun comes from npm, not GitHub release downloads: those kept failing
+      # with HTTP 504. 1.4.2 is what the last good builds used.
+      - name: Install Bun
+        shell: pwsh
+        run: |
+          npm install --global bun@1.4.2
+          if ($LASTEXITCODE -ne 0) { throw 'Installing Bun failed.' }
+          bun --version
       - uses: dtolnay/rust-toolchain@stable
       # Keeps compiled dependencies (speech engine, Tauri, ...) between runs,
       # so a build only recompiles what changed. Shared by both workflows.
