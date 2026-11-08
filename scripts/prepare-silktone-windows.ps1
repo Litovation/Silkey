@@ -29,7 +29,9 @@ $ortVersion = '1.24.2'
 $ortLib = Join-Path $depsDir "onnxruntime-win-x64-$ortVersion/lib"
 if (-not (Test-Path (Join-Path $ortLib 'onnxruntime.dll'))) {
   $archive = Join-Path $depsDir 'ort.zip'
-  Invoke-WebRequest "https://github.com/microsoft/onnxruntime/releases/download/v$ortVersion/onnxruntime-win-x64-$ortVersion.zip" -OutFile $archive
+  # GitHub release downloads sometimes answer 504 for a few minutes; retry
+  # instead of failing the whole build.
+  Invoke-WebRequest "https://github.com/microsoft/onnxruntime/releases/download/v$ortVersion/onnxruntime-win-x64-$ortVersion.zip" -OutFile $archive -MaximumRetryCount 6 -RetryIntervalSec 30
   Expand-Archive $archive -DestinationPath $depsDir -Force
 }
 $env:ORT_LIB_LOCATION = $ortLib
