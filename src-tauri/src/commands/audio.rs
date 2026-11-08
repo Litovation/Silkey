@@ -378,3 +378,176 @@ pub async fn set_selected_channel(app: AppHandle, channel: Option<u16>) -> Resul
     write_settings(&app, settings);
     Ok(())
 }
+
+/// What the microphone check concluded, in the order the setup screen checks.
+#[derive(Serialize, Type, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MicCheckVerdict {
+    /// Clear voice well above the background.
+    Good,
+    /// Nothing at all came through: muted, wrong or blocked microphone.
+    Silent,
+    /// Sound came through but no voice stood out from it.
+    NoSpeech,
+    /// Loud background noise close to the voice level.
+    Noisy,
+    /// The voice is faint even at the strongest boost.
+    Quiet,
+}
+
+#[derive(Serialize, Type, Debug, Clone, Copy, PartialEq)]
+pub struct MicCheckResult {
+    pub verdict: MicCheckVerdict,
+    /// The boost that brings this voice to a comfortable level (percent).
+    pub suggested_gain_percent: u32,
+    /// Raw voice and background levels, 0.0–1.0, for the meter.
+    pub speech_level: f32,
+    pub noise_floor: f32,
+}
+
+/// Voice level (RMS, full scale) the boost aims for: about -20 dBFS, loud
+/// enough for the speech model, with headroom so peaks are not clipped.
+const MIC_TARGET_SPEECH_LEVEL: f32 = 0.1;
+/// Below this nothing usable came through (about -48 dBFS).
+const MIC_SILENT_LEVEL: f32 = 0.004;
+/// Background above this (about -34 dBFS) is a noisy room.
+const MIC_NOISY_FLOOR: f32 = 0.02;
+
+/// Turn measured levels into a verdict and a boost. Pure, so it is unit tested.
+pub fn assess_microphone(stats: crate::audio_toolkit::audio::LevelStats) -> MicCheckResult {
+    let speech = stats.speech_level;
+    let noise = stats.noise_floor;
+    let suggested = if speech > 0.0 {
+        let percent = (MIC_TARGET_SPEECH_LEVEL / speech * 100.0).round() as u32;
+        // Round to tens so the slider shows a tidy number.
+        crate::audio_toolkit::audio::clamp_mic_gain_percent((percent + 5) / 10 * 10)
+    } else {
+        crate::audio_toolkit::audio::DEFAULT_MIC_GAIN_PERCENT
+    };
+    let boosted = speech * suggested as f32 / 100.0;
+    let verdict = if stats.windows == 0 || speech < MIC_SILENT_LEVEL {
+        MicCheckVerdict::Silent
+    } else if noise >= MIC_NOISY_FLOOR && speech < noise * 4.0 {
+        MicCheckVerdict::Noisy
+    } else if speech < noise * 2.5 {
+        MicCheckVerdict::NoSpeech
+    } else if boosted < MIC_TARGET_SPEECH_LEVEL * 0.5 {
+        MicCheckVerdict::Quiet
+    } else {
+        MicCheckVerdict::Good
+    };
+    MicCheckResult {
+        verdict,
+        suggested_gain_percent: suggested,
+        speech_level: speech,
+        noise_floor: noise,
+    }
+}
+
+/// Listen for `duration_ms` while the user reads a sentence aloud and judge the
+/// microphone. Opens the microphone for the check when it is not already open
+/// and closes it again afterwards. Nothing is recorded or saved.
+#[tauri::command]
+#[specta::specta]
+pub async fn check_microphone(app: AppHandle, duration_ms: u32) -> Result<MicCheckResult, String> {
+    let rm = app.state::<Arc<AudioRecordingManager>>().inner().clone();
+    if rm.is_recording() {
+        return Err("Microphone is busy recording".to_string());
+    }
+    let duration = std::time::Duration::from_millis(u64::from(duration_ms.clamp(1000, 10_000)));
+
+    let opener = Arc::clone(&rm);
+    let opened_here = tokio::task::spawn_blocking(move || {
+        let was_open = opener.is_stream_open();
+        opener.start_microphone_stream().map(|_| !was_open)
+    })
+    .await
+    .map_err(|e| format!("audio task join failed: {}", e))?
+    .map_err(|e| format!("Failed to open microphone: {}", e))?;
+
+    crate::audio_toolkit::audio::start_level_probe();
+    tokio::time::sleep(duration).await;
+    let stats = crate::audio_toolkit::audio::finish_level_probe();
+
+    if opened_here && !rm.is_recording() {
+        tokio::task::spawn_blocking(move || rm.stop_microphone_stream())
+            .await
+            .map_err(|e| format!("audio task join failed: {}", e))?;
+    }
+
+    let result = assess_microphone(stats);
+    log::info!("Microphone check: {:?}", result);
+    Ok(result)
+}
+
+#[cfg(test)]
+mod mic_check_tests {
+    use super::*;
+    use crate::audio_toolkit::audio::LevelStats;
+
+    fn stats(noise_floor: f32, speech_level: f32) -> LevelStats {
+        LevelStats {
+            noise_floor,
+            speech_level,
+            peak: speech_level * 3.0,
+            windows: 200,
+        }
+    }
+
+    #[test]
+    fn clear_voice_is_good_and_boosted_to_target() {
+        let result = assess_microphone(stats(0.002, 0.05));
+        assert_eq!(result.verdict, MicCheckVerdict::Good);
+        assert_eq!(result.suggested_gain_percent, 200);
+    }
+
+    #[test]
+    fn loud_voice_is_turned_down() {
+        let result = assess_microphone(stats(0.001, 0.25));
+        assert_eq!(result.verdict, MicCheckVerdict::Good);
+        assert_eq!(result.suggested_gain_percent, 50);
+    }
+
+    #[test]
+    fn nothing_heard_is_silent() {
+        assert_eq!(
+            assess_microphone(stats(0.0, 0.001)).verdict,
+            MicCheckVerdict::Silent
+        );
+        let empty = LevelStats {
+            noise_floor: 0.0,
+            speech_level: 0.0,
+            peak: 0.0,
+            windows: 0,
+        };
+        let result = assess_microphone(empty);
+        assert_eq!(result.verdict, MicCheckVerdict::Silent);
+        assert_eq!(
+            result.suggested_gain_percent,
+            crate::audio_toolkit::audio::DEFAULT_MIC_GAIN_PERCENT
+        );
+    }
+
+    #[test]
+    fn loud_background_is_noisy() {
+        assert_eq!(
+            assess_microphone(stats(0.03, 0.06)).verdict,
+            MicCheckVerdict::Noisy
+        );
+    }
+
+    #[test]
+    fn steady_hum_without_voice_is_no_speech() {
+        assert_eq!(
+            assess_microphone(stats(0.006, 0.008)).verdict,
+            MicCheckVerdict::NoSpeech
+        );
+    }
+
+    #[test]
+    fn faint_voice_even_at_max_boost_is_quiet() {
+        let result = assess_microphone(stats(0.0005, 0.01));
+        assert_eq!(result.verdict, MicCheckVerdict::Quiet);
+        assert_eq!(result.suggested_gain_percent, 400);
+    }
+}

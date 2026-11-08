@@ -46,6 +46,92 @@ fn mic_gain() -> f32 {
     MIC_GAIN_PERCENT.load(Ordering::Relaxed) as f32 / 100.0
 }
 
+/// Loudness of the raw (unboosted) signal in 20 ms windows, collected while a
+/// microphone check runs. `None` when no check is running, so normal capture
+/// pays for one uncontended lock per chunk and nothing else.
+static LEVEL_PROBE: Mutex<Option<LevelProbe>> = Mutex::new(None);
+
+struct LevelProbe {
+    sum_squares: f64,
+    samples: usize,
+    window_rms: Vec<f32>,
+    peak: f32,
+}
+
+/// What a microphone check heard, as raw full-scale amplitudes (0.0–1.0)
+/// before the boost is applied.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LevelStats {
+    /// Background noise: the quietest tenth of the windows.
+    pub noise_floor: f32,
+    /// Speaking level: the loudest tenth of the windows.
+    pub speech_level: f32,
+    pub peak: f32,
+    /// How many 20 ms windows were measured; zero means no audio arrived.
+    pub windows: usize,
+}
+
+/// Start collecting levels for a microphone check, discarding any earlier one.
+pub fn start_level_probe() {
+    *LEVEL_PROBE.lock().unwrap() = Some(LevelProbe {
+        sum_squares: 0.0,
+        samples: 0,
+        window_rms: Vec::new(),
+        peak: 0.0,
+    });
+}
+
+/// Stop the microphone check and summarise what it heard.
+pub fn finish_level_probe() -> LevelStats {
+    let probe = LEVEL_PROBE.lock().unwrap().take();
+    let Some(probe) = probe else {
+        return level_stats(&[], 0.0);
+    };
+    level_stats(&probe.window_rms, probe.peak)
+}
+
+fn level_stats(window_rms: &[f32], peak: f32) -> LevelStats {
+    if window_rms.is_empty() {
+        return LevelStats {
+            noise_floor: 0.0,
+            speech_level: 0.0,
+            peak,
+            windows: 0,
+        };
+    }
+    let mut sorted = window_rms.to_vec();
+    sorted.sort_by(|a, b| a.total_cmp(b));
+    let at = |fraction: f32| sorted[((sorted.len() - 1) as f32 * fraction).round() as usize];
+    LevelStats {
+        noise_floor: at(0.1),
+        speech_level: at(0.9),
+        peak,
+        windows: sorted.len(),
+    }
+}
+
+fn feed_level_probe(raw: &[f32], sample_rate: u32) {
+    let Ok(mut guard) = LEVEL_PROBE.try_lock() else {
+        return;
+    };
+    let Some(probe) = guard.as_mut() else {
+        return;
+    };
+    let window = (sample_rate as usize / 50).max(1);
+    for &sample in raw {
+        probe.peak = probe.peak.max(sample.abs());
+        probe.sum_squares += f64::from(sample) * f64::from(sample);
+        probe.samples += 1;
+        if probe.samples == window {
+            probe
+                .window_rms
+                .push((probe.sum_squares / window as f64).sqrt() as f32);
+            probe.sum_squares = 0.0;
+            probe.samples = 0;
+        }
+    }
+}
+
 /// Scale one sample by `gain`, easing anything past the knee toward +/-1.0.
 fn apply_gain(sample: f32, gain: f32) -> f32 {
     let boosted = sample * gain;
@@ -949,6 +1035,9 @@ impl CaptureProcessor {
                 chunk_ms
             );
         }
+
+        // Idle audio counts too: a microphone check runs while not recording.
+        feed_level_probe(raw, self.in_sample_rate);
 
         if disposition == ChunkDisposition::Discard {
             return;

@@ -21,6 +21,7 @@ mod secure_input;
 mod settings;
 mod shortcut;
 mod signal_handle;
+mod silktone_bar;
 mod trackpad;
 mod transcription_coordinator;
 mod tray;
@@ -768,6 +769,12 @@ pub fn run(cli_args: CliArgs) {
             commands::audio::is_recording,
             commands::audio::get_microphone_channels,
             commands::audio::set_selected_channel,
+            commands::audio::check_microphone,
+            silktone_bar::silktone_bar_start_dictation,
+            silktone_bar::silktone_bar_hover,
+            silktone_bar::silktone_bar_refresh,
+            silktone_bar::change_silktone_bar_setting,
+            silktone_bar::change_typing_nudge_setting,
             commands::transcription::set_model_unload_timeout,
             commands::transcription::get_model_load_status,
             commands::transcription::unload_model_manually,
@@ -1027,6 +1034,7 @@ pub fn run(cli_args: CliArgs) {
             trackpad::set_hold_ms(settings.trackpad_hold_ms);
             audio_toolkit::audio::set_mic_gain_percent(settings.mic_gain_percent);
             trackpad::apply(&app_handle, settings.trackpad_double_tap_enabled);
+            silktone_bar::apply_typing_watch(&app_handle, settings.typing_nudge_enabled);
 
             initialize_core_logic(&app_handle);
 

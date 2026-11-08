@@ -179,6 +179,10 @@ const settingUpdaters: {
   silence_auto_stop_secs: (value) =>
     commands.changeSilenceAutoStopSetting(value as number),
   overlay_style: (value) => commands.changeOverlayStyleSetting(value as string),
+  silktone_bar_enabled: (value) =>
+    commands.changeSilktoneBarSetting(value as boolean),
+  typing_nudge_enabled: (value) =>
+    commands.changeTypingNudgeSetting(value as boolean),
   vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
   vad_backend: async (value) => {
     const result = await commands.changeVadBackendSetting(value as VadBackend);

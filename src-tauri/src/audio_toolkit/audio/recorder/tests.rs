@@ -1,7 +1,7 @@
 use super::{
-    is_microphone_access_denied, is_no_input_device_error, run_consumer, AudioRecorder,
-    CaptureProcessor, CaptureTransportState, ChunkDisposition, Cmd, SilenceWatch, VadConfig,
-    VadPolicy,
+    is_microphone_access_denied, is_no_input_device_error, level_stats, run_consumer,
+    AudioRecorder, CaptureProcessor, CaptureTransportState, ChunkDisposition, Cmd, SilenceWatch,
+    VadConfig, VadPolicy,
 };
 use crate::audio_toolkit::vad::{VadFrame, VoiceActivityDetector};
 use rtrb::RingBuffer;
@@ -519,4 +519,23 @@ fn speech_resets_the_silence_count() {
     assert!(!watch.observe(480, false));
     assert!(watch.observe(480, false));
     assert!(!watch.observe(480, false));
+}
+
+#[test]
+fn level_stats_take_quiet_and_loud_tenths() {
+    // 80 quiet windows of background, 20 loud ones of speech.
+    let mut windows = vec![0.002_f32; 80];
+    windows.extend(std::iter::repeat_n(0.08, 20));
+    let stats = level_stats(&windows, 0.3);
+    assert_eq!(stats.windows, 100);
+    assert!((stats.noise_floor - 0.002).abs() < 1e-6);
+    assert!((stats.speech_level - 0.08).abs() < 1e-6);
+    assert!((stats.peak - 0.3).abs() < 1e-6);
+}
+
+#[test]
+fn level_stats_of_nothing_report_no_windows() {
+    let stats = level_stats(&[], 0.0);
+    assert_eq!(stats.windows, 0);
+    assert_eq!(stats.speech_level, 0.0);
 }

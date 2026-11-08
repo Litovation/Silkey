@@ -618,3 +618,151 @@
     background: var(--s-surface);
   }
 }
+
+/* ============================================================
+   Silktone bar (see silktone_bar.rs). Resting, it is a slim pill flush to the
+   screen edge; hovering opens the hint card; a long stretch of typing opens the
+   nudge card. All three reuse the card surface tokens above.
+   ============================================================ */
+.sbar-rest {
+  width: 48px;
+  height: 8px;
+  /* A little clear of the taskbar edge. */
+  margin: 0 0 10px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--s-card-border);
+  background: var(--s-card-bg);
+  -webkit-backdrop-filter: var(--s-card-filter);
+  backdrop-filter: var(--s-card-filter);
+  box-shadow: var(--s-card-shadow-up);
+  cursor: pointer;
+  animation: sbar-rest-in 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    width 200ms ease,
+    height 200ms ease,
+    background-color 200ms ease;
+}
+.ov-stage.top .sbar-rest {
+  margin: 10px 0 0;
+  box-shadow: var(--s-card-shadow);
+}
+.ov-stage:hover .sbar-rest {
+  width: 64px;
+  height: 10px;
+}
+@keyframes sbar-rest-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Hover hint: the compact card, as a button that starts dictation. */
+.scard.sbar-hint {
+  width: 296px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.sbar-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  padding: 0 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sbar-mic {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--s-accent);
+  transition: transform 120ms ease;
+}
+.sbar-hint:hover .sbar-mic {
+  transform: scale(1.08);
+}
+.sbar-mic svg,
+.sbar-try svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* Typing nudge: a two-line card with one clear action. */
+.scard.sbar-nudge {
+  width: 360px;
+  padding: 12px 12px 12px 14px;
+  gap: 8px;
+  border-radius: 20px;
+}
+.sbar-nudge-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sbar-nudge-row .smark {
+  margin-top: 2px;
+}
+.sbar-nudge-text {
+  flex: 1;
+  min-width: 0;
+}
+.sbar-nudge-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.sbar-nudge-body {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--s-muted);
+}
+.sbar-try {
+  align-self: flex-start;
+  margin-left: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--s-accent);
+  cursor: pointer;
+  transition:
+    filter 150ms ease,
+    transform 100ms ease;
+}
+.sbar-try:hover {
+  filter: brightness(1.08);
+}
+.sbar-try:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sbar-rest {
+    animation: none;
+  }
+}

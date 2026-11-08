@@ -8,11 +8,14 @@
   --light-color-background: #f6f9f7;
   --light-color-logo-primary: #1e8f58;
   --light-color-logo-stroke: #0c150e;
+  /* Raised cards on the page background. */
+  --light-color-surface: #ffffff;
 
   --dark-color-text: #eef4f0;
   --dark-color-background: #0f1813;
   --dark-color-logo-primary: #2fd592;
   --dark-color-logo-stroke: #d9f7e8;
+  --dark-color-surface: #16221b;
 
   /* Semantic status colors. First used by SecureInputWarning; intended to
      replace the ad-hoc yellow-500/red-500 usages (e.g. ui/Alert.tsx) over
@@ -35,6 +38,7 @@
   --color-background: var(--light-color-background);
   --color-logo-primary: var(--light-color-logo-primary);
   --color-logo-stroke: var(--light-color-logo-stroke);
+  --color-surface: var(--light-color-surface);
   --color-warning: var(--light-color-warning);
   --color-error: var(--light-color-error);
 }
@@ -45,6 +49,7 @@
     --color-background: var(--dark-color-background);
     --color-logo-primary: var(--dark-color-logo-primary);
     --color-logo-stroke: var(--dark-color-logo-stroke);
+    --color-surface: var(--dark-color-surface);
     --color-warning: var(--dark-color-warning);
     --color-error: var(--dark-color-error);
   }
@@ -65,6 +70,7 @@
   --color-background: var(--light-color-background);
   --color-logo-primary: var(--light-color-logo-primary);
   --color-logo-stroke: var(--light-color-logo-stroke);
+  --color-surface: var(--light-color-surface);
   --color-warning: var(--light-color-warning);
   --color-error: var(--light-color-error);
 }
@@ -74,6 +80,7 @@
   --color-background: var(--dark-color-background);
   --color-logo-primary: var(--dark-color-logo-primary);
   --color-logo-stroke: var(--dark-color-logo-stroke);
+  --color-surface: var(--dark-color-surface);
   --color-warning: var(--dark-color-warning);
   --color-error: var(--dark-color-error);
 }

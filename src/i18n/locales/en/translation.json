@@ -23,7 +23,8 @@
     "comingSoon": "Coming soon",
     "soon": "Soon",
     "referAndEarn": "Refer & earn",
-    "walkthrough": "Tutorial"
+    "walkthrough": "Tutorial",
+    "account": "Account & plan"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -239,6 +240,24 @@
         "microphone": {
           "title": "Microphone",
           "description": "What Silktone listens with"
+        },
+        "bar": {
+          "title": "Silktone bar",
+          "description": "A small bar on your screen that starts dictation with one click."
+        }
+      },
+      "bar": {
+        "enabled": {
+          "label": "Show the Silktone bar",
+          "description": "Keep a slim bar at the edge of your screen. Hover it for a hint, click it to start dictating in the app you are using."
+        },
+        "position": {
+          "title": "Bar position",
+          "description": "Where the bar and the recording overlay sit on your screen."
+        },
+        "nudge": {
+          "label": "Suggest dictating when I type a lot",
+          "description": "After a long stretch of typing, the bar briefly suggests speaking instead. Silktone only counts keystrokes; it never records what you type."
         }
       }
     },
@@ -585,7 +604,7 @@
       "title": "History",
       "openFolder": "Open Recordings Folder",
       "loading": "Loading history...",
-      "empty": "No transcriptions yet. Start recording to build your history!",
+      "empty": "Press your shortcut in any app and start speaking. Everything you dictate shows up here.",
       "copyToClipboard": "Copy transcription to clipboard",
       "save": "Save transcription",
       "unsave": "Remove from saved",
@@ -594,7 +613,11 @@
       "retranscribe": "Re-transcribe",
       "retranscribeError": "Failed to re-transcribe. Please try again.",
       "transcribing": "Transcribing...",
-      "transcriptionFailed": "Transcription failed. You can re-transcribe using the retry icon."
+      "transcriptionFailed": "Transcription failed. You can re-transcribe using the retry icon.",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "listen": "Play recording",
+      "emptyTitle": "Nothing here yet"
     },
     "debug": {
       "title": "Debug",
@@ -902,7 +925,17 @@
   },
   "overlay": {
     "transcribing": "Transcribing...",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "bar": {
+      "start": "Start dictation",
+      "hint": "Click or press {{keys}} to talk"
+    },
+    "nudge": {
+      "title": "Typing a lot? Say it instead.",
+      "body": "Press {{keys}} and speak. Silktone types it for you, about 4x faster.",
+      "try": "Try it now",
+      "dismiss": "Dismiss"
+    }
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} may be blocking 1 shortcut",
@@ -1051,7 +1084,16 @@
         "good": "Great pace. Keep the microphone about a hand's width from your mouth.",
         "fast": "Slow down a little and finish each word. Accuracy improves."
       }
-    }
+    },
+    "title": "Your dictation",
+    "words": "Words dictated",
+    "speed": "Words per minute",
+    "streak": "Day streak",
+    "saved": "Time saved",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
   },
   "firstRun": {
     "next": "Next",
@@ -1110,6 +1152,7 @@
     },
     "steps": {
       "performance": "Performance",
+      "mic": "Microphone",
       "language": "Language",
       "shortcut": "Your keys",
       "practice1": "First try",
@@ -1176,6 +1219,49 @@
     "light": {
       "title": "Light",
       "description": "For older or slower PCs. Smaller download. English only, and text appears when you stop speaking."
+    }
+  },
+  "micCheck": {
+    "title": "Tune your microphone",
+    "description": "Most wrong words come from a microphone that is too quiet or a noisy room. Read the sentence below and Silktone will set your microphone to the right level.",
+    "readAloud": "Read this aloud",
+    "sentence": "Silktone listens carefully, so every word I say comes out right.",
+    "start": "Start mic check",
+    "again": "Check again",
+    "listening": "Listening… keep reading at your normal voice",
+    "voice": "Your voice",
+    "background": "Background",
+    "error": "The microphone could not be opened. Pick another microphone above and try again.",
+    "settingsTitle": "Microphone check",
+    "settingsDescription": "Read a sentence and Silktone sets your microphone boost for you.",
+    "verdict": {
+      "good": {
+        "title": "Your microphone sounds great",
+        "body": "Boost set to {{times}}x. Your voice is clear and well above the background."
+      },
+      "quiet": {
+        "title": "Your voice is still quite quiet",
+        "body": "Boost set to the maximum ({{times}}x). Move closer to the microphone or choose a headset for fewer mistakes."
+      },
+      "noisy": {
+        "title": "There is a lot of background noise",
+        "body": "Boost set to {{times}}x. A quieter room or a headset microphone will make Silktone much more accurate."
+      },
+      "no_speech": {
+        "title": "We couldn't hear your voice clearly",
+        "body": "Sound came through, but no clear voice. Check the microphone above is the one you speak into, then try again."
+      },
+      "silent": {
+        "title": "No sound reached Silktone",
+        "body": "The microphone may be muted, unplugged or blocked in Windows privacy settings. Pick another microphone above and try again."
+      }
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
     }
   }
 }

@@ -18,6 +18,7 @@ import {
   useShortcutKeycaps,
 } from "../../hooks/useShortcutKeycaps";
 import type { EngineStatus } from "../../hooks/useAutoModelSetup";
+import { MicCheck } from "../shared/MicCheck";
 import { useModelTierStore, type ModelTier } from "../../stores/modelTierStore";
 import { useAuthStore } from "../../stores/authStore";
 import { RequestAccess } from "../account/RequestAccess";
@@ -25,6 +26,7 @@ import { RequestAccess } from "../account/RequestAccess";
 type Step =
   | "performance"
   | "language"
+  | "mic"
   | "shortcut"
   | "practice1"
   | "modes"
@@ -32,9 +34,11 @@ type Step =
   | "practice3"
   | "touchpad"
   | "done";
+// Language comes first: it decides which speech model downloads.
 const STEPS: Step[] = [
-  "performance",
   "language",
+  "performance",
+  "mic",
   "shortcut",
   "practice1",
   "modes",
@@ -199,9 +203,7 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
   const isWindows = type() === "windows";
   const tier = useModelTierStore((state) => state.tier);
   const setTier = useModelTierStore((state) => state.setTier);
-  const [step, setStep] = useState<Step>(
-    returning ? "language" : "performance",
-  );
+  const [step, setStep] = useState<Step>("language");
   const [pressed, setPressed] = useState<Set<string>>(new Set());
   const [rounds, setRounds] = useState<Record<Round, RoundState>>({
     1: EMPTY_ROUND,
@@ -215,6 +217,7 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
     () => (getSetting("tutorial_version") ?? 0) >= 1,
   );
   const completionSaved = useRef(false);
+  const [micChecked, setMicChecked] = useState(false);
 
   const engineReady = engine.state === "ready";
   const steps = STEPS.filter(
@@ -515,7 +518,10 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
                   </button>
                 ))}
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-between">
+                <Button variant="ghost" onClick={() => go(-1)}>
+                  {t("firstRun.back")}
+                </Button>
                 <Button
                   disabled={tier === null && !preview}
                   onClick={() => go(1)}
@@ -566,11 +572,34 @@ const FirstRunSetup: React.FC<FirstRunSetupProps> = ({
               <p className="text-xs text-text/60 text-center">
                 {t("firstRun.language.changeLater")}
               </p>
+              <div className="flex justify-end">
+                <Button onClick={() => go(1)}>{t("firstRun.next")}</Button>
+              </div>
+            </>
+          )}
+
+          {step === "mic" && (
+            <>
+              <div className="space-y-1.5 text-center">
+                <h1 className="text-xl font-semibold">{t("micCheck.title")}</h1>
+                <p className="text-sm text-text/70">
+                  {t("micCheck.description")}
+                </p>
+              </div>
+              <MicCheck
+                preview={preview}
+                onPassed={() => setMicChecked(true)}
+              />
               <div className="flex justify-between">
                 <Button variant="ghost" onClick={() => go(-1)}>
                   {t("firstRun.back")}
                 </Button>
-                <Button onClick={() => go(1)}>{t("firstRun.next")}</Button>
+                <Button
+                  variant={micChecked ? "primary" : "secondary"}
+                  onClick={() => go(1)}
+                >
+                  {micChecked ? t("firstRun.next") : t("firstRun.skipRound")}
+                </Button>
               </div>
             </>
           )}

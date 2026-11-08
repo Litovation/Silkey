@@ -21,7 +21,12 @@ import { DebugSettings } from "./debug/DebugSettings";
 import type { OnboardingPreviewStep } from "./debug/OnboardingPreview";
 
 export type SettingsTab =
-  "general" | "system" | "postprocessing" | "account" | "debug" | "about";
+  | "general"
+  | "system"
+  | "postprocessing"
+  | "account"
+  | "debug"
+  | "about";
 
 interface TabConfig {
   id: SettingsTab;
@@ -135,7 +140,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         aria-label={t("sidebar.advanced")}
         className="flex h-full max-h-[720px] w-full max-w-4xl overflow-hidden rounded-2xl border border-mid-gray/20 bg-background shadow-2xl select-none cursor-default"
       >
-        <div className="flex w-48 shrink-0 flex-col gap-1 border-e border-mid-gray/20 bg-mid-gray/5 p-3">
+        <div className="flex w-48 shrink-0 flex-col gap-0.5 border-e border-mid-gray/15 bg-mid-gray/[0.045] p-3">
           <h2 className="px-2 pb-2 pt-1 text-xs font-medium uppercase tracking-wide text-mid-gray">
             {t("sidebar.advanced")}
           </h2>
@@ -144,10 +149,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               key={id}
               type="button"
               onClick={() => onTabChange(id)}
-              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-start text-sm font-medium cursor-pointer transition-colors ${
+              className={`flex h-9 items-center gap-2.5 rounded-xl px-2.5 text-start text-sm cursor-pointer transition-colors ${
                 id === activeTab
-                  ? "bg-logo-primary/15 text-text"
-                  : "text-text/80 hover:bg-mid-gray/15"
+                  ? "bg-surface font-semibold text-text shadow-[0_1px_2px_rgb(0_0_0/0.06)] ring-1 ring-mid-gray/10"
+                  : "font-medium text-text/65 hover:bg-mid-gray/10 hover:text-text"
               }`}
             >
               <Icon

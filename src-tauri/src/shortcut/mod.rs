@@ -1294,6 +1294,7 @@ pub fn complete_tutorial(app: AppHandle) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.tutorial_version = settings::CURRENT_TUTORIAL_VERSION;
     settings::write_settings(&app, settings);
+    crate::silktone_bar::refresh(&app);
     Ok(())
 }
 

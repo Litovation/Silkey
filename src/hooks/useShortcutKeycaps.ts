@@ -5,7 +5,7 @@ import { formatKeyCombination } from "../lib/utils/keyboard";
 const DEFAULT_KEYS = ["Ctrl", "Windows"];
 
 // "Left Ctrl + Left Super" reads better as "Ctrl" + "Windows".
-const toKeycaps = (combination: string): string[] =>
+export const toKeycaps = (combination: string): string[] =>
   combination
     .split("+")
     .map((key) =>

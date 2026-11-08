@@ -9,6 +9,7 @@
   --color-background-ui: var(--color-background-ui);
   --color-logo-primary: var(--color-logo-primary);
   --color-logo-stroke: var(--color-logo-stroke);
+  --color-surface: var(--color-surface);
   --color-text-stroke: var(--color-text-stroke);
   --color-mid-gray: var(--color-mid-gray);
   --color-brand-pink: var(--color-brand-pink);
@@ -594,5 +595,26 @@
   .tut-stage .tut-line,
   .tut-stage .tut-timer-fill {
     transform: scaleX(1);
+  }
+}
+
+/* Microphone check: a gentle "listening" equaliser while it measures. */
+.mic-check-bar {
+  height: 100%;
+  transform-origin: bottom;
+  animation: mic-check-bar 900ms ease-in-out infinite alternate;
+}
+@keyframes mic-check-bar {
+  from {
+    transform: scaleY(0.25);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mic-check-bar {
+    animation: none;
+    transform: scaleY(0.6);
   }
 }

@@ -100,6 +100,19 @@ export const paceScore = (wpm: number): { score: number; band: PaceBand } => {
   return { score, band };
 };
 
+/** Average typing speed used to estimate time saved (words per minute). */
+export const TYPING_WPM = 40;
+
+/**
+ * Minutes saved by speaking instead of typing the same words at
+ * `TYPING_WPM`. Zero until there is a speaking pace to compare with.
+ */
+export const minutesSaved = (stats: DictationStats): number => {
+  const wpm = wordsPerMinute(stats);
+  if (wpm <= TYPING_WPM) return 0;
+  return Math.round(stats.totalWords / TYPING_WPM - stats.totalWords / wpm);
+};
+
 /** Length of a PCM WAV recording in seconds, from its header's byte rate. */
 export const wavSeconds = (buffer: ArrayBuffer): number | null => {
   if (buffer.byteLength <= 44) return null;

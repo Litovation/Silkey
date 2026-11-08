@@ -29,8 +29,11 @@ pub fn is_allowed() -> bool {
 
 #[tauri::command]
 #[specta::specta]
-pub fn set_access_allowed(allowed: bool) {
-    ACCESS_ALLOWED.store(allowed, Ordering::Relaxed);
+pub fn set_access_allowed(app: AppHandle, allowed: bool) {
+    let changed = ACCESS_ALLOWED.swap(allowed, Ordering::Relaxed) != allowed;
+    if changed {
+        crate::silktone_bar::refresh(&app);
+    }
 }
 
 /// Listen once on the loopback port for the browser's return from sign-in and

@@ -103,6 +103,13 @@
         get_keyboard_implementation: () => "native_keys",
         get_secure_input_status: () => ({ active: false }),
         get_available_accelerators: () => ({ transcribe: [], ort: ["auto", "cpu"], gpu_devices: [] }),
+        // ?mic=good|quiet|noisy|no_speech|silent picks the microphone check's answer.
+        check_microphone: () => new Promise((resolve) => setTimeout(() => resolve({
+          verdict: new URLSearchParams(location.search).get("mic") || "good",
+          suggested_gain_percent: 180,
+          speech_level: 0.055,
+          noise_floor: 0.003,
+        }), 5000)),
       };
       window.__mockCalls = [];
       let nextId = 1;

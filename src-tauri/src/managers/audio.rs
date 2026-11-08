@@ -1070,6 +1070,11 @@ impl AudioRecordingManager {
             _ => None,
         }
     }
+    /// Whether a microphone stream is open (always-on mode, or mid-recording).
+    pub fn is_stream_open(&self) -> bool {
+        *self.is_open.lock().unwrap()
+    }
+
     pub fn is_recording(&self) -> bool {
         // Lock-free: mirrors the `state` {Recording, Stopping} membership via
         // an atomic maintained by `set_state()`. Polled from the webview/main

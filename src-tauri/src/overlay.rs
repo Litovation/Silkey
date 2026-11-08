@@ -55,12 +55,25 @@ const OVERLAY_HEIGHT: f64 = 66.0;
 const OVERLAY_STREAM_WIDTH: f64 = 432.0;
 const OVERLAY_STREAM_HEIGHT: f64 = 164.0;
 
+// Silktone bar (see silktone_bar.rs). Resting: a slim 48x8 pill; the whole
+// small window is its hover target. Hover: a 40h hint card like the compact
+// overlay. Nudge: a two-line card up to 360 wide. Each leaves room for the
+// light theme's drop shadow, like the sizes above.
+const BAR_IDLE_WIDTH: f64 = 96.0;
+const BAR_IDLE_HEIGHT: f64 = 30.0;
+const BAR_HOVER_WIDTH: f64 = 320.0;
+const BAR_HOVER_HEIGHT: f64 = 66.0;
+const BAR_NUDGE_WIDTH: f64 = 400.0;
+const BAR_NUDGE_HEIGHT: f64 = 136.0;
+
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
-    if state == "streaming" {
-        (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT)
-    } else {
-        (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+    match state {
+        "streaming" => (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT),
+        "idle" => (BAR_IDLE_WIDTH, BAR_IDLE_HEIGHT),
+        "hover" => (BAR_HOVER_WIDTH, BAR_HOVER_HEIGHT),
+        "nudge" => (BAR_NUDGE_WIDTH, BAR_NUDGE_HEIGHT),
+        _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
 }
 
@@ -288,8 +301,22 @@ fn current_overlay_logical_size(window: &tauri::webview::WebviewWindow) -> Optio
     Some((size.width as f64 / scale, size.height as f64 / scale))
 }
 
+/// The state the overlay window was last sized for, so a reposition keeps
+/// that size (Windows sizes and places the window in one native call).
 #[cfg(target_os = "windows")]
-static WINDOWS_OVERLAY_IS_STREAMING: AtomicBool = AtomicBool::new(false);
+static WINDOWS_OVERLAY_STATE: std::sync::Mutex<&'static str> = std::sync::Mutex::new("recording");
+
+/// Interned copy of an overlay state name, for `WINDOWS_OVERLAY_STATE`.
+#[cfg(target_os = "windows")]
+fn static_state(state: &str) -> &'static str {
+    match state {
+        "streaming" => "streaming",
+        "idle" => "idle",
+        "hover" => "hover",
+        "nudge" => "nudge",
+        _ => "recording",
+    }
+}
 
 /// Windows accessibility text size (Settings > Accessibility > Text size), a
 /// separate axis from display scaling that WebView2 applies as a document zoom.
@@ -495,7 +522,22 @@ fn show_overlay_state(app_handle: &AppHandle, state: &str) {
     if settings.overlay_style == OverlayStyle::None {
         return;
     }
+    show_overlay_state_unchecked(app_handle, state);
+}
 
+/// Show one of the Silktone bar's states ("idle", "hover", "nudge"). The bar
+/// has its own switch, so it ignores `overlay_style`.
+pub fn show_bar_state(app_handle: &AppHandle, state: &str) {
+    show_overlay_state_unchecked(app_handle, state);
+}
+
+/// How many times the overlay has been shown, so a delayed action can tell
+/// whether something newer has taken the window over since.
+pub fn show_generation() -> u64 {
+    OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst)
+}
+
+fn show_overlay_state_unchecked(app_handle: &AppHandle, state: &str) {
     // The rest queries monitors and the cursor and mutates window geometry. On
     // Linux the monitor/cursor lookups hit GDK/Xlib on the process's shared X11
     // connection, which is only safe from the GTK main thread — running them on
@@ -540,7 +582,9 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
             let _ =
                 overlay_window.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
             #[cfg(target_os = "windows")]
-            WINDOWS_OVERLAY_IS_STREAMING.store(state == "streaming", Ordering::Relaxed);
+            {
+                *WINDOWS_OVERLAY_STATE.lock().unwrap() = static_state(state);
+            }
             let size_elapsed = size_started.elapsed();
 
             let pos_started = std::time::Instant::now();
@@ -677,11 +721,7 @@ fn update_overlay_position_on_main(app_handle: &AppHandle) {
 
         #[cfg(target_os = "windows")]
         {
-            let state = if WINDOWS_OVERLAY_IS_STREAMING.load(Ordering::Relaxed) {
-                "streaming"
-            } else {
-                "recording"
-            };
+            let state = *WINDOWS_OVERLAY_STATE.lock().unwrap();
             let (width, height) = overlay_dimensions(state);
             if let Err(error) = place_windows_overlay(app_handle, &overlay_window, width, height) {
                 log::error!("Failed to update recording overlay position: {error}");
@@ -727,6 +767,13 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
             std::thread::sleep(std::time::Duration::from_millis(300));
             if OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst) != scheduled_at {
                 log::debug!("Skipping stale overlay hide: a newer session is showing the overlay");
+                return;
+            }
+            // With the Silktone bar on, dictation settles back into the bar
+            // instead of leaving the screen.
+            let app = window_clone.app_handle().clone();
+            if crate::silktone_bar::bar_should_show(&app) {
+                show_bar_state(&app, "idle");
                 return;
             }
             let _ = window_clone.hide();

@@ -15,10 +15,10 @@ interface SidebarProps {
 const COMMAND_GO = "CommandGo";
 
 const soonTagClasses =
-  "ms-auto rounded-full bg-brand-pink/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-brand-pink";
+  "ms-auto rounded-full bg-brand-pink/12 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-brand-pink";
 
 const itemClasses =
-  "flex gap-3 items-center px-3 py-2 w-full rounded-lg cursor-pointer transition-colors text-start";
+  "flex gap-2.5 items-center px-2.5 h-9 w-full rounded-xl cursor-pointer transition-colors text-start text-sm";
 
 export const Sidebar: React.FC<SidebarProps> = ({
   onOpenSettings,
@@ -26,37 +26,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const email = useAuthStore((state) => state.email);
+  const initial = (email || "?").trim().charAt(0).toUpperCase();
 
   return (
-    <div className="flex flex-col w-52 h-full border-e border-mid-gray/20 bg-mid-gray/5 px-2">
-      <div className="flex flex-col items-start gap-1.5 mx-3 mt-5 mb-5 text-text">
-        <SilktoneWordmark withVersion width={150} />
-        <div className="flex items-center gap-1.5 ps-1 opacity-80">
+    <div className="flex flex-col w-56 h-full border-e border-mid-gray/15 bg-mid-gray/[0.045] px-3">
+      <div className="flex flex-col items-start gap-1.5 px-2 pt-5 pb-6 text-text">
+        <SilktoneWordmark withVersion width={136} />
+        <div className="flex items-center gap-1.5 ps-0.5 opacity-70">
           <span className="text-[11px] leading-none text-mid-gray">
             {t("sidebar.by")}
           </span>
-          <LitovationLogo width={64} />
+          <LitovationLogo width={58} />
         </div>
       </div>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-0.5">
         <div
-          className={`${itemClasses} bg-logo-primary/15`}
+          className={`${itemClasses} bg-surface font-semibold shadow-[0_1px_2px_rgb(0_0_0/0.06)] ring-1 ring-mid-gray/10`}
           aria-current="page"
         >
-          <Mic width={18} height={18} className="shrink-0 text-logo-primary" />
-          <span className="text-sm font-medium truncate">
-            {t("sidebar.general")}
-          </span>
+          <Mic width={17} height={17} className="shrink-0 text-logo-primary" />
+          <span className="truncate">{t("sidebar.general")}</span>
         </div>
         <div
-          className={`${itemClasses} cursor-not-allowed opacity-60`}
+          className={`${itemClasses} cursor-not-allowed font-medium text-text/45`}
           aria-disabled="true"
           title={t("sidebar.comingSoon")}
         >
-          <Bot width={18} height={18} className="shrink-0" />
-          <span className="text-sm font-medium truncate">{COMMAND_GO}</span>
-          <Lock width={14} height={14} className="ms-auto shrink-0" />
+          <Bot width={17} height={17} className="shrink-0" />
+          <span className="truncate">{COMMAND_GO}</span>
+          <Lock width={13} height={13} className="ms-auto shrink-0" />
         </div>
       </nav>
 
@@ -64,49 +63,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <NotificationStack />
       </div>
 
-      <div className="flex flex-col gap-1 pb-3 pt-3 border-t border-mid-gray/20">
-        {/* Always available, but deliberately quieter than the items below. */}
+      <div className="flex flex-col gap-0.5 pb-3 pt-3">
         <button
           type="button"
-          className={`${itemClasses} text-mid-gray hover:bg-mid-gray/10 hover:text-text/80`}
+          className={`${itemClasses} font-medium text-text/60 hover:bg-mid-gray/10 hover:text-text`}
           onClick={onReplayWalkthrough}
         >
           <Route width={16} height={16} className="shrink-0" />
-          <span className="text-xs font-medium truncate">
-            {t("sidebar.walkthrough")}
-          </span>
-        </button>
-        <button
-          type="button"
-          className={`${itemClasses} hover:bg-mid-gray/15`}
-          onClick={() => onOpenSettings("general")}
-        >
-          <Settings width={18} height={18} className="shrink-0" />
-          <span className="text-sm font-medium truncate">
-            {t("sidebar.advanced")}
-          </span>
+          <span className="truncate">{t("sidebar.walkthrough")}</span>
         </button>
         <div
-          className={`${itemClasses} cursor-not-allowed opacity-70`}
+          className={`${itemClasses} cursor-not-allowed font-medium text-text/45`}
           aria-disabled="true"
           title={t("sidebar.comingSoon")}
         >
-          <Gift width={18} height={18} className="shrink-0" />
-          <span className="text-sm font-medium truncate">
-            {t("sidebar.referAndEarn")}
-          </span>
+          <Gift width={16} height={16} className="shrink-0" />
+          <span className="truncate">{t("sidebar.referAndEarn")}</span>
           <span className={soonTagClasses}>{t("sidebar.soon")}</span>
         </div>
         <button
           type="button"
-          className={`${itemClasses} hover:bg-mid-gray/15`}
+          className={`${itemClasses} font-medium text-text/60 hover:bg-mid-gray/10 hover:text-text`}
+          onClick={() => onOpenSettings("general")}
+        >
+          <Settings width={16} height={16} className="shrink-0" />
+          <span className="truncate">{t("sidebar.advanced")}</span>
+        </button>
+        <button
+          type="button"
+          className="mt-2 flex w-full items-center gap-2.5 rounded-xl border border-mid-gray/15 bg-surface p-2 text-start shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-colors hover:border-mid-gray/30 cursor-pointer"
           onClick={() => onOpenSettings("account")}
         >
-          <span className="shrink-0 rounded-full bg-logo-primary/20 p-1 text-logo-primary">
-            <UserRound width={14} height={14} />
+          <span
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-logo-primary/15 text-xs font-semibold text-logo-primary"
+            aria-hidden="true"
+          >
+            {email ? initial : <UserRound width={14} height={14} />}
           </span>
-          <span className="text-sm font-medium truncate" title={email}>
-            {email || t("account.title")}
+          <span className="min-w-0 flex-1">
+            <span
+              className="block truncate text-xs font-semibold"
+              title={email}
+            >
+              {email || t("account.title")}
+            </span>
+            <span className="block text-[11px] leading-tight text-text/50">
+              {t("sidebar.account")}
+            </span>
           </span>
         </button>
       </div>

@@ -146,6 +146,35 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
 `src/hooks/useDictationStats.ts`, `src-tauri/src/settings.rs`,
 `src-tauri/nsis/installer.nsi`.
 
+## Accuracy, Silktone bar and dashboard (branch `claude/peaceful-fermi-g3aiab`)
+
+- **Speech model by language:** English uses Parakeet Unified English (about
+  half the mistakes of Nemotron in Handy's tests, and faster); Hindi and auto
+  use Nemotron Streaming 3.5, also on the Light tier (Canary has no Hindi).
+  Existing users keep dictating while the better model downloads, then switch
+  (`src/hooks/useAutoModelSetup.ts`). Needs transcribe-cpp 0.2.4 (bumped).
+  The tutorial now asks the language first so the right model downloads.
+- **Model stays loaded 15 minutes** (was 2): settings schema 5 moves stores
+  still on the old default.
+- **Microphone check:** tutorial step 2 and Settings > General > Microphone.
+  The user reads a sentence; `check_microphone` measures voice and background
+  levels for 5 s and the boost is set so the voice lands near -20 dBFS. Verdicts:
+  good, quiet, noisy, no speech, silent (`commands/audio.rs`).
+- **Silktone bar:** the overlay window's resting state, a slim pill at the top
+  or bottom of the screen. Hover shows "Click or press Ctrl + Windows to talk",
+  click starts dictation. Shown only after the tutorial and with access. After a
+  long stretch of typing (180 characters in 90 s) outside Silktone it shows a
+  nudge to dictate instead, at most 4 times per run, 20 minutes apart. Only
+  keystroke counts are kept. Both can be turned off in Settings > General
+  (`silktone_bar.rs`, `overlay.rs`, `src/overlay/RecordingOverlay.tsx`).
+  Preview: `dev/overlay-preview.html?state=idle|hover|nudge`.
+- **Dashboard:** greeting, four stat tiles (words, wpm with pace bar, streak,
+  time saved vs typing at 40 wpm), slimmer CommandGo card, history grouped by
+  day with actions on hover and the player on demand; new `surface` colour
+  token for cards; sidebar and settings tabs share one active style.
+- Not tried on Windows yet: the bar's hover and click on a real desktop, the
+  typing nudge's keyboard hook, and the mic check on real microphones.
+
 ## Not yet verified
 
 - The Rust default changes, the login-launch-to-tray change and the installer

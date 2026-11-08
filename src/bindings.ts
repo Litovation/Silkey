@@ -389,6 +389,30 @@ async changeLazyStreamCloseSetting(enabled: boolean) : Promise<Result<null, stri
     else return { status: "error", error: e  as any };
 }
 },
+async changeTrackpadDoubleTapSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_trackpad_double_tap_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeTrackpadHoldMsSetting(milliseconds: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_trackpad_hold_ms_setting", { milliseconds }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeMicGainSetting(percent: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_mic_gain_setting", { percent }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeSilenceAutoStopSetting(seconds: number) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_silence_auto_stop_setting", { seconds }) };
@@ -404,30 +428,6 @@ async changeSilenceAutoStopSetting(seconds: number) : Promise<Result<null, strin
 async completeTutorial() : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("complete_tutorial") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async changeMicGainSetting(percent: number) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("change_mic_gain_setting", { percent }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async changeTrackpadHoldMsSetting(milliseconds: number) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("change_trackpad_hold_ms_setting", { milliseconds }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async changeTrackpadDoubleTapSetting(enabled: boolean) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("change_trackpad_double_tap_setting", { enabled }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -593,6 +593,14 @@ async triggerUpdateCheck() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async showMainWindowCommand() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("show_main_window_command") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async setAccessAllowed(allowed: boolean) : Promise<void> {
     await TAURI_INVOKE("set_access_allowed", { allowed });
 },
@@ -603,14 +611,6 @@ async setAccessAllowed(allowed: boolean) : Promise<void> {
 async startOauthListener() : Promise<Result<number, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("start_oauth_listener") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async showMainWindowCommand() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("show_main_window_command") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -921,6 +921,52 @@ async setSelectedChannel(channel: number | null) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Listen for `duration_ms` while the user reads a sentence aloud and judge the
+ * microphone. Opens the microphone for the check when it is not already open
+ * and closes it again afterwards. Nothing is recorded or saved.
+ */
+async checkMicrophone(durationMs: number) : Promise<Result<MicCheckResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_microphone", { durationMs }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async silktoneBarStartDictation() : Promise<void> {
+    await TAURI_INVOKE("silktone_bar_start_dictation");
+},
+/**
+ * The pointer entered or left the bar: grow the window for the hint card, or
+ * fold it back to the slim pill. A nudge on screen stays open on hover.
+ */
+async silktoneBarHover(hovered: boolean) : Promise<void> {
+    await TAURI_INVOKE("silktone_bar_hover", { hovered });
+},
+/**
+ * The overlay page finished loading: show the bar if it belongs on screen.
+ * (A show sent before the page listens would be lost.)
+ */
+async silktoneBarRefresh() : Promise<void> {
+    await TAURI_INVOKE("silktone_bar_refresh");
+},
+async changeSilktoneBarSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_silktone_bar_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeTypingNudgeSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_typing_nudge_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async setModelUnloadTimeout(timeout: ModelUnloadTimeout) : Promise<void> {
     await TAURI_INVOKE("set_model_unload_timeout", { timeout });
 },
@@ -997,10 +1043,8 @@ async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, stri
 }
 },
 /**
- * Checks if the Mac is a laptop by detecting battery presence
- * 
- * This uses pmset to check for battery information.
- * Returns true if a battery is detected (laptop), false otherwise (desktop)
+ * Stub implementation for non-macOS platforms
+ * Always returns false since laptop detection is macOS-specific
  */
 async isLaptop() : Promise<Result<boolean, string>> {
     try {
@@ -1077,12 +1121,29 @@ tutorial_version?: number; always_on_microphone?: boolean; selected_microphone?:
  * Which input channel to use on the selected microphone device.
  * None means "average all channels" (original behavior).
  */
-selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; voice_commands_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; trackpad_double_tap_enabled?: boolean; 
+selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; 
+/**
+ * Voice Commands (beta): the command shortcut is only registered when on.
+ */
+voice_commands_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; 
+/**
+ * Resting two fingers on the touchpad toggles recording (Windows). The
+ * key predates the switch from a double-tap to a hold.
+ */
+trackpad_double_tap_enabled?: boolean; 
+/**
+ * How long two fingers must rest on the touchpad, in milliseconds.
+ */
+trackpad_hold_ms?: number; 
+/**
+ * Microphone boost as a percentage; 100 leaves the signal untouched.
+ */
+mic_gain_percent?: number; 
 /**
  * Seconds of silence after which a recording stops and pastes on its
  * own. Zero turns the auto-stop off.
  */
-trackpad_hold_ms?: number; mic_gain_percent?: number; silence_auto_stop_secs?: number; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
+silence_auto_stop_secs?: number; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
 /**
  * Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
  * after the target app actually reads the transcript, instead of after a
@@ -1104,7 +1165,17 @@ vad_backend?: VadBackend;
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle; 
+/**
+ * The Silktone bar: a small always-visible pill at the top or bottom of
+ * the screen (`overlay_position`) that starts dictation when clicked.
+ */
+silktone_bar_enabled?: boolean; 
+/**
+ * Suggest dictating after a long stretch of typing. Only keystroke counts
+ * are kept, never which keys were pressed.
+ */
+typing_nudge_enabled?: boolean }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1137,6 +1208,39 @@ key_down: number; key_up: number; flags_changed: number; mouse: number; duration
 export type KeyboardImplementation = "tauri" | "native_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
+export type MicCheckResult = { verdict: MicCheckVerdict; 
+/**
+ * The boost that brings this voice to a comfortable level (percent).
+ */
+suggested_gain_percent: number; 
+/**
+ * Raw voice and background levels, 0.0–1.0, for the meter.
+ */
+speech_level: number; noise_floor: number }
+/**
+ * What the microphone check concluded, in the order the setup screen checks.
+ */
+export type MicCheckVerdict = 
+/**
+ * Clear voice well above the background.
+ */
+"good" | 
+/**
+ * Nothing at all came through: muted, wrong or blocked microphone.
+ */
+"silent" | 
+/**
+ * Sound came through but no voice stood out from it.
+ */
+"no_speech" | 
+/**
+ * Loud background noise close to the voice level.
+ */
+"noisy" | 
+/**
+ * The voice is faint even at the strongest boost.
+ */
+"quiet"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**
@@ -1163,7 +1267,11 @@ sha256: string | null } } |
  * in a shared cache. Nothing to download.
  */
 "Local"
-export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
+export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | 
+/**
+ * Long enough that dictation rarely waits for the model to load again.
+ */
+"min_15" | "hour_1" | "sec_15"
 export type OrtAcceleratorSetting = "auto" | "cpu" | "cuda" | "directml" | "rocm"
 export type OverlayPosition = "top" | "bottom"
 /**
@@ -1271,6 +1379,8 @@ export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 export type VadBackend = "silero" | "earshot"
+export type VoiceCommandLogEntry = { timestamp: number; heard: string; result: string; ok: boolean }
+export type VoiceCommandStatus = { enabled: boolean; model_downloaded: boolean; downloading: boolean }
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
 
 /** tauri-specta globals **/
@@ -1294,8 +1404,6 @@ type __EventObj__<T> = {
 		: (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
 };
 
-export type VoiceCommandLogEntry = { timestamp: number; heard: string; result: string; ok: boolean }
-export type VoiceCommandStatus = { enabled: boolean; model_downloaded: boolean; downloading: boolean }
 export type Result<T, E> =
 	| { status: "ok"; data: T }
 	| { status: "error"; error: E };

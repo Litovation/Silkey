@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ModelInfo } from "@/bindings";
+import { commands, type ModelInfo } from "@/bindings";
 import { useModelStore } from "../stores/modelStore";
 import { isLegacySource } from "../components/onboarding/ModelCard";
 import { tierOf, type ModelTier } from "../stores/modelTierStore";
@@ -11,35 +11,53 @@ export type EngineStatus =
   | { state: "ready" }
   | { state: "error" };
 
-/**
- * The model Silktone should use: one already on disk if there is one, else
- * the top recommended download. The catalog arrives in rank order, so the
- * first match is the best pick.
- */
-const pickFrom = (models: ModelInfo[]): ModelInfo | undefined =>
-  models.find((m) => m.is_downloaded && !isLegacySource(m)) ??
-  models.find((m) => m.is_downloaded) ??
-  models.find((m) => m.is_recommended && !isLegacySource(m)) ??
-  models.find((m) => !isLegacySource(m));
+/** Only knows English; far more accurate at it than the multilingual model. */
+const isEnglishOnly = (m: ModelInfo): boolean =>
+  m.supported_languages.length === 1 && m.supported_languages[0] === "en";
 
-/** Models the chosen tier allows; every model when there is no preference. */
-const candidatesFor = (
+const speaks = (m: ModelInfo, language: string): boolean =>
+  language === "auto"
+    ? m.supports_language_detection
+    : m.supported_languages.includes(language);
+
+/**
+ * The model Silktone should run for this language and tier. English gets the
+ * English-only model (half the mistakes of the multilingual one in tests);
+ * Hindi and auto-detect get the multilingual model, even on the Light tier,
+ * because the light model does not know Hindi. The catalog arrives in rank
+ * order, so the first match is the best pick.
+ */
+export const preferredModel = (
   models: ModelInfo[],
   tier: ModelTier | null,
-): ModelInfo[] => {
-  if (!tier) return models;
-  const inTier = models.filter((m) => tierOf(m) === tier);
-  // A catalog without that tier must not leave the user with no engine.
-  return inTier.length > 0 ? inTier : models;
+  language: string,
+): ModelInfo | undefined => {
+  const offered = models.filter((m) => !isLegacySource(m) && !m.is_custom);
+  const wanted = tier ?? "standard";
+  const fits = offered.filter((m) => speaks(m, language));
+  const inTier = fits.filter((m) => tierOf(m) === wanted);
+  const pool = inTier.length > 0 ? inTier : fits;
+  if (language === "en") {
+    const english = pool.find(isEnglishOnly);
+    if (english) return english;
+  }
+  return pool.find((m) => !isEnglishOnly(m)) ?? pool[0] ?? offered[0];
 };
 
 /**
  * Makes sure a speech model is downloaded and selected without asking the
  * user to choose one. Runs while `active`; the model list is never shown.
- * `tier` narrows the pick to the Standard or Light engine; null keeps whatever
- * is already installed.
+ *
+ * When the best model for the user's language is not on disk yet but another
+ * working model is, Silktone keeps using that one, downloads the better one in
+ * the background and switches over once it is ready. So existing users move to
+ * the more accurate English model without ever losing dictation.
  */
-export const useAutoModelSetup = (active: boolean, tier: ModelTier | null) => {
+export const useAutoModelSetup = (
+  active: boolean,
+  tier: ModelTier | null,
+  language: string,
+) => {
   const {
     models,
     currentModel,
@@ -52,14 +70,18 @@ export const useAutoModelSetup = (active: boolean, tier: ModelTier | null) => {
   } = useModelStore();
   const [failed, setFailed] = useState(false);
   const [selecting, setSelecting] = useState(false);
+  // Bumped to try a deferred switch again (see the busy-recording check).
+  const [switchAttempt, setSwitchAttempt] = useState(0);
   const downloadStartedFor = useRef<string | null>(null);
 
-  const candidates = useMemo(() => candidatesFor(models, tier), [models, tier]);
-  const ready = candidates.some(
-    (m) => m.id === currentModel && m.is_downloaded,
+  const target = useMemo(
+    () => preferredModel(models, tier, language),
+    [models, tier, language],
   );
-  const target = useMemo(() => pickFrom(candidates), [candidates]);
   const targetId = target?.id;
+  const onTarget = currentModel === targetId && !!target?.is_downloaded;
+  // Whatever is loaded now still transcribes while a better model downloads.
+  const usable = models.some((m) => m.id === currentModel && m.is_downloaded);
   const busy =
     targetId !== undefined &&
     (targetId in downloadingModels ||
@@ -67,13 +89,25 @@ export const useAutoModelSetup = (active: boolean, tier: ModelTier | null) => {
       targetId in extractingModels);
 
   useEffect(() => {
-    if (!active || ready || failed || selecting || !target || busy) return;
+    if (!active || onTarget || failed || selecting || !target || busy) return;
 
     if (target.is_downloaded) {
       setSelecting(true);
-      selectModel(target.id).then((ok) => {
-        setSelecting(false);
-        if (!ok) setFailed(true);
+      // Swapping models reloads the engine: never in the middle of a
+      // dictation. Wait for it to finish and try again.
+      const busyRecording = usable
+        ? commands.isRecording().catch(() => false)
+        : Promise.resolve(false);
+      busyRecording.then((recording) => {
+        if (recording) {
+          setSelecting(false);
+          setTimeout(() => setSwitchAttempt((n) => n + 1), 5000);
+          return;
+        }
+        selectModel(target.id).then((ok) => {
+          setSelecting(false);
+          if (!ok) setFailed(true);
+        });
       });
       return;
     }
@@ -86,20 +120,22 @@ export const useAutoModelSetup = (active: boolean, tier: ModelTier | null) => {
     });
   }, [
     active,
-    ready,
+    onTarget,
+    usable,
     failed,
     selecting,
     target,
     busy,
+    switchAttempt,
     selectModel,
     downloadModel,
   ]);
 
-  // Switching between Standard and Light starts from a clean slate.
+  // A new tier or language is a new target: start from a clean slate.
   useEffect(() => {
     downloadStartedFor.current = null;
     setFailed(false);
-  }, [tier]);
+  }, [tier, language]);
 
   const retry = useCallback(() => {
     downloadStartedFor.current = null;
@@ -107,7 +143,7 @@ export const useAutoModelSetup = (active: boolean, tier: ModelTier | null) => {
   }, []);
 
   let status: EngineStatus;
-  if (ready) {
+  if (onTarget || usable) {
     status = { state: "ready" };
   } else if (failed || (models.length > 0 && !target)) {
     status = { state: "error" };

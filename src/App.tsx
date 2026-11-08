@@ -94,9 +94,13 @@ function App() {
   // during setup and for anyone whose model has gone missing.
   // New users choose Standard or Light first, so nothing downloads before then.
   const modelTier = useModelTierStore((state) => state.tier);
+  const language = useSettingsStore(
+    (state) => state.settings?.selected_language ?? "en",
+  );
   const { status: engineStatus, retry: retryEngine } = useAutoModelSetup(
     onboardingStep !== null && (isReturningUser || modelTier !== null),
     modelTier,
+    language,
   );
 
   // Classic scrollbars consume layout space. Reserve a matching gutter on the

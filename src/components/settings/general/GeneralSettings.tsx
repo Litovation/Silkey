@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { type } from "@tauri-apps/plugin-os";
-import { Hand, Keyboard, Mic, TimerOff } from "lucide-react";
+import { Hand, Keyboard, Mic, PanelBottom, TimerOff } from "lucide-react";
 import { MicrophoneSelector } from "../MicrophoneSelector";
 import { ChannelSelector } from "../ChannelSelector";
 import { ShortcutInput } from "../ShortcutInput";
@@ -14,6 +14,8 @@ import { TrackpadHoldTime } from "../TrackpadHoldTime";
 import { useSettings } from "../../../hooks/useSettings";
 import { SilenceAutoStop } from "../SilenceAutoStop";
 import { ModelSettingsCard } from "./ModelSettingsCard";
+import { SilktoneBarSettings } from "../SilktoneBarSettings";
+import { MicCheckSetting } from "../MicCheckSetting";
 
 export const GeneralSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -30,6 +32,13 @@ export const GeneralSettings: React.FC = () => {
       >
         <ShortcutInput shortcutId="transcribe" grouped={true} />
         <ShortcutActivationSetting descriptionMode="tooltip" grouped={true} />
+      </SettingsGroup>
+      <SettingsGroup
+        icon={PanelBottom}
+        title={t("settings.general.groups.bar.title")}
+        description={t("settings.general.groups.bar.description")}
+      >
+        <SilktoneBarSettings descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
       {isWindows && (
         <SettingsGroup
@@ -58,6 +67,7 @@ export const GeneralSettings: React.FC = () => {
       >
         <MicrophoneSelector descriptionMode="tooltip" grouped={true} />
         <ChannelSelector descriptionMode="tooltip" grouped={true} />
+        <MicCheckSetting descriptionMode="tooltip" grouped={true} />
         <MicrophoneBoost descriptionMode="tooltip" grouped={true} />
         <MuteWhileRecording descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>

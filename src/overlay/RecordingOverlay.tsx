@@ -12,9 +12,20 @@ import type {
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 import { K_MARK_PATH, K_MARK_VIEWBOX } from "@/components/icons/brandPaths";
+import { type } from "@tauri-apps/plugin-os";
+import { formatKeyCombination } from "@/lib/utils/keyboard";
+import { toKeycaps } from "@/hooks/useShortcutKeycaps";
 
 type OverlayState =
-  "recording" | "streaming" | "transcribing" | "processing" | "command";
+  | "recording"
+  | "streaming"
+  | "transcribing"
+  | "processing"
+  | "command"
+  // The Silktone bar: resting pill, hover hint, typing nudge.
+  | "idle"
+  | "hover"
+  | "nudge";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -47,6 +58,8 @@ const RecordingOverlay: React.FC = () => {
   // True once live text overflows the cap. A top overlay fades its top edge only
   // while overflowing, so the resting first line stays crisp flush under the pill.
   const [overflowing, setOverflowing] = useState(false);
+  // The dictation shortcut, for the bar's hint ("Ctrl + Windows").
+  const [keys, setKeys] = useState<string[]>(["Ctrl", "Windows"]);
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   // Live-text scroll-back: the text region "sticks" to the newest line while the
@@ -79,6 +92,21 @@ const RecordingOverlay: React.FC = () => {
             setPosition(
               settings.data.overlay_position === "top" ? "top" : "bottom",
             );
+            const binding =
+              settings.data.bindings?.transcribe?.current_binding ?? "";
+            if (binding) {
+              const os = type();
+              setKeys(
+                toKeycaps(
+                  formatKeyCombination(
+                    binding,
+                    os === "macos" || os === "windows" || os === "linux"
+                      ? os
+                      : "unknown",
+                  ),
+                ),
+              );
+            }
           }
         } catch {
           // Keep the previous/default placement if settings can't be read.
@@ -129,6 +157,10 @@ const RecordingOverlay: React.FC = () => {
         setPhase(payload.phase);
         if (payload.kind) setWorkKind(payload.kind);
       });
+
+      // Listening now: ask for the bar, which may have been shown before the
+      // page could hear it.
+      commands.silktoneBarRefresh().catch(() => {});
 
       return () => {
         unlistenShow();
@@ -297,6 +329,94 @@ const RecordingOverlay: React.FC = () => {
               : listeningRow(open, true)}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // ---- Silktone bar: a slim resting pill, a hint on hover, a typing nudge ----
+  if (state === "idle" || state === "hover" || state === "nudge") {
+    const start = () => {
+      commands.silktoneBarStartDictation().catch(() => {});
+    };
+    const fold = () => {
+      commands.silktoneBarHover(false).catch(() => {});
+    };
+    const micIcon = (
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="5.5" y="1.75" width="5" height="8" rx="2.5" />
+        <path d="M3.25 7.5a4.75 4.75 0 0 0 9.5 0M8 12.25v2" />
+      </svg>
+    );
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+        onMouseEnter={() => {
+          if (state === "idle") {
+            commands.silktoneBarHover(true).catch(() => {});
+          }
+        }}
+        onMouseLeave={() => {
+          if (state === "hover") fold();
+        }}
+      >
+        {state === "idle" && (
+          <button
+            type="button"
+            className="sbar-rest"
+            aria-label={t("overlay.bar.start")}
+            onClick={start}
+          />
+        )}
+        {state === "hover" && (
+          <button
+            type="button"
+            className="scard compact sbar-hint"
+            onClick={start}
+          >
+            <div className="sbase">
+              <div className="sbase-l">{kMark("done")}</div>
+              <span className="sbar-label">
+                {t("overlay.bar.hint", { keys: keys.join(" + ") })}
+              </span>
+              <div className="sbase-r">
+                <span className="sbar-mic">{micIcon}</span>
+              </div>
+            </div>
+          </button>
+        )}
+        {state === "nudge" && (
+          <div className="scard sbar-nudge" role="status">
+            <div className="sbar-nudge-row">
+              {kMark("done")}
+              <div className="sbar-nudge-text">
+                <p className="sbar-nudge-title">{t("overlay.nudge.title")}</p>
+                <p className="sbar-nudge-body">
+                  {t("overlay.nudge.body", { keys: keys.join(" + ") })}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="sx"
+                aria-label={t("overlay.nudge.dismiss")}
+                onClick={fold}
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    d="M4 4 L12 12 M12 4 L4 12"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <button type="button" className="sbar-try" onClick={start}>
+              {micIcon}
+              {t("overlay.nudge.try")}
+            </button>
+          </div>
+        )}
       </div>
     );
   }

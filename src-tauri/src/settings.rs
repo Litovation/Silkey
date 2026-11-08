@@ -136,10 +136,11 @@ pub enum OverlayStyle {
 pub enum ModelUnloadTimeout {
     Never,
     Immediately,
-    #[default]
     Min2,
     Min5,
     Min10,
+    /// Long enough that dictation rarely waits for the model to load again.
+    #[default]
     Min15,
     Hour1,
     Sec15, // Debug mode only
@@ -536,13 +537,21 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// The Silktone bar: a small always-visible pill at the top or bottom of
+    /// the screen (`overlay_position`) that starts dictation when clicked.
+    #[serde(default = "default_true")]
+    pub silktone_bar_enabled: bool,
+    /// Suggest dictating after a long stretch of typing. Only keystroke counts
+    /// are kept, never which keys were pressed.
+    #[serde(default = "default_true")]
+    pub typing_nudge_enabled: bool,
 }
 
 fn default_model() -> String {
     "".to_string()
 }
 
-const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 4;
+const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 5;
 
 /// Raised whenever the tutorial changes enough that everyone must go through
 /// it again. 1: the guided tutorial with three practice rounds (v0.1.6).
@@ -680,6 +689,10 @@ fn default_app_language() -> String {
 }
 
 fn default_show_tray_icon() -> bool {
+    true
+}
+
+fn default_true() -> bool {
     true
 }
 
@@ -1041,6 +1054,8 @@ pub fn get_default_settings() -> AppSettings {
         vad_enabled: default_vad_enabled(),
         vad_backend: VadBackend::default(),
         overlay_style: default_overlay_style(),
+        silktone_bar_enabled: true,
+        typing_nudge_enabled: true,
     }
 }
 
@@ -1262,6 +1277,16 @@ fn apply_settings_migrations(
         }
         if settings.mic_gain_percent == 100 {
             settings.mic_gain_percent = crate::audio_toolkit::audio::DEFAULT_MIC_GAIN_PERCENT;
+        }
+        settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
+        updated = true;
+    }
+    if stored_schema_version < 5 {
+        // Unloading the model two minutes after each dictation made the next
+        // one wait for a reload. Stores still on that old default keep the
+        // model for fifteen minutes instead.
+        if settings.model_unload_timeout == ModelUnloadTimeout::Min2 {
+            settings.model_unload_timeout = ModelUnloadTimeout::Min15;
         }
         settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
         updated = true;
@@ -1632,6 +1657,37 @@ mod tests {
 
         assert!(apply_settings_migrations(&mut settings, &raw));
         assert_eq!(settings.overlay_style, OverlayStyle::None);
+    }
+
+    #[test]
+    fn schema_5_keeps_the_model_loaded_longer_than_two_minutes() {
+        let mut settings = get_default_settings();
+        settings.model_unload_timeout = ModelUnloadTimeout::Min2;
+        let raw = serde_json::json!({ "settings_schema_version": 4 });
+
+        assert!(apply_settings_migrations(&mut settings, &raw));
+        assert_eq!(settings.model_unload_timeout, ModelUnloadTimeout::Min15);
+        assert_eq!(
+            settings.settings_schema_version,
+            CURRENT_SETTINGS_SCHEMA_VERSION
+        );
+    }
+
+    #[test]
+    fn schema_5_keeps_an_explicit_unload_choice() {
+        let mut settings = get_default_settings();
+        settings.model_unload_timeout = ModelUnloadTimeout::Never;
+        let raw = serde_json::json!({ "settings_schema_version": 4 });
+
+        apply_settings_migrations(&mut settings, &raw);
+        assert_eq!(settings.model_unload_timeout, ModelUnloadTimeout::Never);
+    }
+
+    #[test]
+    fn bar_and_nudge_default_on_for_stores_without_the_keys() {
+        let settings: AppSettings = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert!(settings.silktone_bar_enabled);
+        assert!(settings.typing_nudge_enabled);
     }
 
     #[test]
