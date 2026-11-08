@@ -29,10 +29,24 @@ $ortVersion = '1.24.2'
 $ortLib = Join-Path $depsDir "onnxruntime-win-x64-$ortVersion/lib"
 if (-not (Test-Path (Join-Path $ortLib 'onnxruntime.dll'))) {
   $archive = Join-Path $depsDir 'ort.zip'
-  # GitHub release downloads sometimes answer 504 for a few minutes; retry
-  # instead of failing the whole build.
-  Invoke-WebRequest "https://github.com/microsoft/onnxruntime/releases/download/v$ortVersion/onnxruntime-win-x64-$ortVersion.zip" -OutFile $archive -MaximumRetryCount 6 -RetryIntervalSec 30
-  Expand-Archive $archive -DestinationPath $depsDir -Force
+  try {
+    Invoke-WebRequest "https://github.com/microsoft/onnxruntime/releases/download/v$ortVersion/onnxruntime-win-x64-$ortVersion.zip" -OutFile $archive -MaximumRetryCount 2 -RetryIntervalSec 15
+    Expand-Archive $archive -DestinationPath $depsDir -Force
+  } catch {
+    # GitHub release downloads can answer 504 for long stretches. Microsoft
+    # publishes the same build on NuGet; its win-x64 native folder holds the
+    # onnxruntime.dll and onnxruntime.lib this build needs.
+    Write-Warning "GitHub download of ONNX Runtime failed ($($_.Exception.Message)); using NuGet."
+    $package = Join-Path $depsDir 'ort-nuget.zip'
+    Invoke-WebRequest "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime/$ortVersion" -OutFile $package -MaximumRetryCount 6 -RetryIntervalSec 20
+    $unpacked = Join-Path $depsDir 'ort-nuget'
+    Expand-Archive $package -DestinationPath $unpacked -Force
+    New-Item -ItemType Directory -Path $ortLib -Force | Out-Null
+    Copy-Item (Join-Path $unpacked 'runtimes/win-x64/native/*') $ortLib -Force
+  }
+  foreach ($file in @('onnxruntime.dll', 'onnxruntime.lib')) {
+    if (-not (Test-Path (Join-Path $ortLib $file))) { throw "ONNX Runtime $file is missing from $ortLib." }
+  }
 }
 $env:ORT_LIB_LOCATION = $ortLib
 $env:ORT_PREFER_DYNAMIC_LINK = '1'
