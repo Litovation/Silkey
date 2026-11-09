@@ -8,8 +8,10 @@ import {
   FolderOpen,
   Mic,
   RotateCcw,
+  SpellCheck,
   Star,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -20,6 +22,7 @@ import {
   type HistoryUpdatePayload,
 } from "@/bindings";
 import { useOsType } from "@/hooks/useOsType";
+import { useSettings } from "@/hooks/useSettings";
 import { AudioPlayer, AudioPlayerGroup } from "../../ui/AudioPlayer";
 import { Button } from "../../ui/Button";
 
@@ -321,9 +324,7 @@ export const HistorySettings: React.FC = () => {
                       key={entry.id}
                       entry={entry}
                       onToggleSaved={() => toggleSaved(entry.id)}
-                      onCopyText={() =>
-                        copyToClipboard(entry.transcription_text)
-                      }
+                      onCopyText={copyToClipboard}
                       getAudioUrl={getAudioUrl}
                       deleteAudio={deleteAudioEntry}
                       retryTranscription={retryHistoryEntry}
@@ -359,7 +360,7 @@ export const HistorySettings: React.FC = () => {
 interface HistoryEntryProps {
   entry: HistoryEntry;
   onToggleSaved: () => void;
-  onCopyText: () => void;
+  onCopyText: (text: string) => void;
   getAudioUrl: (fileName: string) => Promise<string | null>;
   deleteAudio: (id: number) => Promise<void>;
   retryTranscription: (id: number) => Promise<void>;
@@ -378,8 +379,50 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   const [retrying, setRetrying] = useState(false);
   // The player only appears when asked for, so the list reads as text.
   const [showAudio, setShowAudio] = useState(false);
+  // AI cleanup's text is what was pasted; "Original" shows the text before it.
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [fixing, setFixing] = useState(false);
+  const [wrongWord, setWrongWord] = useState("");
+  const [rightWord, setRightWord] = useState("");
+  const { refreshSettings } = useSettings();
 
-  const hasTranscription = entry.transcription_text.trim().length > 0;
+  const cleaned = entry.post_processed_text?.trim();
+  const hasCleanup = !!cleaned && cleaned !== entry.transcription_text.trim();
+  const shownText =
+    hasCleanup && !showOriginal
+      ? (entry.post_processed_text ?? "")
+      : entry.transcription_text;
+  const hasTranscription = shownText.trim().length > 0;
+
+  const openFix = () => {
+    // Start from the words the user selected in this entry, if any.
+    const selection = window.getSelection()?.toString().trim() ?? "";
+    setWrongWord(selection && shownText.includes(selection) ? selection : "");
+    setRightWord("");
+    setFixing(true);
+  };
+
+  const saveFix = async () => {
+    const wrong = wrongWord.trim();
+    const right = rightWord.trim();
+    if (!wrong || !right || wrong === right) return;
+    const result = await commands.learnCorrection(wrong, right);
+    if (result.status !== "ok") {
+      toast.error(t("settings.history.fixError"));
+      return;
+    }
+    await refreshSettings();
+    setFixing(false);
+    toast.success(t("settings.history.learned", { word: right }), {
+      action: {
+        label: t("settings.history.undo"),
+        onClick: async () => {
+          await commands.forgetCorrection(wrong);
+          await refreshSettings();
+        },
+      },
+    });
+  };
 
   const handleLoadAudio = useCallback(
     () => getAudioUrl(entry.file_name),
@@ -391,7 +434,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
       return;
     }
 
-    onCopyText();
+    onCopyText(shownText);
     setShowCopied(true);
     setTimeout(() => setShowCopied(false), 2000);
   };
@@ -445,6 +488,27 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
               <Copy width={15} height={15} />
             )}
           </IconButton>
+          <IconButton
+            onClick={openFix}
+            disabled={!hasTranscription || retrying}
+            active={fixing}
+            title={t("settings.history.fixWord")}
+          >
+            <SpellCheck width={15} height={15} />
+          </IconButton>
+          {hasCleanup && (
+            <IconButton
+              onClick={() => setShowOriginal((current) => !current)}
+              active={showOriginal}
+              title={
+                showOriginal
+                  ? t("settings.history.showCleaned")
+                  : t("settings.history.showOriginal")
+              }
+            >
+              <Undo2 width={15} height={15} />
+            </IconButton>
+          )}
           <IconButton
             onClick={onToggleSaved}
             disabled={retrying}
@@ -510,9 +574,62 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
           {retrying
             ? t("settings.history.transcribing")
             : hasTranscription
-              ? entry.transcription_text
+              ? shownText
               : t("settings.history.transcriptionFailed")}
         </p>
+        {hasCleanup && showOriginal && (
+          <p className="text-[11px] font-medium uppercase tracking-wide text-text/40">
+            {t("settings.history.originalLabel")}
+          </p>
+        )}
+
+        {fixing && (
+          <form
+            className="flex flex-wrap items-center gap-2 rounded-xl border border-mid-gray/15 bg-mid-gray/[0.04] p-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveFix();
+            }}
+          >
+            <input
+              value={wrongWord}
+              onChange={(event) => setWrongWord(event.target.value)}
+              placeholder={t("settings.history.fixHeard")}
+              aria-label={t("settings.history.fixHeard")}
+              className="min-w-0 flex-1 rounded-lg border border-mid-gray/25 bg-surface px-2 py-1 text-sm focus:border-logo-primary focus:outline-none"
+              autoFocus
+            />
+            <span aria-hidden="true" className="text-text/40">
+              {"→"}
+            </span>
+            <input
+              value={rightWord}
+              onChange={(event) => setRightWord(event.target.value)}
+              placeholder={t("settings.history.fixRight")}
+              aria-label={t("settings.history.fixRight")}
+              className="min-w-0 flex-1 rounded-lg border border-mid-gray/25 bg-surface px-2 py-1 text-sm focus:border-logo-primary focus:outline-none"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              disabled={
+                !wrongWord.trim() ||
+                !rightWord.trim() ||
+                wrongWord.trim() === rightWord.trim()
+              }
+            >
+              {t("settings.history.fixSave")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setFixing(false)}
+            >
+              {t("settings.history.fixCancel")}
+            </Button>
+          </form>
+        )}
 
         {entry.saved && !showAudio && (
           <Star

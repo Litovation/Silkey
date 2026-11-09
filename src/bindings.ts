@@ -343,6 +343,60 @@ async updateCustomWords(words: string[]) : Promise<Result<null, string>> {
 }
 },
 /**
+ * Turn one Writing switch on or off.
+ */
+async changeWritingSetting(setting: string, enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_writing_setting", { setting, enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeSmartCleanupSetting(mode: SmartCleanup) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_smart_cleanup_setting", { mode }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Replace the snippet list. Rows without a trigger or text are dropped.
+ */
+async updateSnippets(snippets: Snippet[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_snippets", { snippets }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Remember that `wrong` should be written `right` from now on, and add
+ * `right` to the custom words so the speech model is told about it too.
+ */
+async learnCorrection(wrong: string, right: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("learn_correction", { wrong, right }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Forget a learned correction (Undo, or delete from the list). Its word
+ * stays in custom words, where the user can remove it separately.
+ */
+async forgetCorrection(wrong: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("forget_correction", { wrong }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Temporarily unregister all bindings while the user is recording a
  * shortcut in the UI. This avoids firing actions while keys are recorded.
  */
@@ -1175,7 +1229,23 @@ silktone_bar_enabled?: boolean;
  * Suggest dictating after a long stretch of typing. Only keystroke counts
  * are kept, never which keys were pressed.
  */
-typing_nudge_enabled?: boolean }
+typing_nudge_enabled?: boolean; 
+/**
+ * Writing (build spec): spoken "comma", "new line" etc. become marks.
+ */
+spoken_punctuation_enabled?: boolean; 
+/**
+ * Writing: "twenty five dollars" becomes "$25" (English).
+ */
+numbers_as_digits_enabled?: boolean; 
+/**
+ * Writing: "first ..., second ..." becomes a numbered list.
+ */
+format_lists_enabled?: boolean; 
+/**
+ * Writing: "5, actually 6pm" becomes "6pm".
+ */
+self_corrections_enabled?: boolean; smart_cleanup?: SmartCleanup; snippets?: Snippet[]; learned_corrections?: LearnedCorrection[] }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1207,6 +1277,10 @@ export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_
 key_down: number; key_up: number; flags_changed: number; mouse: number; duration_ms: number }
 export type KeyboardImplementation = "tauri" | "native_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
+/**
+ * A word the user corrected once and Silktone now writes right (feature 8).
+ */
+export type LearnedCorrection = { wrong: string; right: string }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type MicCheckResult = { verdict: MicCheckVerdict; 
 /**
@@ -1338,6 +1412,15 @@ export type ShortcutActivation =
  */
 "hold_or_toggle"
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
+/**
+ * How much tidying a dictation gets (build spec feature 1): rules only, or
+ * rules followed by the user's AI provider on every dictation.
+ */
+export type SmartCleanup = "basic" | "cloud_ai"
+/**
+ * A spoken shortcut: saying `trigger` pastes `text` (build spec feature 11).
+ */
+export type Snippet = { trigger: string; text: string }
 export type SoundTheme = "marimba" | "pop" | "custom"
 /**
  * Phase of the streaming overlay card, emitted to drive its UI state.

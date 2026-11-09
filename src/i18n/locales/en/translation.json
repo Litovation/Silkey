@@ -25,7 +25,8 @@
     "soon": "Soon",
     "referAndEarn": "Refer & earn",
     "walkthrough": "Tutorial",
-    "account": "Account & plan"
+    "account": "Account & plan",
+    "snippets": "Snippets"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -618,7 +619,18 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "listen": "Play recording",
-      "emptyTitle": "Nothing here yet"
+      "emptyTitle": "Nothing here yet",
+      "fixWord": "Fix a word",
+      "fixHeard": "Silktone wrote",
+      "fixRight": "It should be",
+      "fixSave": "Learn",
+      "fixCancel": "Cancel",
+      "fixError": "Could not save the word. Please try again.",
+      "learned": "Learned: {{word}}",
+      "undo": "Undo",
+      "showOriginal": "Show the text before AI cleanup",
+      "showCleaned": "Show the cleaned text",
+      "originalLabel": "Before AI cleanup"
     },
     "debug": {
       "title": "Debug",
@@ -961,7 +973,9 @@
     "tabs": {
       "general": "General",
       "system": "System",
-      "account": "Account"
+      "account": "Account",
+      "writing": "Writing",
+      "snippets": "Snippets"
     }
   },
   "account": {
@@ -1264,5 +1278,73 @@
       "afternoon": "Good afternoon",
       "evening": "Good evening"
     }
+  },
+  "writing": {
+    "groups": {
+      "cleanup": {
+        "title": "Smart cleanup",
+        "description": "How much Silktone tidies what you say"
+      },
+      "format": {
+        "title": "Formatting",
+        "description": "Rules that run on every dictation, offline"
+      },
+      "dictionary": {
+        "title": "Dictionary",
+        "description": "Names and words Silktone should always spell right"
+      }
+    },
+    "smartCleanup": {
+      "title": "Cleanup level",
+      "description": "Basic uses fast offline rules. Cloud AI also sends each dictation to your AI provider to fix grammar and wording.",
+      "basic": "Basic (rules)",
+      "cloud": "Cloud AI",
+      "needsProvider": "Cloud AI needs a provider and model. Set one up in Post Process.",
+      "localSoon": "Local AI cleanup that runs on your PC is coming in a later update."
+    },
+    "selfCorrections": {
+      "label": "Fix spoken corrections",
+      "description": "\"Send it at 5, actually 6pm\" becomes \"Send it at 6pm\"."
+    },
+    "spokenPunctuation": {
+      "label": "Spoken punctuation",
+      "description": "Say \"comma\", \"question mark\" or \"new line\" and Silktone types the mark."
+    },
+    "numbers": {
+      "label": "Write numbers as digits",
+      "description": "\"Twenty five dollars\" becomes \"$25\", \"five thirty pm\" becomes \"5:30 PM\". English only."
+    },
+    "lists": {
+      "label": "Format lists",
+      "description": "\"First call Raj, second send the deck\" becomes a numbered list."
+    },
+    "cheatSheet": {
+      "toggle": "Show spoken punctuation",
+      "say": "Say \"{{words}}\""
+    },
+    "learned": {
+      "title": "Learned words",
+      "description": "Words you fixed in History. Silktone writes them your way from now on.",
+      "empty": "Nothing yet. In History, use Fix word on an entry to teach Silktone a word.",
+      "remove": "Forget this word"
+    }
+  },
+  "snippets": {
+    "title": "Snippets",
+    "description": "Say a short phrase and Silktone types the full text.",
+    "emptyTitle": "No snippets yet",
+    "emptyBody": "Add one for your address, email sign-off or anything you type often.",
+    "trigger": "When I say",
+    "triggerPlaceholder": "my address",
+    "text": "Type this",
+    "textPlaceholder": "12 MG Road, Pune 411001",
+    "placeholders": "You can use {date}, {time} and {clipboard}. Inside a longer sentence, say \"insert\" first: \"send it to insert my address\".",
+    "duplicate": "You already have a snippet with this phrase.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "add": "Add snippet",
+    "edit": "Edit",
+    "remove": "Delete",
+    "say": "“{{trigger}}”"
   }
 }

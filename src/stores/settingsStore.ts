@@ -7,6 +7,8 @@ import type {
   TranscribeAcceleratorSetting,
   OrtAcceleratorSetting,
   ShortcutActivation,
+  SmartCleanup,
+  Snippet,
   VadBackend,
 } from "@/bindings";
 import { commands } from "@/bindings";
@@ -183,6 +185,23 @@ const settingUpdaters: {
     commands.changeSilktoneBarSetting(value as boolean),
   typing_nudge_enabled: (value) =>
     commands.changeTypingNudgeSetting(value as boolean),
+  spoken_punctuation_enabled: (value) =>
+    commands.changeWritingSetting(
+      "spoken_punctuation_enabled",
+      value as boolean,
+    ),
+  numbers_as_digits_enabled: (value) =>
+    commands.changeWritingSetting(
+      "numbers_as_digits_enabled",
+      value as boolean,
+    ),
+  format_lists_enabled: (value) =>
+    commands.changeWritingSetting("format_lists_enabled", value as boolean),
+  self_corrections_enabled: (value) =>
+    commands.changeWritingSetting("self_corrections_enabled", value as boolean),
+  smart_cleanup: (value) =>
+    commands.changeSmartCleanupSetting(value as SmartCleanup),
+  snippets: (value) => commands.updateSnippets(value as Snippet[]),
   vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
   vad_backend: async (value) => {
     const result = await commands.changeVadBackendSetting(value as VadBackend);

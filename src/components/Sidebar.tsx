@@ -1,6 +1,15 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Bot, Gift, Lock, Mic, Route, Settings, UserRound } from "lucide-react";
+import {
+  Bot,
+  Gift,
+  Lock,
+  Mic,
+  Quote,
+  Route,
+  Settings,
+  UserRound,
+} from "lucide-react";
 import SilktoneWordmark from "./icons/SilktoneWordmark";
 import LitovationLogo from "./icons/LitovationLogo";
 import { NotificationStack } from "./notifications";
@@ -48,6 +57,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Mic width={17} height={17} className="shrink-0 text-logo-primary" />
           <span className="truncate">{t("sidebar.general")}</span>
         </div>
+        <button
+          type="button"
+          className={`${itemClasses} font-medium text-text/60 hover:bg-mid-gray/10 hover:text-text`}
+          onClick={() => onOpenSettings("snippets")}
+        >
+          <Quote width={17} height={17} className="shrink-0" />
+          <span className="truncate">{t("sidebar.snippets")}</span>
+        </button>
         <div
           className={`${itemClasses} cursor-not-allowed font-medium text-text/45`}
           aria-disabled="true"

@@ -6,6 +6,8 @@ import {
   Info,
   Laptop,
   type LucideIcon,
+  PenLine,
+  Quote,
   SlidersHorizontal,
   Sparkles,
   UserRound,
@@ -18,10 +20,14 @@ import { PostProcessingSettings } from "./post-processing/PostProcessingSettings
 import { AccountSettings } from "./account/AccountSettings";
 import { AboutSettings } from "./about/AboutSettings";
 import { DebugSettings } from "./debug/DebugSettings";
+import { WritingSettings } from "./writing/WritingSettings";
+import { SnippetsSettings } from "./writing/SnippetsSettings";
 import type { OnboardingPreviewStep } from "./debug/OnboardingPreview";
 
 export type SettingsTab =
   | "general"
+  | "writing"
+  | "snippets"
   | "system"
   | "postprocessing"
   | "account"
@@ -40,6 +46,18 @@ const TABS: TabConfig[] = [
     id: "general",
     labelKey: "settingsModal.tabs.general",
     icon: SlidersHorizontal,
+    enabled: () => true,
+  },
+  {
+    id: "writing",
+    labelKey: "settingsModal.tabs.writing",
+    icon: PenLine,
+    enabled: () => true,
+  },
+  {
+    id: "snippets",
+    labelKey: "settingsModal.tabs.snippets",
+    icon: Quote,
     enabled: () => true,
   },
   {
@@ -112,6 +130,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const renderContent = () => {
     switch (activeTab) {
+      case "writing":
+        return <WritingSettings />;
+      case "snippets":
+        return <SnippetsSettings />;
       case "system":
         return <AdvancedSettings />;
       case "postprocessing":
