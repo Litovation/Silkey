@@ -1,0 +1,19 @@
+# input	expected	(pass mark 95%)
+twenty five dollars	$25
+march third twenty twenty six	March 3, 2026
+five thirty pm	5:30 PM
+fifty percent	50%
+five kg	5 kg
+We invited twenty five people.	We invited 25 people.
+I paid three hundred and fifty rupees.	I paid ₹350.
+About twelve thousand five hundred users.	About 12,500 users.
+Send it at six pm tomorrow.	Send it at 6 PM tomorrow.
+Meet at 5:30 p.m.	Meet at 5:30 PM.
+Wake me at seven o'clock.	Wake me at 7 o'clock.
+The meeting is on the twenty first of june.	The meeting is on June 21.
+We started in twenty twenty two.	We started in 2022.
+My number is nine eight seven six five four three two one zero.	My number is 9876543210.
+It costs twenty dollars, right?	It costs $20, right?
+Growth was fifteen per cent.	Growth was 15%.
+Due on March 3rd, please.	Due on March 3, please.
+The file is two gb.	The file is 2 gb.

@@ -7,7 +7,9 @@ use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
+use crate::settings::{
+    get_settings, AppSettings, OverlayStyle, SmartCleanup, APPLE_INTELLIGENCE_PROVIDER_ID,
+};
 use crate::shortcut;
 use crate::tray::{set_tray_state, TrayIconState};
 use crate::utils::{
@@ -85,6 +87,37 @@ fn strip_think_block(s: &str) -> &str {
 /// Removes `${output}` placeholder since the transcription is sent as the user message.
 fn build_system_prompt(prompt_template: &str) -> String {
     prompt_template.replace("${output}", "").trim().to_string()
+}
+
+/// Words the AI must spell exactly: the user's custom words and the words it
+/// learned from corrections (build spec feature 12).
+fn spelling_words(settings: &AppSettings) -> Vec<String> {
+    let mut words: Vec<String> = Vec::new();
+    for word in settings
+        .custom_words
+        .iter()
+        .chain(settings.learned_corrections.iter().map(|c| &c.right))
+    {
+        let word = word.trim();
+        if !word.is_empty() && !words.iter().any(|w| w.eq_ignore_ascii_case(word)) {
+            words.push(word.to_string());
+        }
+    }
+    words.truncate(100);
+    words
+}
+
+/// Append "spell these exactly" to a cleanup prompt when there are words to
+/// protect. Works for any prompt, including ones the user wrote.
+fn with_spelling_list(prompt: String, settings: &AppSettings) -> String {
+    let words = spelling_words(settings);
+    if words.is_empty() {
+        return prompt;
+    }
+    format!(
+        "{prompt}\n\nSpell these words exactly as written when they appear: {}.",
+        words.join(", ")
+    )
 }
 
 /// Returns `true` when a transcription has no meaningful content to
@@ -175,6 +208,7 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
         debug!("Post-processing skipped because the selected prompt is empty");
         return None;
     }
+    let prompt = with_spelling_list(prompt, settings);
 
     debug!(
         "Starting LLM post-processing with provider '{}' (model: {})",
@@ -442,7 +476,20 @@ pub(crate) async fn process_transcription_output(
     }
 
     if post_process {
-        if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
+        let processed = post_process_transcription(&settings, &final_text)
+            .await
+            .filter(|processed_text| {
+                let safe = crate::audio_toolkit::cleanup::safety::ai_output_is_safe(
+                    &final_text,
+                    processed_text,
+                    &spelling_words(&settings),
+                );
+                if !safe {
+                    warn!("AI cleanup changed the meaning or added words; pasting the rule-cleaned text");
+                }
+                safe
+            });
+        if let Some(processed_text) = processed {
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
 
@@ -458,6 +505,18 @@ pub(crate) async fn process_transcription_output(
         }
     } else if final_text != transcription {
         post_processed_text = Some(final_text.clone());
+    }
+
+    // A snippet may ask for the clipboard ({clipboard}); fill it at paste time.
+    if final_text.contains("{clipboard}")
+        && settings
+            .snippets
+            .iter()
+            .any(|s| s.text.contains("{clipboard}"))
+    {
+        use tauri_plugin_clipboard_manager::ClipboardExt;
+        let clipboard = app.clipboard().read_text().unwrap_or_default();
+        final_text = final_text.replace("{clipboard}", &clipboard);
     }
 
     ProcessedTranscription {
@@ -673,7 +732,10 @@ impl ShortcutAction for TranscribeAction {
         play_feedback_sound(app, SoundType::Stop);
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
-        let post_process = self.post_process;
+                                                 // "Smart cleanup: Cloud AI" runs the AI step on every dictation, not
+                                                 // only from the separate post-process shortcut.
+        let post_process = self.post_process
+            || (!self.command && get_settings(app).smart_cleanup == SmartCleanup::CloudAi);
         let is_command = self.command;
         let cancel_generation = rm.cancel_generation();
 
@@ -772,6 +834,27 @@ impl ShortcutAction for TranscribeAction {
                                 transcription_time.elapsed(),
                                 utils::redact_text(&transcription)
                             );
+
+                            // Silence or noise: paste nothing rather than text the
+                            // model made up (build spec feature 6). The recorded
+                            // samples are voice only when voice detection is on.
+                            let speech_ms = get_settings(&ah)
+                                .vad_enabled
+                                .then(|| sample_count as u64 * 1000 / 16_000);
+                            if !is_command
+                                && crate::audio_toolkit::cleanup::phantom::should_discard(
+                                    &transcription,
+                                    speech_ms,
+                                )
+                            {
+                                debug!("No speech heard; nothing pasted");
+                                utils::show_command_feedback(
+                                    &ah,
+                                    &crate::tray_i18n::no_speech_label(&ah),
+                                );
+                                set_tray_state(&ah, TrayIconState::Idle);
+                                return;
+                            }
 
                             if is_command {
                                 // Commands are not dictation: nothing is pasted or

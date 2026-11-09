@@ -1,0 +1,9 @@
+# input	expected	(pass mark 90%)
+Three things: first, call Raj, second, send the deck, third, book the room	Three things:\n1. Call Raj\n2. Send the deck\n3. Book the room
+For tomorrow. First, call Raj. Second, send the deck. Thanks a lot	For tomorrow:\n1. Call Raj\n2. Send the deck\n\nThanks a lot
+number one milk number two eggs	1. Milk\n2. Eggs
+Groceries bullet point milk bullet point eggs	Groceries:\n- Milk\n- Eggs
+Agenda: one, budget, two, hiring, three, launch.	Agenda:\n1. Budget\n2. Hiring\n3. Launch
+Today, first, reply to emails, second, review the design.	Today:\n1. Reply to emails\n2. Review the design
+First of all, thanks for coming.	First of all, thanks for coming.
+One of them is mine.	One of them is mine.

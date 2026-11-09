@@ -1,0 +1,21 @@
+# input	expected	(rules only; pass mark 70%)
+Send it at 5, actually 6pm	Send it at 6pm
+Call me at 5 pm, sorry, 6 pm.	Call me at 6 PM.
+Meet Raj, sorry, no, Priya	Meet Priya
+Let's meet on Monday, no wait, Tuesday.	Let's meet on Tuesday.
+I'm flying to Pune, I mean to Delhi tomorrow.	I'm flying to Delhi tomorrow.
+The budget is 40, make that 50 thousand.	The budget is 50 thousand.
+Book it for Friday, actually Saturday.	Book it for Saturday.
+Ask Neha, I mean Kavya, to join.	Ask Kavya to join.
+We need 3, sorry, 4 chairs.	We need 4 chairs.
+Send the file to Amit, no wait, to Rohit.	Send the file to Rohit.
+The call is at 10, or rather 11.	The call is at 11.
+Thanks for the update. This part is wrong, scratch that, see you soon.	Thanks for the update. See you soon.
+Pick me up at 7, sorry, 8 tonight.	Pick me up at 8 tonight.
+Invite Sara, actually Meera, to the review.	Invite Meera to the review.
+The deadline is Thursday, I mean Friday.	The deadline is Friday.
+Order 2, no wait, 3 pizzas.	Order 3 pizzas.
+Let's go to Goa, I mean to Kerala in May.	Let's go to Kerala in May.
+Set the alarm for 6, actually 6:30.	Set the alarm for 6:30.
+Tell Priya, sorry, Anjali the news.	Tell Anjali the news.
+It costs 500, make that 600 rupees.	It costs ₹600.

@@ -1777,6 +1777,16 @@ fn post_process_transcription_text(
     supported_languages: &[String],
 ) -> String {
     fail_open_text_transform(raw, |raw| {
+        // Corrections the user taught Silktone come first: exact, so they win
+        // over the fuzzy custom-word pass below (build spec feature 8).
+        let learned: Vec<(String, String)> = settings
+            .learned_corrections
+            .iter()
+            .map(|c| (c.wrong.clone(), c.right.clone()))
+            .collect();
+        let raw =
+            crate::audio_toolkit::cleanup::snippets::apply_learned_corrections(&raw, &learned);
+
         let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
             apply_custom_words(
                 &raw,
@@ -1813,7 +1823,29 @@ fn post_process_transcription_text(
             settings.filler_word_removal_enabled,
         );
 
-        normalize_transcription_output(&without_fillers)
+        let normalized = normalize_transcription_output(&without_fillers);
+
+        let snippets: Vec<(String, String)> = settings
+            .snippets
+            .iter()
+            .map(|s| (s.trigger.clone(), s.text.clone()))
+            .collect();
+        // English rules run for English output, and for output whose language
+        // is unknown (other scripts never match their English trigger words).
+        let english = output_language
+            .language()
+            .map_or(true, |language| language.starts_with("en"));
+        crate::audio_toolkit::cleanup::apply_rule_cleanup(
+            &normalized,
+            &crate::audio_toolkit::cleanup::RuleCleanup {
+                spoken_punctuation: settings.spoken_punctuation_enabled,
+                numbers: settings.numbers_as_digits_enabled,
+                lists: settings.format_lists_enabled,
+                self_corrections: settings.self_corrections_enabled,
+                english,
+                snippets: &snippets,
+            },
+        )
     })
 }
 

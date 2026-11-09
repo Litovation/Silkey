@@ -80,3 +80,14 @@ mod tests {
         }
     }
 }
+
+/// "No speech heard", in the app language, for the overlay.
+pub fn no_speech_label(app: &tauri::AppHandle) -> String {
+    let language = crate::settings::get_settings(app).app_language;
+    let label = get_tray_translations(Some(language)).no_speech;
+    if label.is_empty() {
+        get_tray_translations(Some("en".to_string())).no_speech
+    } else {
+        label
+    }
+}

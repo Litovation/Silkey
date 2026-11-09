@@ -285,7 +285,7 @@ pub enum OutputLanguageEvidence {
 }
 
 impl OutputLanguageEvidence {
-    fn language(&self) -> Option<&str> {
+    pub fn language(&self) -> Option<&str> {
         match self {
             Self::UserSelected(language)
             | Self::ModelConstrained(language)
@@ -322,40 +322,152 @@ fn gated_filler_words_for_language(lang: &str) -> &'static [&'static str] {
 
 static MULTI_SPACE_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s{2,}").unwrap());
 
-/// Collapses repeated words (3+ repetitions) to a single instance.
-/// E.g., "wh wh wh wh" -> "wh", "I I I I" -> "I"
+/// Word pairs that are real English when said twice ("had had", "bye bye"),
+/// so a double is kept. Three or more repeats still collapse.
+const KEEP_DOUBLED: &[&str] = &[
+    "had", "that", "very", "bye", "so", "no", "ha", "yes", "really", "now", "well",
+];
+
+/// Numbers repeat on purpose (years, phone numbers: "twenty twenty",
+/// "nine two two"), so number words never count as stutters.
+const NUMBER_WORDS: &[&str] = &[
+    "zero",
+    "oh",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+    "twenty",
+    "thirty",
+    "forty",
+    "fifty",
+    "sixty",
+    "seventy",
+    "eighty",
+    "ninety",
+    "hundred",
+    "thousand",
+    "double",
+    "triple",
+];
+
+fn is_number_key(key: &str) -> bool {
+    NUMBER_WORDS.contains(&key) || key.chars().all(|c| c.is_ascii_digit())
+}
+
+/// Lowercase alphanumeric core of a word, for comparing repeats.
+fn repeat_key(word: &str) -> String {
+    word.trim_matches(|c: char| !c.is_alphanumeric())
+        .to_lowercase()
+}
+
+fn capitalize_word(word: &str) -> String {
+    let mut chars = word.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+        None => String::new(),
+    }
+}
+
+/// Collapses stutters (build spec feature 2):
+/// - a word said twice or more ("the the plan" -> "the plan"), except a
+///   doubled word that is real English ("had had", "bye bye");
+/// - a restart, a run of two to five words said again straight away
+///   ("I went to the, I went to the store" -> "I went to the store");
+/// - a cut-off fragment before the full word ("wh- what" -> "what").
 fn collapse_stutters(text: &str) -> String {
     let words: Vec<&str> = text.split_whitespace().collect();
     if words.is_empty() {
         return text.to_string();
     }
+    let keys: Vec<String> = words.iter().map(|w| repeat_key(w)).collect();
 
-    let mut result: Vec<&str> = Vec::new();
+    let mut words: Vec<String> = words.into_iter().map(str::to_string).collect();
+    let mut result: Vec<String> = Vec::new();
     let mut i = 0;
 
-    while i < words.len() {
-        let word = words[i];
-        let word_lower = word.to_lowercase();
+    'outer: while i < words.len() {
+        let word = words[i].clone();
+        let word = word.as_str();
+        let key = &keys[i];
 
-        if word_lower.chars().all(|c| c.is_alphabetic()) {
-            // Count consecutive repetitions (case-insensitive)
+        // A fragment like "wh-" or "th-" before the word it starts.
+        if word.ends_with('-') && key.len() < 5 {
+            if let Some(next) = keys.get(i + 1) {
+                if !key.is_empty() && next.starts_with(key.as_str()) && next.len() > key.len() {
+                    i += 1;
+                    continue;
+                }
+            }
+        }
+
+        // A restart: words[i..i+n] said again right after. Keep the last copy.
+        for n in (2..=5).rev() {
+            if i + 2 * n > words.len() {
+                continue;
+            }
+            let first = &keys[i..i + n];
+            // One word repeated is a stutter, handled below.
+            if first.iter().any(|k| k.is_empty() || is_number_key(k))
+                || first.iter().all(|k| *k == first[0])
+            {
+                continue;
+            }
+            if first == &keys[i + n..i + 2 * n] {
+                // A dropped first copy hands its capital letter on.
+                if words[i].starts_with(char::is_uppercase) {
+                    words[i + n] = capitalize_word(&words[i + n]);
+                }
+                i += n;
+                continue 'outer;
+            }
+        }
+
+        if !key.is_empty()
+            && !is_number_key(key)
+            && key.chars().all(|c| c.is_alphabetic() || c == '\'')
+        {
             let mut count = 1;
-            while i + count < words.len() && words[i + count].to_lowercase() == word_lower {
+            while i + count < words.len() && keys[i + count] == *key {
                 count += 1;
             }
-
-            // If 3+ repetitions, collapse to single instance
-            if count >= 3 {
-                result.push(word);
+            let keep_double = count == 2 && KEEP_DOUBLED.contains(&key.as_str());
+            if count >= 2 && !keep_double {
+                // Keep the first spelling with the last copy's punctuation.
+                let last = words[i + count - 1].as_str();
+                let trail_start = last
+                    .rfind(|c: char| c.is_alphanumeric())
+                    .map(|p| p + last[p..].chars().next().map_or(1, char::len_utf8))
+                    .unwrap_or(last.len());
+                let core = word.trim_end_matches(|c: char| !c.is_alphanumeric());
+                result.push(format!("{core}{}", &last[trail_start..]));
                 i += count;
-            } else {
-                result.push(word);
-                i += 1;
+                continue;
             }
-        } else {
-            result.push(word);
-            i += 1;
+            if keep_double {
+                result.push(words[i].to_string());
+                result.push(words[i + 1].to_string());
+                i += 2;
+                continue;
+            }
         }
+        result.push(word.to_string());
+        i += 1;
     }
 
     result.join(" ")
@@ -577,6 +689,35 @@ mod tests {
         let text = "no no is fine";
         let result = filter_transcription_output(text, "en", &None);
         assert_eq!(result, "no no is fine");
+    }
+
+    #[test]
+    fn test_stutter_collapses_two_repeats() {
+        let result = filter_transcription_output("I I think the the plan works", "en", &None);
+        assert_eq!(result, "I think the plan works");
+    }
+
+    #[test]
+    fn test_stutter_keeps_real_doubles() {
+        for text in [
+            "She had had enough",
+            "bye bye see you",
+            "it was very very good",
+        ] {
+            assert_eq!(filter_transcription_output(text, "en", &None), text);
+        }
+    }
+
+    #[test]
+    fn test_stutter_restart_keeps_last_copy() {
+        let result = filter_transcription_output("I went to the, I went to the store", "en", &None);
+        assert_eq!(result, "I went to the store");
+    }
+
+    #[test]
+    fn test_stutter_fragment_keeps_full_word() {
+        let result = filter_transcription_output("wh- what did th- the team say", "en", &None);
+        assert_eq!(result, "what did the team say");
     }
 
     #[test]

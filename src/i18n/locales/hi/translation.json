@@ -7,7 +7,8 @@
     "model": "मॉडल",
     "quit": "बाहर निकलें",
     "cancel": "रद्द करें",
-    "secureInputWarning": "⚠ Secure Input ने शॉर्टकट ब्लॉक किए हैं"
+    "secureInputWarning": "⚠ Secure Input ने शॉर्टकट ब्लॉक किए हैं",
+    "noSpeech": "कोई आवाज़ नहीं सुनी"
   },
   "sidebar": {
     "general": "टोन",

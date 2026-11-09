@@ -1,0 +1,10 @@
+# input	expected	(pass mark 95%)
+Hi Raj comma new line thanks for the update period	Hi Raj,\nThanks for the update.
+Hi Raj, comma, new line, thanks for the update, period.	Hi Raj,\nThanks for the update.
+are you coming question mark	are you coming?
+great news exclamation mark	great news!
+mail raj at the rate gmail dot com	mail raj@gmail.com
+see you new paragraph regards	see you\n\nRegards
+he said open quote hello close quote	he said "hello"
+note colon bring the laptop	note colon bring the laptop
+type literal comma here	type comma here
