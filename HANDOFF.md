@@ -7,7 +7,15 @@ Last updated: 2026-11-09. Repo: `github.com/Litovation/Silkey`.
 `claude/peaceful-fermi-g3aiab`, not yet on `main` or released.** See the
 two sections starting at "Accuracy, Silktone bar and dashboard" below. The
 latest released version is **0.1.6** (9 Oct 2026); the release workflow only
-accepts a higher version, so the next release is 0.1.7 or later.
+accepts a higher version, so the next release is 0.1.7 or later. The owner
+asked for this branch to carry **0.1.5** (app version and release notes):
+fine for test builds, but a 0.1.5 release cannot be published (the workflow
+refuses it, and installed 0.1.6 copies would never update to it). Release it
+as 0.1.7, renaming `src/content/release-notes/0.1.5.md` to match.
+
+Linux: `claude/silktone-linux` is the same app plus a Linux build workflow
+(`.github/workflows/silktone-linux.yml`, .deb and AppImage, unsigned, updater
+off). Keep it in step with this branch by merging this branch into it.
 
 Branches:
 
@@ -452,6 +460,37 @@ Razorpay KYC is done; the website still lacks refund and contact pages.
   Run it only when the owner types it.
 - Copies installed before this (0.1.0 builds) cannot update themselves and
   need one manual install.
+
+## Window frame and status ledge (2026-11-09)
+
+On Windows and Linux the main window has no native title bar any more. It is
+see-through (`decorations(false)`, `transparent(true)`, `shadow(false)` in
+`lib.rs`, size `MAIN_WINDOW_SIZE`) and the app draws its own frame,
+`src/components/frame/WindowFrame.tsx` + `.css`:
+
+- A rounded shape whose bottom right steps down into a **ledge** (the owner
+  picked design 1 "Ledge" from `dev/frame-variants.html`). The ledge is
+  translucent with a violet-to-pink tint; its status (Ready, Quality
+  Low/Medium/High, language, version) sits on near-solid chips so the text
+  stays readable over any wallpaper.
+- A 14 px transparent margin holds a soft shadow drawn from the same SVG path
+  (content is never filtered, for scroll speed). A hairline edge with a slow
+  violet-to-pink light runs along the outline; it pauses when the window loses
+  focus and is off with reduced motion. Maximized: no margin, square corners.
+- Own drag strip (32 px, `data-tauri-drag-region`) with minimize / maximize /
+  close (close hides to the tray as before), and resize edges along the visible
+  outline. Permissions for these are in `capabilities/default.json`.
+- `.silk-content` has a transform so `position: fixed` screens fill the shape;
+  `.h-screen` inside it means the shape's height. Dialogs and the settings
+  sheet render into `#silk-portal` (`src/lib/portalRoot.ts`) so their backdrop
+  stays inside the shape. Tooltips still go to `document.body`.
+- The old bottom version bar (`components/footer`) is gone; the version is on
+  the ledge and next to the wordmark.
+- macOS keeps its native window (not built or tested here).
+
+Untested on a real PC: drag, resize, snap layouts, maximize, and how the
+transparent margin behaves (clicks in the see-through areas still land on the
+window, not on what is behind it). Linux needs a compositor for transparency.
 
 ## Placeholders that do nothing yet
 
