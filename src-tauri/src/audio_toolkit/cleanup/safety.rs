@@ -83,6 +83,11 @@ const STOPWORDS: &[&str] = &[
     "paragraph",
     "question",
     "mark",
+    "press",
+    "enter",
+    "break",
+    "next",
+    "newline",
 ];
 
 fn words(text: &str) -> impl Iterator<Item = &str> {

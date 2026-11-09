@@ -40,6 +40,9 @@ const COMMANDS: &[(&[&str], Mark, bool)] = &[
     (&["next", "paragraph"], Mark::NewParagraph, false),
     (&["new", "line"], Mark::NewLine, false),
     (&["next", "line"], Mark::NewLine, false),
+    (&["press", "enter"], Mark::NewLine, false),
+    (&["hit", "enter"], Mark::NewLine, false),
+    (&["line", "break"], Mark::NewLine, false),
     (&["question", "mark"], Mark::Trailing("?"), false),
     (&["exclamation", "mark"], Mark::Trailing("!"), false),
     (&["exclamation", "point"], Mark::Trailing("!"), false),
@@ -59,6 +62,8 @@ const COMMANDS: &[(&[&str], Mark, bool)] = &[
     (&["period"], Mark::Trailing("."), true),
     (&["colon"], Mark::Trailing(":"), true),
     (&["dash"], Mark::Dash, true),
+    // "Enter" alone is a line break only where it cannot be the verb.
+    (&["enter"], Mark::NewLine, true),
 ];
 
 enum Piece {

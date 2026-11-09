@@ -30,6 +30,31 @@ type PostProcessProviderState = {
 
 const APPLE_PROVIDER_ID = "apple_intelligence";
 
+/**
+ * Fast, low-cost models that clean up dictation well, in order of preference.
+ * Used to pick one automatically when a key is added and no model is chosen,
+ * since a key without a model leaves AI cleanup switched off.
+ */
+const PREFERRED_MODELS: RegExp[] = [
+  /(^|\/)gpt-4\.1-mini$/,
+  /(^|\/)gpt-4o-mini$/,
+  /(^|\/)gemini-[\d.]+-flash-lite$/,
+  /(^|\/)gemini-[\d.]+-flash$/,
+  /(^|\/)claude-[\w.-]*haiku[\w.-]*$/,
+  /llama-3\.3-70b/,
+  /llama-3\.1-8b-instant/,
+  /(^|\/)[\w.-]*mini$/,
+  /(^|\/)[\w.-]*flash$/,
+];
+
+export const pickDefaultModel = (models: string[]): string | undefined => {
+  for (const pattern of PREFERRED_MODELS) {
+    const match = models.find((id) => pattern.test(id));
+    if (match) return match;
+  }
+  return undefined;
+};
+
 export const usePostProcessProviderState = (): PostProcessProviderState => {
   const {
     settings,
@@ -132,11 +157,28 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
   const handleApiKeyChange = useCallback(
     (value: string) => {
       const trimmed = value.trim();
-      if (trimmed !== apiKey) {
-        void updatePostProcessApiKey(selectedProviderId, trimmed);
-      }
+      if (trimmed === apiKey) return;
+      void (async () => {
+        await updatePostProcessApiKey(selectedProviderId, trimmed);
+        // A new key with no model chosen: fetch the list and pick a fast one.
+        if (!trimmed || model.trim() || selectedProviderId === "custom") {
+          return;
+        }
+        const models = await fetchPostProcessModels(selectedProviderId);
+        const picked = pickDefaultModel(models);
+        if (picked) {
+          await updatePostProcessModel(selectedProviderId, picked);
+        }
+      })();
     },
-    [apiKey, selectedProviderId, updatePostProcessApiKey],
+    [
+      apiKey,
+      model,
+      selectedProviderId,
+      updatePostProcessApiKey,
+      fetchPostProcessModels,
+      updatePostProcessModel,
+    ],
   );
 
   const handleModelChange = useCallback(

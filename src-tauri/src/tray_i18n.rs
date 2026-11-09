@@ -89,6 +89,15 @@ pub fn overlay_label(app: &tauri::AppHandle, key: &str) -> String {
         "selectFirst" => strings.select_first,
         "needsAi" => strings.needs_ai,
         "aiFailed" => strings.ai_failed,
+        "aiNoProvider" => strings.ai_no_provider,
+        "aiNoKey" => strings.ai_no_key,
+        "aiNoModel" => strings.ai_no_model,
+        "aiBadKey" => strings.ai_bad_key,
+        "aiNoCredits" => strings.ai_no_credits,
+        "aiModelNotFound" => strings.ai_model_not_found,
+        "aiRateLimited" => strings.ai_rate_limited,
+        "aiUnreachable" => strings.ai_unreachable,
+        "aiCleanupFailed" => strings.ai_cleanup_failed,
         _ => String::new(),
     };
     let language = crate::settings::get_settings(app).app_language;

@@ -20,6 +20,7 @@ import { CustomWords } from "../CustomWords";
 import { ShortcutInput } from "../ShortcutInput";
 import { Button } from "../../ui/Button";
 import { useSettings } from "../../../hooks/useSettings";
+import { AiCleanupCheck } from "./AiCleanupCheck";
 
 type ContextToggle =
   | "context_app_name"
@@ -51,14 +52,16 @@ const CHEAT_SHEET: [string, string][] = [
   ["dash", "-"],
   ["open quote … close quote", '" "'],
   ["open bracket … close bracket", "( )"],
-  ["new line", "↵"],
+  ["new line / press enter", "↵"],
   ["new paragraph", "↵↵"],
   ["at the rate / at sign", "@"],
   ["literal comma", "comma"],
 ];
 
 /** Every text-quality choice in one place (build spec "New settings and screens"). */
-export const WritingSettings: React.FC = () => {
+export const WritingSettings: React.FC<{ onOpenPostProcess?: () => void }> = ({
+  onOpenPostProcess,
+}) => {
   const { t } = useTranslation();
   const { settings, getSetting, updateSetting, isUpdating, refreshSettings } =
     useSettings();
@@ -115,10 +118,8 @@ export const WritingSettings: React.FC = () => {
             disabled={isUpdating("smart_cleanup")}
           />
         </SettingContainer>
-        {smartCleanup === "cloud_ai" && !providerReady && (
-          <p className="px-4 py-3 text-xs text-amber-600">
-            {t("writing.smartCleanup.needsProvider")}
-          </p>
+        {smartCleanup === "cloud_ai" && (
+          <AiCleanupCheck onOpenPostProcess={onOpenPostProcess} />
         )}
         <p className="px-4 py-3 text-xs text-text/55">
           {t("writing.smartCleanup.localSoon")}

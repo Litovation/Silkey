@@ -18,6 +18,10 @@ const TRIGGERS: &[&[&str]] = &[
     &["sorry"],
 ];
 
+/// Triggers that also count without a pause before them ("at 5 PM actually at
+/// 8 PM"), but only when a number, time or day follows; see `strict_target`.
+const LOOSE_TRIGGERS: &[&str] = &["actually", "sorry", "i", "or"];
+
 /// Extra words that often trail a trigger ("sorry, no, Priya").
 const TRAILERS: &[&str] = &["no", "wait", "sorry", "actually"];
 
@@ -156,11 +160,30 @@ fn item_len(tokens: &[&str], kind: Kind) -> usize {
     len
 }
 
+/// Without a pause, a correction must name a number, time or day, directly
+/// ("actually 8 PM") or after a repeated lead word ("actually at 8 PM"), so
+/// "I actually liked it" or "sorry I'm late" never change.
+fn strict_target(after: &[&str]) -> bool {
+    let is_target = |token: &&str| matches!(kind_of(token), Some(Kind::Number | Kind::Day));
+    match after {
+        [first, ..] if is_target(first) => true,
+        [first, second, ..] => kind_of(first).is_none() && is_target(second),
+        _ => false,
+    }
+}
+
 /// Where the corrected item starts in `before`, if the correction applies.
-fn replacement_start(before: &[String], after: &[&str]) -> Option<usize> {
+/// `across_sentence`: the trigger opened a new sentence ("5 PM. Actually, 8
+/// PM."), so the sentence before it is the one being corrected.
+fn replacement_start(before: &[String], after: &[&str], across_sentence: bool) -> Option<usize> {
     let first = after.first()?;
+    let search = if across_sentence {
+        &before[..before.len().saturating_sub(1)]
+    } else {
+        before
+    };
     // Only look back over the current clause, at most six words.
-    let clause_start = before
+    let clause_start = search
         .iter()
         .rposition(|token| ends_sentence(token))
         .map(|position| position + 1)
@@ -212,11 +235,16 @@ pub fn apply_self_corrections(text: &str) -> String {
     let mut i = 0;
     while i < tokens.len() {
         let after_pause = out.last().is_some_and(|previous| ends_with_pause(previous));
+        let after_sentence = out.last().is_some_and(|previous| ends_sentence(previous));
         let trigger = if after_pause {
+            match_trigger(&tokens, i)
+        } else if !out.is_empty() && LOOSE_TRIGGERS.contains(&bare(tokens[i]).as_str()) {
+            // No pause: only the plainest triggers, checked further below.
             match_trigger(&tokens, i)
         } else {
             None
         };
+        let strict = !after_pause;
         let Some(trigger_len) = trigger else {
             if capitalize_next {
                 out.push(capitalize_first(tokens[i]));
@@ -253,7 +281,12 @@ pub fn apply_self_corrections(text: &str) -> String {
         }
 
         let rest = &tokens[next..];
-        match replacement_start(&out, rest) {
+        let start = if strict && !strict_target(rest) {
+            None
+        } else {
+            replacement_start(&out, rest, strict && after_sentence)
+        };
+        match start {
             Some(start) => {
                 let kind = kind_of(rest[0]).unwrap_or(Kind::Name);
                 let len = if kind_of(rest[0]).is_some() {
@@ -265,6 +298,15 @@ pub fn apply_self_corrections(text: &str) -> String {
                         .map(|position| position + 1)
                         .unwrap_or(rest.len())
                 };
+                // Across a full stop, the new sentence must be only the
+                // correction ("Actually, at 8 PM."), not a new thought that
+                // happens to start with a number ("Actually, 5 people came").
+                let whole_sentence = len == rest.len() || ends_sentence(rest[len - 1]);
+                if strict && after_sentence && !whole_sentence {
+                    out.push(tokens[i].to_string());
+                    i += 1;
+                    continue;
+                }
                 // Keep the punctuation that ended the replaced item.
                 out.truncate(start);
                 for token in &rest[..len] {

@@ -362,6 +362,19 @@ async changeSmartCleanupSetting(mode: SmartCleanup) : Promise<Result<null, strin
 }
 },
 /**
+ * Run AI cleanup once on a sample sentence with the current settings, so the
+ * settings page can show whether it works and, if not, why. Returns the
+ * cleaned sample, or an error code (see `AiCleanupError::code`).
+ */
+async testAiCleanup() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("test_ai_cleanup") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Replace the snippet list. Rows without a trigger or text are dropped.
  */
 async updateSnippets(snippets: Snippet[]) : Promise<Result<null, string>> {
