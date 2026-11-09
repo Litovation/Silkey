@@ -1,0 +1,87 @@
+# Builds Silktone for Linux (x86_64): a .deb package and an AppImage, as
+# downloadable artifacts of the run. Test builds only: unsigned, and the
+# updater is compiled off (there is no Linux release feed yet).
+name: Build Silktone for Linux
+on:
+  push:
+    branches: ["claude/silktone-linux"]
+    paths-ignore:
+      - scripts/laya/**
+      - .github/workflows/laya-onnx.yml
+      - .github/workflows/silktone-windows.yml
+      - .github/workflows/silktone-release.yml
+      - "**.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: linux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  linux:
+    # 22.04 keeps the glibc floor low, so the AppImage runs on older distros.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    env:
+      SILKTONE_UPDATES_ENABLED: "0"
+      # linuxdeploy's bundled strip is too old for some system libraries.
+      NO_STRIP: "true"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential clang libclang-dev cmake pkg-config patchelf file \
+            libevdev-dev libasound2-dev libssl-dev libopenblas-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+            librsvg2-dev libgtk-layer-shell0 libgtk-layer-shell-dev \
+            libxdo-dev
+      # The Vulkan SDK brings current headers, glslc and SPIRV-Headers for the
+      # speech engine's GPU backend (Ubuntu 22.04's are too old).
+      - uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.309.0
+          cache: true
+      # Bun comes from npm, not GitHub release downloads (those kept timing out).
+      - name: Install Bun
+        run: |
+          npm install --global bun@1.4.2
+          bun --version
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          shared-key: silktone-linux
+      # Compiler errors become public annotations (job logs need a GitHub login).
+      - run: echo "::add-matcher::.github/rust-errors-matcher.json"
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build .deb
+        run: bun run tauri build --bundles deb
+      # The AppImage step downloads linuxdeploy from GitHub, which has been
+      # flaky; a failure there must not lose the .deb above. It reuses the
+      # compiled app, so it only adds a few minutes.
+      - name: Build AppImage
+        id: appimage
+        continue-on-error: true
+        run: bun run tauri build --bundles appimage
+      - name: List packages
+        run: |
+          ls -la src-tauri/target/release/bundle/deb || true
+          ls -la src-tauri/target/release/bundle/appimage || true
+      - name: Upload .deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: Silktone-Linux-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload AppImage
+        if: steps.appimage.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Silktone-Linux-AppImage
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: warn
+          retention-days: 14
