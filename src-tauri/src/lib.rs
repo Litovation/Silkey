@@ -708,6 +708,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::update_custom_words,
             writing::change_writing_setting,
             writing::change_smart_cleanup_setting,
+            actions::test_ai_cleanup,
             writing::update_snippets,
             writing::learn_correction,
             writing::forget_correction,

@@ -155,21 +155,128 @@ fn should_use_streaming_overlay(style: OverlayStyle, is_streaming: bool) -> bool
     style == OverlayStyle::Live && is_streaming
 }
 
+/// What AI cleanup still needs before it can run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Missing {
+    Provider,
+    Key,
+    Model,
+    Prompt,
+}
+
+#[derive(Debug)]
+pub(crate) enum AiCleanupError {
+    /// Nothing was said, so there is nothing to clean.
+    Empty,
+    /// Setup in Post Process is incomplete.
+    NotSetUp(Missing),
+    /// The provider was asked and the request failed.
+    Failed(String),
+}
+
+impl AiCleanupError {
+    /// A short code the settings page and the overlay turn into a sentence.
+    pub(crate) fn code(&self) -> &'static str {
+        match self {
+            AiCleanupError::Empty => "empty",
+            AiCleanupError::NotSetUp(Missing::Provider) => "missingProvider",
+            AiCleanupError::NotSetUp(Missing::Key) => "missingKey",
+            AiCleanupError::NotSetUp(Missing::Model) => "missingModel",
+            AiCleanupError::NotSetUp(Missing::Prompt) => "missingPrompt",
+            AiCleanupError::Failed(error) => classify_ai_error(error),
+        }
+    }
+}
+
+/// Sort a provider error into what the user can do about it.
+fn classify_ai_error(error: &str) -> &'static str {
+    let lower = error.to_lowercase();
+    let status = |code: &str| lower.contains(&format!("status {code}"));
+    if status("401") || status("403") {
+        "badKey"
+    } else if status("402") || lower.contains("insufficient credits") || lower.contains("quota") {
+        "noCredits"
+    } else if status("404")
+        || (lower.contains("model")
+            && (lower.contains("not found")
+                || lower.contains("does not exist")
+                || lower.contains("not a valid model")))
+    {
+        "modelNotFound"
+    } else if status("429") {
+        "rateLimited"
+    } else if lower.contains("error sending request")
+        || lower.contains("dns")
+        || lower.contains("connect")
+        || lower.contains("timed out")
+        || lower.contains("timeout")
+    {
+        "unreachable"
+    } else {
+        "failed"
+    }
+}
+
+/// The overlay message for an AI cleanup problem.
+fn ai_problem_label_key(code: &str) -> &'static str {
+    match code {
+        "missingProvider" => "aiNoProvider",
+        "missingKey" => "aiNoKey",
+        "missingModel" | "missingPrompt" => "aiNoModel",
+        "badKey" => "aiBadKey",
+        "noCredits" => "aiNoCredits",
+        "modelNotFound" => "aiModelNotFound",
+        "rateLimited" => "aiRateLimited",
+        "unreachable" => "aiUnreachable",
+        _ => "aiCleanupFailed",
+    }
+}
+
+/// The same AI cleanup problem is shown at most this often.
+const AI_PROBLEM_NOTICE_EVERY: std::time::Duration = std::time::Duration::from_secs(10 * 60);
+static LAST_AI_PROBLEM: std::sync::Mutex<Option<(&'static str, Instant)>> =
+    std::sync::Mutex::new(None);
+
+/// Tell the user why AI cleanup did not run (the rule-cleaned text is pasted).
+fn notify_ai_cleanup_problem(app: &AppHandle, error: &AiCleanupError) {
+    let code = error.code();
+    warn!("AI cleanup did not run: {code} ({error:?})");
+    let now = Instant::now();
+    if let Ok(mut last) = LAST_AI_PROBLEM.lock() {
+        if let Some((last_code, at)) = *last {
+            if last_code == code && now.duration_since(at) < AI_PROBLEM_NOTICE_EVERY {
+                return;
+            }
+        }
+        *last = Some((code, now));
+    }
+    let label = crate::tray_i18n::overlay_label(app, ai_problem_label_key(code));
+    crate::overlay::show_command_feedback(app, &label);
+}
+
+/// Errors that a second attempt in another request format cannot fix.
+fn is_account_error(error: &str) -> bool {
+    matches!(
+        classify_ai_error(error),
+        "badKey" | "noCredits" | "modelNotFound"
+    )
+}
+
 async fn post_process_transcription(
     settings: &AppSettings,
     transcription: &str,
     extra_instructions: &str,
-) -> Option<String> {
+) -> Result<String, AiCleanupError> {
     if is_blank_transcription(transcription) {
         debug!("Post-processing skipped because the transcription is empty");
-        return None;
+        return Err(AiCleanupError::Empty);
     }
 
     let provider = match settings.active_post_process_provider().cloned() {
         Some(provider) => provider,
         None => {
             debug!("Post-processing enabled but no provider is selected");
-            return None;
+            return Err(AiCleanupError::NotSetUp(Missing::Provider));
         }
     };
 
@@ -184,35 +291,36 @@ async fn post_process_transcription(
             "Post-processing skipped because provider '{}' has no model configured",
             provider.id
         );
-        return None;
+        return Err(AiCleanupError::NotSetUp(Missing::Model));
     }
 
-    let selected_prompt_id = match &settings.post_process_selected_prompt_id {
-        Some(id) => id.clone(),
-        None => {
-            debug!("Post-processing skipped because no prompt is selected");
-            return None;
-        }
-    };
+    let api_key = settings
+        .post_process_api_keys
+        .get(&provider.id)
+        .cloned()
+        .unwrap_or_default();
+    let keyless = provider.id == "custom" || provider.id == APPLE_INTELLIGENCE_PROVIDER_ID;
+    if api_key.trim().is_empty() && !keyless {
+        debug!(
+            "Post-processing skipped because provider '{}' has no API key",
+            provider.id
+        );
+        return Err(AiCleanupError::NotSetUp(Missing::Key));
+    }
 
-    let prompt = match settings
-        .post_process_prompts
-        .iter()
-        .find(|prompt| prompt.id == selected_prompt_id)
-    {
-        Some(prompt) => prompt.prompt.clone(),
-        None => {
-            debug!(
-                "Post-processing skipped because prompt '{}' was not found",
-                selected_prompt_id
-            );
-            return None;
-        }
-    };
+    // The selected prompt, else the first one (the default cleanup prompt):
+    // no prompt picked must not mean no cleanup.
+    let prompt = settings
+        .post_process_selected_prompt_id
+        .as_ref()
+        .and_then(|id| settings.post_process_prompts.iter().find(|p| &p.id == id))
+        .or_else(|| settings.post_process_prompts.first())
+        .map(|prompt| prompt.prompt.clone())
+        .unwrap_or_default();
 
     if prompt.trim().is_empty() {
         debug!("Post-processing skipped because the selected prompt is empty");
-        return None;
+        return Err(AiCleanupError::NotSetUp(Missing::Prompt));
     }
     let prompt = format!(
         "{}{extra_instructions}",
@@ -223,12 +331,6 @@ async fn post_process_transcription(
         "Starting LLM post-processing with provider '{}' (model: {})",
         provider.id, model
     );
-
-    let api_key = settings
-        .post_process_api_keys
-        .get(&provider.id)
-        .cloned()
-        .unwrap_or_default();
 
     // Ask these providers to skip reasoning/thinking — post-processing rarely
     // benefits from it and it adds seconds of latency. llm_client picks the
@@ -249,7 +351,9 @@ async fn post_process_transcription(
                     debug!(
                         "Apple Intelligence selected but not currently available on this device"
                     );
-                    return None;
+                    return Err(AiCleanupError::Failed(
+                        "Apple Intelligence is not available on this Mac".to_string(),
+                    ));
                 }
 
                 let token_limit = model.trim().parse::<i32>().unwrap_or(0);
@@ -261,19 +365,19 @@ async fn post_process_transcription(
                     Ok(result) => {
                         if result.trim().is_empty() {
                             debug!("Apple Intelligence returned an empty response");
-                            None
+                            Err(AiCleanupError::Failed("empty answer".to_string()))
                         } else {
                             let result = strip_invisible_chars(&result);
                             debug!(
                                 "Apple Intelligence post-processing succeeded. Output length: {} chars",
                                 result.len()
                             );
-                            Some(result)
+                            Ok(result)
                         }
                     }
                     Err(err) => {
                         error!("Apple Intelligence post-processing failed: {}", err);
-                        None
+                        Err(AiCleanupError::Failed(err))
                     }
                 };
             }
@@ -281,7 +385,9 @@ async fn post_process_transcription(
             #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
             {
                 debug!("Apple Intelligence provider selected on unsupported platform");
-                return None;
+                return Err(AiCleanupError::Failed(
+                    "Apple Intelligence needs a Mac".to_string(),
+                ));
             }
         }
 
@@ -323,10 +429,10 @@ async fn post_process_transcription(
                                 provider.id,
                                 result.len()
                             );
-                            return Some(result);
+                            return Ok(result);
                         } else {
                             error!("Structured output response missing 'transcription' field");
-                            return Some(strip_invisible_chars(content));
+                            return Ok(strip_invisible_chars(content));
                         }
                     }
                     Err(e) => {
@@ -334,13 +440,19 @@ async fn post_process_transcription(
                             "Failed to parse structured output JSON: {}. Returning raw content.",
                             e
                         );
-                        return Some(strip_invisible_chars(content));
+                        return Ok(strip_invisible_chars(content));
                     }
                 }
             }
             Ok(None) => {
                 error!("LLM API response has no content");
-                return None;
+                return Err(AiCleanupError::Failed("empty answer".to_string()));
+            }
+            // A refused key, empty account or unknown model fails the same
+            // way in legacy mode: report it rather than asking twice.
+            Err(e) if is_account_error(&e) => {
+                error!("AI cleanup failed for provider '{}': {}", provider.id, e);
+                return Err(AiCleanupError::Failed(e));
             }
             Err(e) => {
                 warn!(
@@ -372,11 +484,11 @@ async fn post_process_transcription(
                 provider.id,
                 content.len()
             );
-            Some(content)
+            Ok(content)
         }
         Ok(None) => {
             error!("LLM API response has no content");
-            None
+            Err(AiCleanupError::Failed("empty answer".to_string()))
         }
         Err(e) => {
             error!(
@@ -384,7 +496,7 @@ async fn post_process_transcription(
                 provider.id,
                 e
             );
-            None
+            Err(AiCleanupError::Failed(e))
         }
     }
 }
@@ -495,19 +607,29 @@ pub(crate) async fn process_transcription_output(
         extra.push_str(&crate::voice_ai::style_block(
             &crate::voice_ai::style_examples(app, &settings).await,
         ));
-        let processed = post_process_transcription(&settings, &final_text, &extra)
-            .await
-            .filter(|processed_text| {
-                let safe = crate::audio_toolkit::cleanup::safety::ai_output_is_safe(
-                    &final_text,
-                    processed_text,
-                    &spelling_words(&settings),
+        let processed = match post_process_transcription(&settings, &final_text, &extra).await {
+            Ok(text) => Some(text),
+            Err(AiCleanupError::Empty) => None,
+            Err(error) => {
+                // Say why, once in a while, so "Cloud AI" never fails silently;
+                // the rule-cleaned text is pasted either way.
+                notify_ai_cleanup_problem(app, &error);
+                None
+            }
+        }
+        .filter(|processed_text| {
+            let safe = crate::audio_toolkit::cleanup::safety::ai_output_is_safe(
+                &final_text,
+                processed_text,
+                &spelling_words(&settings),
+            );
+            if !safe {
+                warn!(
+                    "AI cleanup changed the meaning or added words; pasting the rule-cleaned text"
                 );
-                if !safe {
-                    warn!("AI cleanup changed the meaning or added words; pasting the rule-cleaned text");
-                }
-                safe
-            });
+            }
+            safe
+        });
         if let Some(processed_text) = processed {
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
@@ -1222,4 +1344,20 @@ mod tests {
         assert!(!should_use_streaming_overlay(OverlayStyle::Minimal, true));
         assert!(!should_use_streaming_overlay(OverlayStyle::None, true));
     }
+}
+
+/// Run AI cleanup once on a sample sentence with the current settings, so the
+/// settings page can show whether it works and, if not, why. Returns the
+/// cleaned sample, or an error code (see `AiCleanupError::code`).
+#[tauri::command]
+#[specta::specta]
+pub async fn test_ai_cleanup(app: AppHandle) -> Result<String, String> {
+    let settings = get_settings(&app);
+    const SAMPLE: &str = "um so the meeting is at 5 PM actually at 8 PM press enter see you there";
+    post_process_transcription(&settings, SAMPLE, "")
+        .await
+        .map_err(|error| {
+            warn!("AI cleanup test failed: {error:?}");
+            error.code().to_string()
+        })
 }

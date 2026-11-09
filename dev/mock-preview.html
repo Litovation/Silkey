@@ -103,6 +103,11 @@
         get_keyboard_implementation: () => "native_keys",
         get_secure_input_status: () => ({ active: false }),
         get_available_accelerators: () => ({ transcribe: [], ort: ["auto", "cpu"], gpu_devices: [] }),
+        // ?ai=ok|missingModel|badKey|noCredits picks the AI cleanup test's answer.
+        test_ai_cleanup: () => new Promise((resolve, reject) => setTimeout(() => {
+          const answer = new URLSearchParams(location.search).get("ai") || "missingModel";
+          answer === "ok" ? resolve("The meeting is at 8 PM.\nSee you there.") : reject(answer);
+        }, 900)),
         // ?mic=good|quiet|noisy|no_speech|silent picks the microphone check's answer.
         check_microphone: () => new Promise((resolve) => setTimeout(() => resolve({
           verdict: new URLSearchParams(location.search).get("mic") || "good",

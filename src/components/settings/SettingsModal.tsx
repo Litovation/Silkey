@@ -132,7 +132,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const renderContent = () => {
     switch (activeTab) {
       case "writing":
-        return <WritingSettings />;
+        return (
+          <WritingSettings
+            onOpenPostProcess={() => onTabChange("postprocessing")}
+          />
+        );
       case "snippets":
         return <SnippetsSettings />;
       case "system":

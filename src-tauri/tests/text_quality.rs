@@ -57,6 +57,9 @@ fn check_set(name: &str, pass_mark: f64) {
         .collect();
     let score = 1.0 - misses.len() as f64 / cases.len() as f64;
     println!("{name}: {:.0}% of {} cases", score * 100.0, cases.len());
+    for miss in &misses {
+        println!("{miss}");
+    }
     assert!(
         score >= pass_mark,
         "{name} scored {:.0}%, below its {:.0}% pass mark:\n{}",

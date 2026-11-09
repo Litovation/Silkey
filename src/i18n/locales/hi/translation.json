@@ -15,7 +15,16 @@
     "qualityLow": "कम",
     "qualityMedium": "मध्यम",
     "qualityHigh": "उच्च",
-    "quality": "गुणवत्ता: {{level}}"
+    "quality": "गुणवत्ता: {{level}}",
+    "aiNoProvider": "AI सफ़ाई बंद है: Post Process में प्रदाता चुनें",
+    "aiNoKey": "AI सफ़ाई बंद है: Post Process में API कुंजी जोड़ें",
+    "aiNoModel": "AI सफ़ाई बंद है: Post Process में मॉडल चुनें",
+    "aiBadKey": "AI सफ़ाई: API कुंजी अस्वीकार हुई",
+    "aiNoCredits": "AI सफ़ाई: इस AI खाते में क्रेडिट नहीं है",
+    "aiModelNotFound": "AI सफ़ाई: वह मॉडल नहीं मिला",
+    "aiRateLimited": "AI सफ़ाई: बहुत अधिक अनुरोध, थोड़ी देर में फिर कोशिश करें",
+    "aiUnreachable": "AI सफ़ाई: AI तक नहीं पहुँच सके",
+    "aiCleanupFailed": "AI सफ़ाई नहीं हुई, इसलिए Basic इस्तेमाल हुआ"
   },
   "sidebar": {
     "general": "टोन",
@@ -1040,6 +1049,29 @@
       "description": "AI क्लीनअप और ड्राफ़्ट आपके पिछले कुछ डिक्टेशन से सीखकर आपकी तरह लिखते हैं। सिर्फ़ इस PC पर रखा जाता है।",
       "clear": "मेरा स्टाइल साफ़ करें",
       "cleared": "स्टाइल साफ़ हो गया। अब सिर्फ़ नए डिक्टेशन इस्तेमाल होंगे।"
+    },
+    "aiCheck": {
+      "provider": "प्रदाता:",
+      "model": "मॉडल:",
+      "key": "कुंजी:",
+      "none": "सेट नहीं",
+      "keySaved": "सहेजी गई",
+      "test": "AI सफ़ाई जाँचें",
+      "testing": "जाँच हो रही है…",
+      "openSetup": "Post Process खोलें",
+      "works": "AI सफ़ाई काम कर रही है। एक नमूना वाक्य इसमें बदला:",
+      "errors": {
+        "missingProvider": "पहले Post Process में AI प्रदाता चुनें।",
+        "missingKey": "Post Process में अपनी {{provider}} API कुंजी डालें।",
+        "missingModel": "Post Process में मॉडल चुनें। सिर्फ़ कुंजी काफ़ी नहीं है: मॉडल सूची खोलकर एक चुनें।",
+        "missingPrompt": "सफ़ाई प्रॉम्प्ट खाली है। Post Process में उसे वापस लाएँ।",
+        "badKey": "{{provider}} ने API कुंजी अस्वीकार की। प्रदाता की वेबसाइट से फिर से कॉपी करके Post Process में डालें।",
+        "noCredits": "आपके {{provider}} खाते में क्रेडिट नहीं है। क्रेडिट जोड़ें या मुफ़्त मॉडल चुनें (OpenRouter पर उनके नाम \":free\" पर ख़त्म होते हैं)।",
+        "modelNotFound": "{{provider}} के पास \"{{model}}\" मॉडल नहीं है। Post Process में सूची से दूसरा चुनें।",
+        "rateLimited": "{{provider}} पर बहुत अधिक अनुरोध हैं। एक मिनट रुककर फिर कोशिश करें।",
+        "unreachable": "{{provider}} तक नहीं पहुँच सके। इंटरनेट कनेक्शन जाँचें।",
+        "failed": "AI सफ़ाई नहीं हुई। Post Process में प्रदाता, कुंजी और मॉडल जाँचें।"
+      }
     }
   },
   "snippets": {

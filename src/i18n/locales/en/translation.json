@@ -15,7 +15,16 @@
     "qualityLow": "Low",
     "qualityMedium": "Medium",
     "qualityHigh": "High",
-    "quality": "Quality: {{level}}"
+    "quality": "Quality: {{level}}",
+    "aiNoProvider": "AI cleanup is off: choose a provider in Post Process",
+    "aiNoKey": "AI cleanup is off: add an API key in Post Process",
+    "aiNoModel": "AI cleanup is off: pick a model in Post Process",
+    "aiBadKey": "AI cleanup: the API key was refused",
+    "aiNoCredits": "AI cleanup: this AI account has no credits",
+    "aiModelNotFound": "AI cleanup: that model wasn't found",
+    "aiRateLimited": "AI cleanup: too many requests, try again shortly",
+    "aiUnreachable": "AI cleanup: couldn't reach the AI",
+    "aiCleanupFailed": "AI cleanup didn't work, so Basic was used"
   },
   "sidebar": {
     "general": "Tone",
@@ -1377,6 +1386,29 @@
       "description": "AI cleanup and Draft learn from your last few dictations and write like you. Stored only on this PC.",
       "clear": "Clear my style",
       "cleared": "Style cleared. Only new dictations will be used."
+    },
+    "aiCheck": {
+      "provider": "Provider:",
+      "model": "Model:",
+      "key": "Key:",
+      "none": "not set",
+      "keySaved": "saved",
+      "test": "Test AI cleanup",
+      "testing": "Testing…",
+      "openSetup": "Open Post Process",
+      "works": "AI cleanup works. It turned a sample sentence into:",
+      "errors": {
+        "missingProvider": "Choose an AI provider in Post Process first.",
+        "missingKey": "Paste your {{provider}} API key in Post Process.",
+        "missingModel": "Pick a model in Post Process. A key alone isn't enough: open the Model list and choose one (for OpenRouter, a fast one like a \"mini\" or \"flash\" model).",
+        "missingPrompt": "The cleanup prompt is empty. Restore it in Post Process.",
+        "badKey": "{{provider}} refused the API key. Copy it again from the provider's website and paste it in Post Process.",
+        "noCredits": "Your {{provider}} account has no credits. Add credits, or pick a free model (on OpenRouter their names end in \":free\").",
+        "modelNotFound": "{{provider}} doesn't have the model \"{{model}}\". Pick another one from the Model list in Post Process.",
+        "rateLimited": "{{provider}} says too many requests. Wait a minute and try again.",
+        "unreachable": "Couldn't reach {{provider}}. Check your internet connection.",
+        "failed": "AI cleanup didn't work. Check the provider, key and model in Post Process."
+      }
     }
   },
   "snippets": {
