@@ -202,6 +202,15 @@ const settingUpdaters: {
   smart_cleanup: (value) =>
     commands.changeSmartCleanupSetting(value as SmartCleanup),
   snippets: (value) => commands.updateSnippets(value as Snippet[]),
+  voice_ai_enabled: (value) => commands.changeVoiceAiSetting(value as boolean),
+  context_app_name: (value) =>
+    commands.changeAiContextSetting("context_app_name", value as boolean),
+  context_selected_text: (value) =>
+    commands.changeAiContextSetting("context_selected_text", value as boolean),
+  context_clipboard: (value) =>
+    commands.changeAiContextSetting("context_clipboard", value as boolean),
+  style_memory_enabled: (value) =>
+    commands.changeAiContextSetting("style_memory_enabled", value as boolean),
   vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
   vad_backend: async (value) => {
     const result = await commands.changeVadBackendSetting(value as VadBackend);

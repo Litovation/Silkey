@@ -65,6 +65,12 @@ const BAR_HOVER_WIDTH: f64 = 320.0;
 const BAR_HOVER_HEIGHT: f64 = 66.0;
 const BAR_NUDGE_WIDTH: f64 = 400.0;
 const BAR_NUDGE_HEIGHT: f64 = 136.0;
+// Voice AI: the Ask answer card (up to 400x220 plus shadow room) and the
+// "Edited. Undo" notice after Command Mode.
+const ANSWER_WIDTH: f64 = 440.0;
+const ANSWER_HEIGHT: f64 = 260.0;
+const EDITED_WIDTH: f64 = 300.0;
+const EDITED_HEIGHT: f64 = 66.0;
 
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
@@ -73,6 +79,8 @@ fn overlay_dimensions(state: &str) -> (f64, f64) {
         "idle" => (BAR_IDLE_WIDTH, BAR_IDLE_HEIGHT),
         "hover" => (BAR_HOVER_WIDTH, BAR_HOVER_HEIGHT),
         "nudge" => (BAR_NUDGE_WIDTH, BAR_NUDGE_HEIGHT),
+        "answer" => (ANSWER_WIDTH, ANSWER_HEIGHT),
+        "edited" => (EDITED_WIDTH, EDITED_HEIGHT),
         _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
 }
@@ -314,6 +322,8 @@ fn static_state(state: &str) -> &'static str {
         "idle" => "idle",
         "hover" => "hover",
         "nudge" => "nudge",
+        "answer" => "answer",
+        "edited" => "edited",
         _ => "recording",
     }
 }
@@ -695,6 +705,30 @@ pub fn show_command_feedback(app_handle: &AppHandle, label: &str) {
         std::thread::sleep(std::time::Duration::from_millis(1600));
         if OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst) == shown_at {
             hide_recording_overlay(&handle);
+        }
+    });
+}
+
+/// Show the Ask answer card. It stays until closed, used, or 30 seconds
+/// pass without the pointer on it (the card times itself out).
+pub fn show_answer(app_handle: &AppHandle, answer: crate::voice_ai::AiAnswer) {
+    show_overlay_state_unchecked(app_handle, "answer");
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "ai-answer", answer);
+    });
+}
+
+/// Show "Edited. Undo" after a Command Mode edit, for five seconds.
+pub fn show_edited(app_handle: &AppHandle) {
+    show_overlay_state_unchecked(app_handle, "edited");
+    let handle = app_handle.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let shown_at = OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst);
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        if OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst) == shown_at {
+            crate::silktone_bar::refresh(&handle);
         }
     });
 }

@@ -31,10 +31,13 @@
         ),
         "plugin:event|unlisten": () => null,
         silktone_bar_refresh: () =>
-          setTimeout(
-            () => window.__emit("show-overlay", params.get("state") || "idle"),
-            50,
-          ),
+          setTimeout(() => {
+            window.__emit("show-overlay", params.get("state") || "idle");
+            window.__emit("ai-answer", {
+              question: "What's 15% of 2,340?",
+              answer: "15% of 2,340 is 351.",
+            });
+          }, 50),
         silktone_bar_hover: (a) =>
           window.__emit("show-overlay", a.hovered ? "hover" : "idle"),
       };
@@ -70,6 +73,8 @@
         idle: [96, 30],
         hover: [320, 66],
         nudge: [400, 136],
+        answer: [440, 260],
+        edited: [300, 66],
         streaming: [432, 164],
       };
       const [w, h] = sizes[params.get("state") || "idle"] || [256, 66];

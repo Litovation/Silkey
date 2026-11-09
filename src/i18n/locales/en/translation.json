@@ -8,7 +8,10 @@
     "quit": "Quit",
     "cancel": "Cancel",
     "secureInputWarning": "⚠ Shortcuts blocked by Secure Input",
-    "noSpeech": "No speech heard"
+    "noSpeech": "No speech heard",
+    "selectFirst": "Select some text first",
+    "needsAi": "Set up an AI provider in Post Process first",
+    "aiFailed": "The AI didn't answer. Try again"
   },
   "sidebar": {
     "general": "Tone",
@@ -948,6 +951,17 @@
       "body": "Press {{keys}} and speak. Silktone types it for you, about 4x faster.",
       "try": "Try it now",
       "dismiss": "Dismiss"
+    },
+    "answer": {
+      "title": "Answer",
+      "close": "Close",
+      "copy": "Copy",
+      "copied": "Copied",
+      "insert": "Insert"
+    },
+    "edited": {
+      "label": "Edited",
+      "undo": "Undo"
     }
   },
   "secureInput": {
@@ -1292,6 +1306,14 @@
       "dictionary": {
         "title": "Dictionary",
         "description": "Names and words Silktone should always spell right"
+      },
+      "voiceAi": {
+        "title": "Voice AI",
+        "description": "Edit, write and ask by voice, with your AI provider"
+      },
+      "context": {
+        "title": "Help AI cleanup with",
+        "description": "Extra hints for AI cleanup, so names come out right. All off by default."
       }
     },
     "smartCleanup": {
@@ -1327,6 +1349,31 @@
       "description": "Words you fixed in History. Silktone writes them your way from now on.",
       "empty": "Nothing yet. In History, use Fix word on an entry to teach Silktone a word.",
       "remove": "Forget this word"
+    },
+    "voiceAi": {
+      "label": "Command Mode, Draft and Ask",
+      "description": "Command Mode: select text, hold its keys and say \"make this shorter\". Draft: say \"reply to Raj saying I'm late\". Ask: say a question and read the answer in a card.",
+      "needsProvider": "These use your AI provider. Set one up in Post Process."
+    },
+    "context": {
+      "appName": {
+        "label": "App name",
+        "description": "Tells the AI which app you are dictating into (for example Outlook). Reads only the app's name."
+      },
+      "selectedText": {
+        "label": "Selected text",
+        "description": "Sends the text you have selected when you stop speaking. Silktone copies it for a moment and puts your clipboard back."
+      },
+      "clipboard": {
+        "label": "Clipboard",
+        "description": "Sends what is on your clipboard, up to 2,000 characters."
+      }
+    },
+    "style": {
+      "label": "Style memory",
+      "description": "AI cleanup and Draft learn from your last few dictations and write like you. Stored only on this PC.",
+      "clear": "Clear my style",
+      "cleared": "Style cleared. Only new dictations will be used."
     }
   },
   "snippets": {

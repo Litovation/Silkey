@@ -81,13 +81,26 @@ mod tests {
     }
 }
 
-/// "No speech heard", in the app language, for the overlay.
-pub fn no_speech_label(app: &tauri::AppHandle) -> String {
+/// A short overlay message ("No speech heard", "Select some text first"),
+/// in the app language, falling back to English.
+pub fn overlay_label(app: &tauri::AppHandle, key: &str) -> String {
+    let pick = |strings: TrayStrings| match key {
+        "noSpeech" => strings.no_speech,
+        "selectFirst" => strings.select_first,
+        "needsAi" => strings.needs_ai,
+        "aiFailed" => strings.ai_failed,
+        _ => String::new(),
+    };
     let language = crate::settings::get_settings(app).app_language;
-    let label = get_tray_translations(Some(language)).no_speech;
+    let label = pick(get_tray_translations(Some(language)));
     if label.is_empty() {
-        get_tray_translations(Some("en".to_string())).no_speech
+        pick(get_tray_translations(Some("en".to_string())))
     } else {
         label
     }
+}
+
+/// "No speech heard", in the app language, for the overlay.
+pub fn no_speech_label(app: &tauri::AppHandle) -> String {
+    overlay_label(app, "noSpeech")
 }

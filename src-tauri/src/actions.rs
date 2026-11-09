@@ -60,6 +60,8 @@ struct TranscribeAction {
     post_process: bool,
     /// Voice Commands (beta): run the text as a command instead of pasting it.
     command: bool,
+    /// Command Mode, Draft or Ask: send the text to the AI instead of pasting it.
+    ai_mode: Option<crate::voice_ai::AiMode>,
 }
 
 /// Field name for structured output JSON schema
@@ -153,7 +155,11 @@ fn should_use_streaming_overlay(style: OverlayStyle, is_streaming: bool) -> bool
     style == OverlayStyle::Live && is_streaming
 }
 
-async fn post_process_transcription(settings: &AppSettings, transcription: &str) -> Option<String> {
+async fn post_process_transcription(
+    settings: &AppSettings,
+    transcription: &str,
+    extra_instructions: &str,
+) -> Option<String> {
     if is_blank_transcription(transcription) {
         debug!("Post-processing skipped because the transcription is empty");
         return None;
@@ -208,7 +214,10 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
         debug!("Post-processing skipped because the selected prompt is empty");
         return None;
     }
-    let prompt = with_spelling_list(prompt, settings);
+    let prompt = format!(
+        "{}{extra_instructions}",
+        with_spelling_list(prompt, settings)
+    );
 
     debug!(
         "Starting LLM post-processing with provider '{}' (model: {})",
@@ -459,6 +468,7 @@ pub(crate) async fn process_transcription_output(
     app: &AppHandle,
     transcription: &str,
     post_process: bool,
+    context: Option<String>,
 ) -> ProcessedTranscription {
     let settings = get_settings(app);
     let mut final_text = transcription.to_string();
@@ -476,7 +486,16 @@ pub(crate) async fn process_transcription_output(
     }
 
     if post_process {
-        let processed = post_process_transcription(&settings, &final_text)
+        // Screen context (feature 14) and style examples (feature 9) ride
+        // along with the cleanup prompt.
+        let mut extra = context
+            .as_deref()
+            .map(crate::voice_ai::context_block)
+            .unwrap_or_default();
+        extra.push_str(&crate::voice_ai::style_block(
+            &crate::voice_ai::style_examples(app, &settings).await,
+        ));
+        let processed = post_process_transcription(&settings, &final_text, &extra)
             .await
             .filter(|processed_text| {
                 let safe = crate::audio_toolkit::cleanup::safety::ai_output_is_safe(
@@ -734,8 +753,11 @@ impl ShortcutAction for TranscribeAction {
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
                                                  // "Smart cleanup: Cloud AI" runs the AI step on every dictation, not
                                                  // only from the separate post-process shortcut.
+        let ai_mode = self.ai_mode;
         let post_process = self.post_process
-            || (!self.command && get_settings(app).smart_cleanup == SmartCleanup::CloudAi);
+            || (!self.command
+                && ai_mode.is_none()
+                && get_settings(app).smart_cleanup == SmartCleanup::CloudAi);
         let is_command = self.command;
         let cancel_generation = rm.cancel_generation();
 
@@ -761,6 +783,33 @@ impl ShortcutAction for TranscribeAction {
                     set_tray_state(&ah, TrayIconState::Idle);
                     return;
                 }
+
+                // Selected text for Command Mode / Draft / Ask, and context for
+                // AI cleanup, are read now, while the user's app still has focus.
+                let selection = match ai_mode {
+                    Some(_) => {
+                        let app = ah.clone();
+                        tauri::async_runtime::spawn_blocking(move || {
+                            crate::voice_ai::grab_selection(&app)
+                        })
+                        .await
+                        .ok()
+                        .flatten()
+                    }
+                    None => None,
+                };
+                let cleanup_context = if post_process && ai_mode.is_none() {
+                    let app = ah.clone();
+                    tauri::async_runtime::spawn_blocking(move || {
+                        let settings = get_settings(&app);
+                        crate::voice_ai::gather_cleanup_context(&app, &settings)
+                    })
+                    .await
+                    .ok()
+                    .flatten()
+                } else {
+                    None
+                };
 
                 if samples.is_empty() {
                     debug!("Recording produced no audio samples; skipping persistence");
@@ -856,6 +905,13 @@ impl ShortcutAction for TranscribeAction {
                                 return;
                             }
 
+                            if let Some(mode) = ai_mode {
+                                // Voice AI answers instead of pasting the words.
+                                crate::voice_ai::run(&ah, mode, transcription, selection).await;
+                                set_tray_state(&ah, TrayIconState::Idle);
+                                return;
+                            }
+
                             if is_command {
                                 // Commands are not dictation: nothing is pasted or
                                 // saved to history. The overlay shows the result.
@@ -872,7 +928,12 @@ impl ShortcutAction for TranscribeAction {
                                 }
                             }
                             let Some(processed) = complete_unless_cancelled(
-                                process_transcription_output(&ah, &transcription, post_process),
+                                process_transcription_output(
+                                    &ah,
+                                    &transcription,
+                                    post_process,
+                                    cleanup_context.clone(),
+                                ),
                                 || rm.was_cancelled_since(cancel_generation),
                             )
                             .await
@@ -1030,6 +1091,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: false,
             command: false,
+            ai_mode: None,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -1037,6 +1099,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: true,
             command: false,
+            ai_mode: None,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -1044,8 +1107,23 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: false,
             command: true,
+            ai_mode: None,
         }) as Arc<dyn ShortcutAction>,
     );
+    for id in [
+        crate::voice_ai::EDIT_BINDING,
+        crate::voice_ai::DRAFT_BINDING,
+        crate::voice_ai::ASK_BINDING,
+    ] {
+        map.insert(
+            id.to_string(),
+            Arc::new(TranscribeAction {
+                post_process: false,
+                command: false,
+                ai_mode: crate::voice_ai::AiMode::for_binding(id),
+            }) as Arc<dyn ShortcutAction>,
+        );
+    }
     map.insert(
         "cancel".to_string(),
         Arc::new(CancelAction) as Arc<dyn ShortcutAction>,

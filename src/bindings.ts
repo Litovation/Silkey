@@ -397,6 +397,65 @@ async forgetCorrection(wrong: string) : Promise<Result<null, string>> {
 }
 },
 /**
+ * Insert the Ask card's answer at the cursor.
+ */
+async voiceAiInsert(text: string) : Promise<void> {
+    await TAURI_INVOKE("voice_ai_insert", { text });
+},
+async voiceAiCopy(text: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_ai_copy", { text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Undo a Command Mode edit with the app's own Undo.
+ */
+async voiceAiUndo() : Promise<void> {
+    await TAURI_INVOKE("voice_ai_undo");
+},
+/**
+ * Close the answer card or the "Edited" notice.
+ */
+async voiceAiDismiss() : Promise<void> {
+    await TAURI_INVOKE("voice_ai_dismiss");
+},
+/**
+ * Switch the three Voice AI shortcuts on or off.
+ */
+async changeVoiceAiSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_voice_ai_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Turn one context or style switch on or off.
+ */
+async changeAiContextSetting(setting: string, enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_ai_context_setting", { setting, enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * "Clear my style": only dictations after now are used as examples.
+ */
+async clearStyleMemory() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("clear_style_memory") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Temporarily unregister all bindings while the user is recording a
  * shortcut in the UI. This avoids firing actions while keys are recorded.
  */
@@ -1245,7 +1304,23 @@ format_lists_enabled?: boolean;
 /**
  * Writing: "5, actually 6pm" becomes "6pm".
  */
-self_corrections_enabled?: boolean; smart_cleanup?: SmartCleanup; snippets?: Snippet[]; learned_corrections?: LearnedCorrection[] }
+self_corrections_enabled?: boolean; smart_cleanup?: SmartCleanup; snippets?: Snippet[]; learned_corrections?: LearnedCorrection[]; 
+/**
+ * Command Mode, Draft and Ask shortcuts (build spec 15, 16, 24).
+ */
+voice_ai_enabled?: boolean; 
+/**
+ * "Help AI cleanup with" switches (feature 14), all off by default.
+ */
+context_app_name?: boolean; context_selected_text?: boolean; context_clipboard?: boolean; 
+/**
+ * Style memory (feature 9): recent dictations as style examples.
+ */
+style_memory_enabled?: boolean; 
+/**
+ * Unix seconds of the last "Clear my style"; older dictations are ignored.
+ */
+style_cleared_at?: number }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }

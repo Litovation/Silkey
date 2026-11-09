@@ -25,7 +25,19 @@ type OverlayState =
   // The Silktone bar: resting pill, hover hint, typing nudge.
   | "idle"
   | "hover"
-  | "nudge";
+  | "nudge"
+  // Voice AI: the Ask answer card and the "Edited. Undo" notice.
+  | "answer"
+  | "edited";
+
+/** The Ask card's content (voice_ai::AiAnswer). */
+interface AiAnswer {
+  question: string;
+  answer: string;
+}
+
+/** The Ask card closes after this long without the pointer on it. */
+const ANSWER_TIMEOUT_MS = 30_000;
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -58,6 +70,9 @@ const RecordingOverlay: React.FC = () => {
   // True once live text overflows the cap. A top overlay fades its top edge only
   // while overflowing, so the resting first line stays crisp flush under the pill.
   const [overflowing, setOverflowing] = useState(false);
+  const [answer, setAnswer] = useState<AiAnswer | null>(null);
+  const [answerCopied, setAnswerCopied] = useState(false);
+  const [answerHovered, setAnswerHovered] = useState(false);
   // The dictation shortcut, for the bar's hint ("Ctrl + Windows").
   const [keys, setKeys] = useState<string[]>(["Ctrl", "Windows"]);
 
@@ -143,6 +158,11 @@ const RecordingOverlay: React.FC = () => {
         setLevels(smoothed.slice(0, WAVE_BARS));
       });
 
+      const unlistenAnswer = await listen<AiAnswer>("ai-answer", (event) => {
+        setAnswer(event.payload);
+        setAnswerCopied(false);
+      });
+
       const unlistenCommand = await listen<string>(
         "command-feedback",
         (event) => setCommandLabel(event.payload),
@@ -170,11 +190,21 @@ const RecordingOverlay: React.FC = () => {
         unlistenStream();
         unlistenPhase();
         unlistenCommand();
+        unlistenAnswer();
       };
     };
 
     setupEventListeners();
   }, []);
+
+  // The answer card closes itself after a while unless the pointer is on it.
+  useEffect(() => {
+    if (state !== "answer" || !isVisible || answerHovered) return;
+    const id = setTimeout(() => {
+      commands.voiceAiDismiss().catch(() => {});
+    }, ANSWER_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [state, isVisible, answerHovered, answer]);
 
   // Elapsed capture timer starts only once microphone samples are flowing.
   useEffect(() => {
@@ -417,6 +447,99 @@ const RecordingOverlay: React.FC = () => {
             </button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // ---- Voice AI: Ask answer card ----
+  if (state === "answer" && answer) {
+    const closeIcon = (
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M4 4 L12 12 M12 4 L4 12"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div
+          className="scard sanswer"
+          role="dialog"
+          aria-label={t("overlay.answer.title")}
+          onMouseEnter={() => setAnswerHovered(true)}
+          onMouseLeave={() => setAnswerHovered(false)}
+        >
+          <div className="sanswer-head">
+            {kMark("done")}
+            <p className="sanswer-question">{answer.question}</p>
+            <button
+              type="button"
+              className="sx"
+              aria-label={t("overlay.answer.close")}
+              onClick={() => commands.voiceAiDismiss().catch(() => {})}
+            >
+              {closeIcon}
+            </button>
+          </div>
+          <div className="sanswer-body">{answer.answer}</div>
+          <div className="sanswer-actions">
+            <button
+              type="button"
+              className="sbtn"
+              onClick={() => {
+                commands
+                  .voiceAiCopy(answer.answer)
+                  .then(() => setAnswerCopied(true))
+                  .catch(() => {});
+              }}
+            >
+              {answerCopied
+                ? t("overlay.answer.copied")
+                : t("overlay.answer.copy")}
+            </button>
+            <button
+              type="button"
+              className="sbtn primary"
+              onClick={() =>
+                commands.voiceAiInsert(answer.answer).catch(() => {})
+              }
+            >
+              {t("overlay.answer.insert")}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Voice AI: "Edited. Undo" after Command Mode ----
+  if (state === "edited") {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact sedited">
+          <div className="sbase">
+            <div className="sbase-l">{kMark("done")}</div>
+            <span className="sbar-label">{t("overlay.edited.label")}</span>
+            <div className="sbase-r">
+              <button
+                type="button"
+                className="sbtn"
+                onClick={() => commands.voiceAiUndo().catch(() => {})}
+              >
+                {t("overlay.edited.undo")}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

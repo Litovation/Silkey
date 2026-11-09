@@ -766,3 +766,79 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   Voice AI: the Ask answer card and the "Edited. Undo" notice.
+   ============================================================ */
+.scard.sanswer {
+  width: 400px;
+  max-height: 220px;
+  padding: 12px 12px 12px 14px;
+  gap: 8px;
+  border-radius: 20px;
+}
+.sanswer-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.sanswer-head .smark {
+  margin-top: 1px;
+}
+.sanswer-question {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  color: var(--s-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sanswer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-left: 26px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  user-select: text;
+}
+.sanswer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.sbtn {
+  padding: 5px 12px;
+  border: 1px solid var(--s-card-border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--s-hair);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    filter 150ms ease;
+}
+.sbtn:hover {
+  background: var(--s-accent-soft);
+}
+.sbtn.primary {
+  border-color: transparent;
+  color: #fff;
+  background: var(--s-accent);
+}
+.sbtn.primary:hover {
+  filter: brightness(1.08);
+}
+.scard.sedited {
+  width: 260px;
+}
+.sedited .sbtn {
+  padding: 3px 10px;
+}

@@ -1,13 +1,32 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BookA, ChevronDown, PenLine, Sparkles, Trash2 } from "lucide-react";
+import {
+  BookA,
+  ChevronDown,
+  Eye,
+  PenLine,
+  Sparkles,
+  Trash2,
+  WandSparkles,
+} from "lucide-react";
+import { type } from "@tauri-apps/plugin-os";
+import { toast } from "sonner";
 import { commands, type SmartCleanup } from "@/bindings";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
 import { ToggleSwitch } from "../../ui/ToggleSwitch";
 import { Dropdown } from "../../ui/Dropdown";
 import { CustomWords } from "../CustomWords";
+import { ShortcutInput } from "../ShortcutInput";
+import { Button } from "../../ui/Button";
 import { useSettings } from "../../../hooks/useSettings";
+
+type ContextToggle =
+  | "context_app_name"
+  | "context_selected_text"
+  | "context_clipboard";
+
+const VOICE_AI_SHORTCUTS = ["command_mode", "draft_message", "ask_question"];
 
 type WritingToggle =
   | "self_corrections_enabled"
@@ -53,6 +72,22 @@ export const WritingSettings: React.FC = () => {
   const forget = async (wrong: string) => {
     await commands.forgetCorrection(wrong);
     await refreshSettings();
+  };
+
+  const voiceAiOn = getSetting("voice_ai_enabled") ?? false;
+  // The app name can only be read on Windows; elsewhere the switch is hidden.
+  const contextToggles: { key: ContextToggle; id: string }[] = [
+    ...(type() === "windows"
+      ? [{ key: "context_app_name" as const, id: "appName" }]
+      : []),
+    { key: "context_selected_text", id: "selectedText" },
+    { key: "context_clipboard", id: "clipboard" },
+  ];
+
+  const clearStyle = async () => {
+    await commands.clearStyleMemory();
+    await refreshSettings();
+    toast.success(t("writing.style.cleared"));
   };
 
   return (
@@ -134,6 +169,71 @@ export const WritingSettings: React.FC = () => {
             </dl>
           )}
         </div>
+      </SettingsGroup>
+
+      <SettingsGroup
+        icon={WandSparkles}
+        title={t("writing.groups.voiceAi.title")}
+        description={t("writing.groups.voiceAi.description")}
+      >
+        <ToggleSwitch
+          checked={voiceAiOn}
+          onChange={(enabled) => updateSetting("voice_ai_enabled", enabled)}
+          isUpdating={isUpdating("voice_ai_enabled")}
+          label={t("writing.voiceAi.label")}
+          description={t("writing.voiceAi.description")}
+          descriptionMode="inline"
+          grouped={true}
+        />
+        {voiceAiOn &&
+          VOICE_AI_SHORTCUTS.map((id) => (
+            <ShortcutInput
+              key={id}
+              shortcutId={id}
+              descriptionMode="tooltip"
+              grouped={true}
+            />
+          ))}
+        {voiceAiOn && !providerReady && (
+          <p className="px-4 py-3 text-xs text-amber-600">
+            {t("writing.voiceAi.needsProvider")}
+          </p>
+        )}
+      </SettingsGroup>
+
+      <SettingsGroup
+        icon={Eye}
+        title={t("writing.groups.context.title")}
+        description={t("writing.groups.context.description")}
+      >
+        {contextToggles.map(({ key, id }) => (
+          <ToggleSwitch
+            key={key}
+            checked={getSetting(key) ?? false}
+            onChange={(enabled) => updateSetting(key, enabled)}
+            isUpdating={isUpdating(key)}
+            label={t(`writing.context.${id}.label`)}
+            description={t(`writing.context.${id}.description`)}
+            descriptionMode="inline"
+            grouped={true}
+          />
+        ))}
+        <ToggleSwitch
+          checked={getSetting("style_memory_enabled") ?? false}
+          onChange={(enabled) => updateSetting("style_memory_enabled", enabled)}
+          isUpdating={isUpdating("style_memory_enabled")}
+          label={t("writing.style.label")}
+          description={t("writing.style.description")}
+          descriptionMode="inline"
+          grouped={true}
+        />
+        {getSetting("style_memory_enabled") && (
+          <div className="px-4 py-3">
+            <Button variant="secondary" size="sm" onClick={clearStyle}>
+              {t("writing.style.clear")}
+            </Button>
+          </div>
+        )}
       </SettingsGroup>
 
       <SettingsGroup

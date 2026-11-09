@@ -27,6 +27,7 @@ mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
 mod utils;
+mod voice_ai;
 mod voice_commands;
 mod writing;
 
@@ -702,6 +703,13 @@ pub fn run(cli_args: CliArgs) {
             writing::update_snippets,
             writing::learn_correction,
             writing::forget_correction,
+            voice_ai::voice_ai_insert,
+            voice_ai::voice_ai_copy,
+            voice_ai::voice_ai_undo,
+            voice_ai::voice_ai_dismiss,
+            voice_ai::change_voice_ai_setting,
+            voice_ai::change_ai_context_setting,
+            voice_ai::clear_style_memory,
             shortcut::suspend_all_bindings,
             shortcut::resume_all_bindings,
             shortcut::change_mute_while_recording_setting,

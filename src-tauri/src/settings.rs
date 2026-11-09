@@ -587,6 +587,22 @@ pub struct AppSettings {
     pub snippets: Vec<Snippet>,
     #[serde(default)]
     pub learned_corrections: Vec<LearnedCorrection>,
+    /// Command Mode, Draft and Ask shortcuts (build spec 15, 16, 24).
+    #[serde(default)]
+    pub voice_ai_enabled: bool,
+    /// "Help AI cleanup with" switches (feature 14), all off by default.
+    #[serde(default)]
+    pub context_app_name: bool,
+    #[serde(default)]
+    pub context_selected_text: bool,
+    #[serde(default)]
+    pub context_clipboard: bool,
+    /// Style memory (feature 9): recent dictations as style examples.
+    #[serde(default)]
+    pub style_memory_enabled: bool,
+    /// Unix seconds of the last "Clear my style"; older dictations are ignored.
+    #[serde(default)]
+    pub style_cleared_at: i64,
 }
 
 fn default_model() -> String {
@@ -965,6 +981,9 @@ pub fn is_binding_enabled(settings: &AppSettings, id: &str) -> bool {
     match id {
         "transcribe_with_post_process" => settings.post_process_enabled,
         crate::voice_commands::BINDING_ID => settings.voice_commands_enabled,
+        crate::voice_ai::EDIT_BINDING
+        | crate::voice_ai::DRAFT_BINDING
+        | crate::voice_ai::ASK_BINDING => settings.voice_ai_enabled,
         _ => true,
     }
 }
@@ -1011,6 +1030,43 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_post_process_shortcut.to_string(),
         },
     );
+    // Voice AI shortcuts; registered only once Voice AI is switched on.
+    #[cfg(target_os = "macos")]
+    let voice_ai_modifier = "ctrl+option";
+    #[cfg(not(target_os = "macos"))]
+    let voice_ai_modifier = "ctrl+alt";
+    for (id, name, description, key) in [
+        (
+            crate::voice_ai::EDIT_BINDING,
+            "Command Mode",
+            "Edits the selected text the way you say.",
+            "e",
+        ),
+        (
+            crate::voice_ai::DRAFT_BINDING,
+            "Draft",
+            "Writes the message you describe.",
+            "d",
+        ),
+        (
+            crate::voice_ai::ASK_BINDING,
+            "Ask",
+            "Answers a quick question in a card.",
+            "q",
+        ),
+    ] {
+        let shortcut = format!("{voice_ai_modifier}+{key}");
+        bindings.insert(
+            id.to_string(),
+            ShortcutBinding {
+                id: id.to_string(),
+                name: name.to_string(),
+                description: description.to_string(),
+                default_binding: shortcut.clone(),
+                current_binding: shortcut,
+            },
+        );
+    }
     #[cfg(target_os = "macos")]
     let default_voice_command_shortcut = "ctrl+option+space";
     #[cfg(not(target_os = "macos"))]
@@ -1114,6 +1170,12 @@ pub fn get_default_settings() -> AppSettings {
         smart_cleanup: SmartCleanup::Basic,
         snippets: Vec::new(),
         learned_corrections: Vec::new(),
+        voice_ai_enabled: false,
+        context_app_name: false,
+        context_selected_text: false,
+        context_clipboard: false,
+        style_memory_enabled: false,
+        style_cleared_at: 0,
     }
 }
 
