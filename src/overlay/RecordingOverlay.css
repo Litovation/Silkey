@@ -792,16 +792,11 @@
   line-height: 1.4;
   color: var(--s-muted);
 }
-/* Overlay call-to-action: the bar's violet-to-pink, so the nudge, the Ask
-   card and the pill read as one family. Never wraps. */
+/* Overlay call-to-action buttons (Try it now, Insert): the Silktone green.
+   They never wrap. */
 .sbar-try,
 .sbtn.primary {
-  --sbar-cta: linear-gradient(
-    100deg,
-    #8b5cf6 0%,
-    #c34fd6 55%,
-    var(--color-brand-pink) 100%
-  );
+  --sbar-cta: var(--s-accent);
 }
 .sbar-try {
   flex: none;
@@ -821,7 +816,8 @@
   white-space: nowrap;
   color: #fff;
   background: var(--sbar-cta);
-  box-shadow: 0 6px 16px -8px rgb(195 79 214 / 0.8);
+  box-shadow: 0 6px 16px -8px
+    color-mix(in srgb, var(--s-accent) 80%, transparent);
   cursor: pointer;
   transition:
     filter 180ms ease,
