@@ -89,6 +89,9 @@ if (-not (Test-Path $tauriUtils) -or (Get-FileHash $tauriUtils -Algorithm SHA1).
   Invoke-WebRequest 'https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll' -OutFile $tauriUtils -MaximumRetryCount 10 -RetryIntervalSec 30
 }
 
+# vcpkg would otherwise download its own CMake from GitHub releases (which
+# keep answering 504); the runner already has one on PATH.
+$env:VCPKG_FORCE_SYSTEM_BINARIES = '1'
 vcpkg install spirv-headers:x64-windows
 if ($LASTEXITCODE -ne 0) { throw 'SPIRV-Headers installation failed.' }
 $vcpkgRoot = if ($env:VCPKG_INSTALLATION_ROOT) { $env:VCPKG_INSTALLATION_ROOT } elseif ($env:VCPKG_ROOT) { $env:VCPKG_ROOT } else { Split-Path (Get-Command vcpkg).Source }

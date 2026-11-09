@@ -68,13 +68,15 @@ jobs:
         with:
           workspaces: src-tauri -> target
           shared-key: silktone-windows
-      # Tauri's NSIS installer tools, downloaded once by
-      # prepare-silktone-windows.ps1 and kept so builds stop depending on
-      # GitHub release downloads, which keep timing out.
+      # Tauri's NSIS installer tools and vcpkg's built SPIRV-Headers,
+      # fetched once by prepare-silktone-windows.ps1 and kept so builds stop
+      # depending on GitHub release downloads, which keep timing out.
       - uses: actions/cache@v4
         with:
-          path: ~\AppData\Local\tauri
-          key: tauri-nsis-3.11-utils-0.5.3
+          path: |
+            ~\AppData\Local\tauri
+            ~\AppData\Local\vcpkg\archives
+          key: tauri-nsis-3.11-utils-0.5.3-vcpkg-spirv-headers
       - uses: humbletim/install-vulkan-sdk@v1.2
         with:
           version: 1.4.309.0
