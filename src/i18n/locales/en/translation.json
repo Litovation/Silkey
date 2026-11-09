@@ -1396,5 +1396,15 @@
     "edit": "Edit",
     "remove": "Delete",
     "say": "“{{trigger}}”"
+  },
+  "windowFrame": {
+    "ready": "Ready",
+    "noModel": "No model yet",
+    "autoLanguage": "Auto language",
+    "version": "v{{version}}",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close"
   }
 }

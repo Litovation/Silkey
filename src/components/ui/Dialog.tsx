@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { portalRoot } from "@/lib/portalRoot";
 import { X } from "lucide-react";
 
 const FOCUSABLE_SELECTOR = [
@@ -205,6 +206,6 @@ export const Dialog: React.FC<DialogProps> = ({
         )}
       </div>
     </div>,
-    document.body,
+    portalRoot(),
   );
 };

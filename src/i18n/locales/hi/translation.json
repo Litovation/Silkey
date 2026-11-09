@@ -1059,5 +1059,15 @@
     "edit": "बदलें",
     "remove": "हटाएँ",
     "say": "“{{trigger}}”"
+  },
+  "windowFrame": {
+    "ready": "तैयार",
+    "noModel": "अभी कोई मॉडल नहीं",
+    "autoLanguage": "स्वचालित भाषा",
+    "version": "v{{version}}",
+    "minimize": "छोटा करें",
+    "maximize": "बड़ा करें",
+    "restore": "पुनर्स्थापित करें",
+    "close": "बंद करें"
   }
 }

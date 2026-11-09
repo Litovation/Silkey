@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { portalRoot } from "@/lib/portalRoot";
 import { useTranslation } from "react-i18next";
 import {
   FlaskConical,
@@ -202,6 +203,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       </div>
     </div>,
-    document.body,
+    portalRoot(),
   );
 };

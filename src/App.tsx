@@ -18,7 +18,7 @@ import { ModelStateEvent, RecordingErrorEvent } from "./lib/types/events";
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
-import Footer from "./components/footer";
+import WindowFrame from "./components/frame/WindowFrame";
 import { AccessibilityOnboarding } from "./components/onboarding";
 import FirstRunSetup from "./components/onboarding/FirstRunSetup";
 import { type OnboardingPreviewStep } from "./components/settings";
@@ -371,6 +371,9 @@ function App() {
   // stable wrapper around this node, so crossing between onboarding steps and
   // the main app never remounts it (which would drop any in-flight toast).
   let content: ReactNode;
+  // The main layout pads its own content column below the window's drag
+  // strip; other screens start below it.
+  let mainLayout = false;
   if (verdict.state === "signedOut") {
     content = <SignInScreen />;
   } else if (verdict.state === "blocked" && !betaLocked) {
@@ -431,6 +434,7 @@ function App() {
       />
     );
   } else {
+    mainLayout = true;
     content = (
       <div
         dir={direction}
@@ -447,7 +451,7 @@ function App() {
             onReplayWalkthrough={() => setReplayingWalkthrough(true)}
           />
           {/* Scrollable content area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="silk-main-column flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <div className="flex flex-col items-center p-4 gap-4">
                 <AccessibilityPermissions />
@@ -457,8 +461,6 @@ function App() {
             </div>
           </div>
         </div>
-        {/* Fixed footer at bottom */}
-        <Footer />
         <SettingsModal
           tab={settingsTab}
           onTabChange={setSettingsTab}
@@ -477,7 +479,7 @@ function App() {
   }
 
   return (
-    <>
+    <WindowFrame titlebarOverlay={mainLayout}>
       {toaster}
       {/* Mounted outside the step switch so signed-out and blocked users
           still receive fixes. */}
@@ -485,7 +487,7 @@ function App() {
         <AutoUpdater />
       </ErrorBoundary>
       {content}
-    </>
+    </WindowFrame>
   );
 }
 

@@ -1,0 +1,298 @@
+/* The main window's own see-through frame (WindowFrame.tsx). */
+
+/* The page itself is transparent; the shape paints the app's background. */
+:root[data-framed] {
+  background-color: transparent;
+}
+:root[data-framed] body {
+  background: transparent;
+  overflow: hidden;
+}
+
+.silk-frame {
+  position: fixed;
+  inset: 0;
+  --silk-ledge-tint-a: rgb(139 92 246 / 0.16);
+  --silk-ledge-tint-b: rgb(246 80 174 / 0.22);
+  --silk-edge: rgb(255 255 255 / 0.65);
+  --silk-edge-outer: rgb(15 23 42 / 0.16);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .silk-frame {
+    --silk-ledge-tint-a: rgb(139 92 246 / 0.2);
+    --silk-ledge-tint-b: rgb(246 80 174 / 0.26);
+    --silk-edge: rgb(255 255 255 / 0.12);
+    --silk-edge-outer: rgb(0 0 0 / 0.4);
+  }
+}
+:root[data-theme="dark"] .silk-frame {
+  --silk-ledge-tint-a: rgb(139 92 246 / 0.2);
+  --silk-ledge-tint-b: rgb(246 80 174 / 0.26);
+  --silk-edge: rgb(255 255 255 / 0.12);
+  --silk-edge-outer: rgb(0 0 0 / 0.4);
+}
+
+/* Soft shadow drawn once from the same path, so the content itself is never
+   run through a filter (that would slow scrolling down). */
+.silk-frame-shadow {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+.silk-frame-shadow path {
+  fill: rgb(0 0 0 / 0.3);
+  transform: translateY(3px);
+  filter: blur(6px);
+}
+.silk-frame-max .silk-frame-shadow {
+  display: none;
+}
+
+.silk-shape {
+  position: absolute;
+  overflow: hidden;
+}
+
+/* The ledge: see-through, with a faint violet-to-pink tint so it reads as
+   part of the window rather than a hole in it. */
+.silk-ledge-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    var(--silk-ledge-tint-a),
+    var(--silk-ledge-tint-b)
+  );
+}
+
+.silk-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-background);
+  /* Makes this box the containing block for `position: fixed` descendants
+     (setup screens, dialogs), so they fill the shape, not the whole window. */
+  transform: translateZ(0);
+  overflow: hidden;
+}
+.silk-content-body {
+  position: relative;
+  height: 100%;
+}
+/* Screens sized to the viewport fill the shape instead. */
+.silk-content-body .h-screen {
+  height: 100%;
+}
+
+.silk-titlebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+}
+.silk-window-buttons {
+  display: flex;
+  gap: 2px;
+}
+.silk-wbtn {
+  width: 32px;
+  height: 24px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--color-text), transparent 40%);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+.silk-wbtn svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.silk-wbtn:hover {
+  background: color-mix(in srgb, var(--color-text), transparent 90%);
+  color: var(--color-text);
+}
+.silk-wbtn-close:hover {
+  background: #e5484d;
+  color: #fff;
+}
+.silk-wbtn:focus-visible {
+  outline: 2px solid var(--color-brand-pink);
+  outline-offset: 1px;
+}
+
+/* Status on the ledge. The ledge is see-through, so every label sits on its
+   own near-solid chip and stays readable over any wallpaper. */
+.silk-ledge-status {
+  position: absolute;
+  right: 12px;
+  bottom: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.silk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-background), transparent 8%);
+  border: 1px solid color-mix(in srgb, var(--color-brand-pink), transparent 72%);
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.14);
+  backdrop-filter: blur(6px);
+}
+.silk-chip-quiet {
+  color: color-mix(in srgb, var(--color-text), transparent 30%);
+}
+.silk-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgb(34 197 94 / 0.8);
+}
+.silk-dot-idle {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgb(245 158 11 / 0.7);
+}
+
+/* Edge: a hairline that follows the shape, with a slow violet-to-pink light
+   running along it while the window has focus. */
+.silk-frame-edge {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+.silk-edge-base {
+  fill: none;
+  stroke: var(--silk-edge);
+  stroke-width: 1;
+  filter: drop-shadow(0 0 0.5px var(--silk-edge-outer));
+}
+.silk-edge-flow {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 160 840;
+  filter: drop-shadow(0 0 5px rgb(195 79 214 / 0.75));
+  animation: silk-edge-flow 9s linear infinite;
+  transition: opacity 400ms ease;
+}
+.silk-frame-blurred .silk-edge-flow {
+  animation-play-state: paused;
+  opacity: 0.35;
+}
+.silk-frame-max .silk-edge-base,
+.silk-frame-max .silk-edge-flow {
+  display: none;
+}
+@keyframes silk-edge-flow {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .silk-edge-flow {
+    animation: none;
+  }
+}
+
+/* Resize edges along the visible outline. */
+.silk-rz {
+  position: absolute;
+  z-index: 80;
+}
+.silk-rz-n,
+.silk-rz-s {
+  left: calc(var(--m) + 16px);
+  right: calc(var(--m) + 16px);
+  height: 8px;
+  cursor: ns-resize;
+}
+.silk-rz-n {
+  top: calc(var(--m) - 4px);
+}
+.silk-rz-s {
+  bottom: calc(var(--m) - 4px);
+}
+.silk-rz-e,
+.silk-rz-w {
+  top: calc(var(--m) + 16px);
+  bottom: calc(var(--m) + 16px);
+  width: 8px;
+  cursor: ew-resize;
+}
+.silk-rz-e {
+  right: calc(var(--m) - 4px);
+}
+.silk-rz-w {
+  left: calc(var(--m) - 4px);
+}
+.silk-rz-nw,
+.silk-rz-ne,
+.silk-rz-sw,
+.silk-rz-se {
+  width: 18px;
+  height: 18px;
+}
+.silk-rz-nw {
+  left: calc(var(--m) - 4px);
+  top: calc(var(--m) - 4px);
+  cursor: nwse-resize;
+}
+.silk-rz-ne {
+  right: calc(var(--m) - 4px);
+  top: calc(var(--m) - 4px);
+  cursor: nesw-resize;
+}
+.silk-rz-sw {
+  left: calc(var(--m) - 4px);
+  bottom: calc(var(--m) - 4px);
+  cursor: nesw-resize;
+}
+.silk-rz-se {
+  right: calc(var(--m) - 4px);
+  bottom: calc(var(--m) - 4px);
+  cursor: nwse-resize;
+}
+
+/* The left of the shape ends where the ledge steps down, and the ledge only
+   spans the right side, so the lower edges follow that outline. */
+.silk-rz-w {
+  bottom: calc(var(--m) + 56px);
+}
+.silk-rz-sw {
+  bottom: calc(var(--m) + 36px);
+}
+.silk-rz-s {
+  left: auto;
+  width: 260px;
+}
+
+/* The main layout's content column starts below the drag strip; the sidebar
+   runs up underneath it, so its logo doubles as a drag handle. */
+:root[data-framed] .silk-main-column {
+  padding-top: 32px;
+}

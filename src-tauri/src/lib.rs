@@ -54,6 +54,14 @@ use tauri_plugin_log::{Builder as LogBuilder, RotationStrategy, Target, TargetKi
 
 use crate::settings::get_settings;
 
+/// The main window's starting and smallest size. On Windows and Linux it
+/// includes the window's own frame: a 14 px see-through margin on each side
+/// for the shadow, the 32 px drag strip and the 40 px status ledge.
+#[cfg(not(target_os = "macos"))]
+const MAIN_WINDOW_SIZE: (f64, f64) = (708.0, 670.0);
+#[cfg(target_os = "macos")]
+const MAIN_WINDOW_SIZE: (f64, f64) = (680.0, 570.0);
+
 // Global atomic to store the file log level filter
 // We use u8 to store the log::LevelFilter as a number
 pub static FILE_LOG_LEVEL: AtomicU8 = AtomicU8::new(log::LevelFilter::Debug as u8);
@@ -982,11 +990,22 @@ pub fn run(cli_args: CliArgs) {
             let mut win_builder =
                 tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
                     .title("Silktone")
-                    .inner_size(680.0, 570.0)
-                    .min_inner_size(680.0, 570.0)
+                    .inner_size(MAIN_WINDOW_SIZE.0, MAIN_WINDOW_SIZE.1)
+                    .min_inner_size(MAIN_WINDOW_SIZE.0, MAIN_WINDOW_SIZE.1)
                     .resizable(true)
                     .maximizable(true)
                     .visible(false);
+
+            // Windows and Linux: the window draws its own see-through, shaped
+            // frame with a status ledge (src/components/frame/WindowFrame.tsx),
+            // so the native title bar, border and rectangular shadow go.
+            #[cfg(not(target_os = "macos"))]
+            {
+                win_builder = win_builder
+                    .decorations(false)
+                    .transparent(true)
+                    .shadow(false);
+            }
 
             if let Some(data_dir) = portable::data_dir() {
                 win_builder = win_builder.data_directory(data_dir.join("webview"));
