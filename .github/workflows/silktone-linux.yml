@@ -19,8 +19,10 @@ concurrency:
   cancel-in-progress: true
 jobs:
   linux:
-    # 22.04 keeps the glibc floor low, so the AppImage runs on older distros.
-    runs-on: ubuntu-22.04
+    # 24.04: the prebuilt ONNX Runtime that ort links needs glibc 2.38+, so
+    # 22.04 (2.35) fails to link. The packages therefore need a distro with
+    # glibc 2.38 or later (Ubuntu 24.04+, Debian 13+, Fedora 39+).
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       SILKTONE_UPDATES_ENABLED: "0"
@@ -38,7 +40,7 @@ jobs:
             librsvg2-dev libgtk-layer-shell0 libgtk-layer-shell-dev \
             libxdo-dev
       # The Vulkan SDK brings current headers, glslc and SPIRV-Headers for the
-      # speech engine's GPU backend (Ubuntu 22.04's are too old).
+      # speech engine's GPU backend.
       - uses: humbletim/install-vulkan-sdk@v1.2
         with:
           version: 1.4.309.0
