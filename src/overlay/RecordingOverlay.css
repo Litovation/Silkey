@@ -620,13 +620,16 @@
 }
 
 /* ============================================================
-   Silktone bar (see silktone_bar.rs). Resting, it is a slim pill flush to the
-   screen edge; hovering opens the hint card; a long stretch of typing opens the
-   nudge card. All three reuse the card surface tokens above.
+   Silktone bar (see silktone_bar.rs). A slim frosted pill flush to the
+   screen edge, kept quiet at rest. Hover lights it with a slowly flowing
+   purple glow (the glass stays as see-through as before); pressing squishes
+   it like liquid and starts dictation. It never expands under the pointer.
    ============================================================ */
 .sbar-rest {
-  width: 48px;
-  height: 8px;
+  --sbar-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  width: 52px;
+  height: 9px;
   /* A little clear of the taskbar edge. */
   margin: 0 0 10px;
   padding: 0;
@@ -636,81 +639,134 @@
   -webkit-backdrop-filter: var(--s-card-filter);
   backdrop-filter: var(--s-card-filter);
   box-shadow: var(--s-card-shadow-up);
+  overflow: hidden;
   cursor: pointer;
-  animation: sbar-rest-in 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Quiet at rest so it never pulls the eye; full strength under the pointer. */
+  opacity: 0.62;
+  transform: scale(1);
+  animation: sbar-rest-in 620ms var(--sbar-spring) both;
   transition:
-    width 200ms ease,
-    height 200ms ease,
-    background-color 200ms ease;
+    opacity 420ms ease,
+    transform 520ms var(--sbar-spring),
+    box-shadow 520ms ease;
+  will-change: transform, opacity;
 }
 .ov-stage.top .sbar-rest {
   margin: 10px 0 0;
   box-shadow: var(--s-card-shadow);
 }
-.ov-stage:hover .sbar-rest {
-  width: 64px;
-  height: 10px;
+/* The purple glow: a wide gradient that drifts across the pill. Translucent,
+   so the frosted glass shows through exactly as before. */
+.sbar-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    rgb(139 92 246 / 0) 0%,
+    rgb(139 92 246 / 0.55) 25%,
+    rgb(217 70 239 / 0.55) 45%,
+    rgb(246 80 174 / 0.5) 60%,
+    rgb(124 58 237 / 0.55) 80%,
+    rgb(139 92 246 / 0) 100%
+  );
+  background-size: 260% 100%;
+  opacity: 0;
+  transition: opacity 480ms ease;
+  animation: sbar-flow 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.sbar-rest:hover,
+.sbar-rest:focus-visible {
+  opacity: 1;
+  transform: scaleX(1.18) scaleY(1.22);
+  box-shadow:
+    var(--s-card-shadow-up),
+    0 0 14px rgb(167 139 250 / 0.45);
+  outline: none;
+}
+.sbar-rest:hover .sbar-glow,
+.sbar-rest:focus-visible .sbar-glow {
+  opacity: 1;
+}
+/* Pressed: a quick liquid squish before dictation takes over. */
+.sbar-rest:active {
+  transform: scaleX(1.28) scaleY(0.8);
+  transition-duration: 140ms;
+}
+@keyframes sbar-flow {
+  0% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
 }
 @keyframes sbar-rest-in {
-  from {
+  0% {
     opacity: 0;
-    transform: scaleX(0.4);
+    transform: scaleX(0.3) scaleY(0.6);
   }
-  to {
-    opacity: 1;
-    transform: none;
+  100% {
+    opacity: 0.62;
+    transform: scale(1);
   }
-}
-
-/* Hover hint: the compact card, as a button that starts dictation. */
-.scard.sbar-hint {
-  width: 296px;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  text-align: inherit;
-  cursor: pointer;
-}
-.sbar-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text);
-  white-space: nowrap;
-  padding: 0 8px;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sbar-mic {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: var(--s-accent);
-  transition: transform 120ms ease;
-}
-.sbar-hint:hover .sbar-mic {
-  transform: scale(1.08);
-}
-.sbar-mic svg,
-.sbar-try svg {
-  width: 12px;
-  height: 12px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
 }
 
 /* Typing nudge: a two-line card with one clear action. */
 .scard.sbar-nudge {
+  position: relative;
   width: 360px;
-  padding: 12px 12px 12px 14px;
+  padding: 12px 12px 14px 14px;
   gap: 8px;
   border-radius: 20px;
+  /* Grows out of the pill like a drop of liquid spreading. */
+  transform-origin: bottom center;
+  animation: sbar-liquid-in 640ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+.ov-stage.top .scard.sbar-nudge {
+  transform-origin: top center;
+}
+@keyframes sbar-liquid-in {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.15) scaleY(0.08);
+    border-radius: 999px;
+    filter: blur(6px);
+  }
+  55% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    border-radius: 20px;
+  }
+}
+/* The nudge's ten seconds, drawn as a thin line that drains away. */
+.sbar-timer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 6px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8b5cf6, var(--color-brand-pink));
+  opacity: 0.55;
+  transform-origin: left center;
+  animation: sbar-timer 10s linear forwards;
+}
+@keyframes sbar-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 .sbar-nudge-row {
   display: flex;
@@ -762,7 +818,10 @@
   transform: scale(0.97);
 }
 @media (prefers-reduced-motion: reduce) {
-  .sbar-rest {
+  .sbar-rest,
+  .sbar-glow,
+  .scard.sbar-nudge,
+  .sbar-timer {
     animation: none;
   }
 }

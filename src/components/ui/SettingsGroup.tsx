@@ -19,7 +19,7 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
     <div className="space-y-2">
       {title && Icon && (
         <div className="flex items-center gap-3 px-1">
-          <span className="shrink-0 rounded-lg bg-logo-primary/15 p-2 text-logo-primary">
+          <span className="shrink-0 rounded-lg bg-brand-pink/10 p-2 text-brand-pink">
             <Icon width={16} height={16} />
           </span>
           <div className="min-w-0">

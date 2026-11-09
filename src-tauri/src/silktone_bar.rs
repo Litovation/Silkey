@@ -30,7 +30,7 @@ const NUDGE_COOLDOWN: Duration = Duration::from_secs(20 * 60);
 /// At most this many nudges per run of the app, so it never becomes a nag.
 const MAX_NUDGES_PER_SESSION: u64 = 4;
 /// How long a nudge stays open before the bar folds back.
-const NUDGE_VISIBLE: Duration = Duration::from_secs(9);
+const NUDGE_VISIBLE: Duration = Duration::from_secs(10);
 
 static NUDGES_SHOWN: AtomicU64 = AtomicU64::new(0);
 static TYPING_WATCH_RUNNING: AtomicBool = AtomicBool::new(false);

@@ -1,7 +1,13 @@
 # Silktone v0.1.1 handoff
 
 Share this file with Claude at the start of a session to continue from here.
-Last updated: 2026-10-04. Repo: `github.com/Litovation/Silkey`.
+Last updated: 2026-11-09. Repo: `github.com/Litovation/Silkey`.
+
+**Latest work (2026-11-08/09) is on the test branch
+`claude/peaceful-fermi-g3aiab`, not yet on `main` or released.** See the
+two sections starting at "Accuracy, Silktone bar and dashboard" below. The
+latest released version is **0.1.6** (9 Oct 2026); the release workflow only
+accepts a higher version, so the next release is 0.1.7 or later.
 
 Branches:
 
@@ -148,30 +154,48 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
 
 ## Accuracy, Silktone bar and dashboard (branch `claude/peaceful-fermi-g3aiab`)
 
+How the owner wants to work on this branch: build and check everything in
+the cloud session first, commit locally, and push only when the owner says
+"push". Test installers come from the "Build Silktone for Windows" run on
+this branch (Actions, the run, Artifacts, Silktone-Windows-x64).
+
 - **Speech model by language:** English uses Parakeet Unified English (about
   half the mistakes of Nemotron in Handy's tests, and faster); Hindi and auto
   use Nemotron Streaming 3.5, also on the Light tier (Canary has no Hindi).
   Existing users keep dictating while the better model downloads, then switch
-  (`src/hooks/useAutoModelSetup.ts`). Needs transcribe-cpp 0.2.4 (bumped).
-  The tutorial now asks the language first so the right model downloads.
+  between dictations (`src/hooks/useAutoModelSetup.ts`). Needs transcribe-cpp
+  0.2.4 (bumped). The tutorial now asks the language first so the right model
+  downloads.
+- **Tray model menu:** models read as quality levels, never names: Low
+  (Canary 180M Flash), Medium (Nemotron, also Hindi), High (Parakeet Unified
+  English). The submenu label is "Quality: High" etc. (`tray.rs`
+  `quality_level`).
 - **Model stays loaded 15 minutes** (was 2): settings schema 5 moves stores
   still on the old default.
 - **Microphone check:** tutorial step 2 and Settings > General > Microphone.
   The user reads a sentence; `check_microphone` measures voice and background
   levels for 5 s and the boost is set so the voice lands near -20 dBFS. Verdicts:
   good, quiet, noisy, no speech, silent (`commands/audio.rs`).
-- **Silktone bar:** the overlay window's resting state, a slim pill at the top
-  or bottom of the screen. Hover shows "Click or press Ctrl + Windows to talk",
-  click starts dictation. Shown only after the tutorial and with access. After a
-  long stretch of typing (180 characters in 90 s) outside Silktone it shows a
-  nudge to dictate instead, at most 4 times per run, 20 minutes apart. Only
-  keystroke counts are kept. Both can be turned off in Settings > General
-  (`silktone_bar.rs`, `overlay.rs`, `src/overlay/RecordingOverlay.tsx`).
-  Preview: `dev/overlay-preview.html?state=idle|hover|nudge`.
+- **Silktone bar:** the overlay window's resting state, a slim frosted pill at
+  the top or bottom of the screen, kept at ~60% opacity so it does not pull
+  the eye. Hover does not expand it: the pill lights up with a slowly flowing
+  purple gradient (same transparency) and stretches a little; pressing it
+  squishes like liquid and starts dictation. Shown only after the tutorial
+  and with access. After a long stretch of typing (180 characters in 90 s)
+  outside Silktone it opens a nudge card ("Typing a lot? Say it instead")
+  that grows out of the pill and stays 10 seconds (a thin line drains to
+  show the time), at most 4 times per run, 20 minutes apart. Only keystroke
+  counts are kept. Both can be turned off in Settings > General
+  (`silktone_bar.rs`, `overlay.rs`, `src/overlay/RecordingOverlay.tsx/.css`).
+  Preview: `dev/overlay-preview.html?state=idle|nudge|answer|edited`.
 - **Dashboard:** greeting, four stat tiles (words, wpm with pace bar, streak,
   time saved vs typing at 40 wpm), slimmer CommandGo card, history grouped by
   day with actions on hover and the player on demand; new `surface` colour
-  token for cards; sidebar and settings tabs share one active style.
+  token for cards; sidebar and settings tabs share one active style. Colour
+  balance asked by the owner: about 20% pink (brand pink `#f650ae`: active
+  nav marker and icon, stat icons, pace bar, shortcut keys, saved stars,
+  account avatar, settings section icons), about 10% green (switches, main
+  buttons, success), the rest neutral and white.
 - **Before this goes to users:** the test build workflow
   (`.github/workflows/silktone-windows.yml`) is set to
   `SILKTONE_UPDATES_ENABLED: "0"` on this branch, so test copies never
@@ -179,8 +203,69 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
   release workflow (`silktone-release.yml`) still has it on. A test copy
   built with it off cannot update itself; its tester installs the next
   release by hand once.
-- Not tried on Windows yet: the bar's hover and click on a real desktop, the
-  typing nudge's keyboard hook, and the mic check on real microphones.
+
+## Dictation quality upgrade (owner's build spec, same branch)
+
+The owner's spec is the doc "Silktone Dictation Quality Upgrade: Build Spec"
+(15 features, numbered as in the spec). Built:
+
+- **Rule cleanup on every dictation, offline** (`src-tauri/src/audio_toolkit/cleanup/`):
+  self-corrections (1, rules layer), stutters/restarts/fragments (2, in
+  `text.rs`), spoken lists (3), numbers/dates/money/times written by our own
+  English rules (4; the spec's text-processing-rs could not be run in the
+  cloud session, so it is not used), "No speech heard" instead of made-up
+  text on silence (6), spoken punctuation incl. "at the rate" (7), snippets
+  (11), learned corrections (8, step 1). Order and English-only gating are
+  documented in `cleanup/mod.rs`; everything runs inside
+  `fail_open_text_transform`.
+- **Quality test sets:** `src-tauri/tests/text_quality/*.tsv`, run by
+  `cargo test --test text_quality`, each with the spec's pass mark. All at
+  100% today, but small (8-24 cases each; the spec asks 60-120): grow them
+  with real dictations.
+- **AI cleanup:** better default prompt (self-corrections, repeats, grammar,
+  lists, two examples; schema 6 upgrades untouched old prompts), custom and
+  learned words sent as "spell exactly" (12, part 1), a safety check that
+  falls back to the rule text if the AI drops content or invents names or
+  numbers, and "Smart cleanup: Cloud AI" to run it on every dictation.
+- **Screens:** Settings > Writing (cleanup level, formatting switches with
+  examples, spoken-punctuation cheat-sheet, Voice AI, "Help AI cleanup
+  with", style memory, dictionary and learned words); Settings > Snippets
+  (also in the sidebar); History gets Fix word (with Undo) and Original
+  (text before AI cleanup).
+- **Voice AI (behind one switch, off by default; uses the Post Process
+  provider):** Command Mode Ctrl+Alt+E (15), Draft Ctrl+Alt+D (16), Ask
+  Ctrl+Alt+Q with an answer card, Copy and Insert (24). Context for AI
+  cleanup: app name (Windows), selected text, clipboard (14, each off by
+  default). Style memory with Clear my style (9). Code: `voice_ai.rs`.
+- **Not built yet:** local AI cleanup model (1, layer 2: needs llama.cpp and
+  model hosting), smart spacing at the cursor (5) and auto-learning from the
+  user's own edits (8, step 2) (both need reading other apps' text fields),
+  screen text OCR (part of 14), model hotwords (part of 12).
+- **Spec questions still open for the owner:** 20 mixed-language (Hinglish)
+  dictation keep or remove; 25 MCP server keep or remove; 21 is the
+  "translate" item the one removed; switch Smart cleanup to Local AI
+  automatically once that model exists?
+
+## Windows build fixes (2026-11-08/09)
+
+GitHub's release-download server answered HTTP 504 for most of a day, which
+broke builds before any code compiled. The build no longer depends on it:
+Bun installs from npm (pinned 1.4.2); ONNX Runtime falls back to NuGet;
+Tauri's NSIS tools are fetched up front with SourceForge as a fallback;
+vcpkg uses the runner's CMake (`VCPKG_FORCE_SYSTEM_BINARIES`); NSIS tools
+and vcpkg packages are cached between runs. Same changes in the release
+workflow. Build #46 on the test branch was the first fully green build with
+all of the above (installer artifact `Silktone-Windows-x64`).
+
+## Not yet tried on a real Windows PC (this branch)
+
+- The bar's hover glow and press, and the nudge's keyboard hook.
+- The mic check on real microphones.
+- Command Mode / Draft / "Selected text" copying the selection (it presses
+  Ctrl+C, then puts the clipboard back) and Undo after Command Mode.
+- The app-name context (Windows only; compiled in build #46 but not run).
+- Two old unit tests fail on this branch and on the base too (mic boost
+  default and an old "Handy" name); unrelated to this work.
 
 ## Not yet verified
 
@@ -374,8 +459,9 @@ Razorpay KYC is done; the website still lacks refund and contact pages.
 
 ## Still to build, in suggested order
 
-1. **Get a build.** Run the Windows workflow on this branch and fix whatever
-   the Rust compile or installer reports.
+1. **Test the branch build** (`claude/peaceful-fermi-g3aiab`, build #46 or
+   later) on a real PC, fix what comes up, then merge to `main` (switch the
+   test workflow's updater back on first) and release 0.1.7.
 2. **Accounts: finish testing.** Sign-in works on real builds. Still to try
    on a real build: sign-out, trial expiry, ban, and the offline rule.
 3. **Razorpay: test, then go live.** Add the webhook (see Blockers), then on

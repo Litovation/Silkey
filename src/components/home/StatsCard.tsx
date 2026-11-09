@@ -18,9 +18,11 @@ const Tile: React.FC<{
   label: string;
   children?: React.ReactNode;
 }> = ({ icon: Icon, value, label, children }) => (
-  <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-mid-gray/15 bg-surface p-4 shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
-    <span className="flex items-center gap-1.5 text-xs font-medium text-text/55">
-      <Icon width={14} height={14} className="shrink-0" />
+  <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-mid-gray/15 bg-surface p-4 shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-colors hover:border-brand-pink/30">
+    <span className="flex items-center gap-2 text-xs font-medium text-text/55">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-pink/10 text-brand-pink">
+        <Icon width={13} height={13} />
+      </span>
       <span className="truncate">{label}</span>
     </span>
     <span className="text-2xl font-semibold leading-none tracking-tight tabular-nums">
@@ -57,7 +59,7 @@ export const StatsCard: React.FC = () => {
               <span
                 key={index}
                 className={`h-1 flex-1 rounded-full ${
-                  index < score ? "bg-logo-primary" : "bg-mid-gray/20"
+                  index < score ? "bg-brand-pink" : "bg-mid-gray/20"
                 }`}
               />
             ))}

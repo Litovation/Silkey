@@ -29,7 +29,7 @@ export const HomePage: React.FC = () => {
                     {"+"}
                   </span>
                 )}
-                <kbd className="rounded-md border border-mid-gray/25 border-b-2 bg-surface px-1.5 py-px font-sans text-xs font-semibold text-text/80">
+                <kbd className="rounded-md border border-brand-pink/25 border-b-2 bg-surface px-1.5 py-px font-sans text-xs font-semibold text-text/80">
                   {key}
                 </kbd>
               </React.Fragment>

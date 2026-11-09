@@ -180,7 +180,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Icon
                 width={16}
                 height={16}
-                className={`shrink-0 ${id === activeTab ? "text-logo-primary" : ""}`}
+                className={`shrink-0 ${id === activeTab ? "text-brand-pink" : ""}`}
               />
               <span className="truncate">{t(labelKey)}</span>
             </button>

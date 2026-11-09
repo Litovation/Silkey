@@ -455,6 +455,30 @@ fn version_label() -> String {
 /// to app state: everything it depends on is in `inputs`, plus the
 /// process-constant `SILKTONE_DISABLE_UPDATER` env flag behind
 /// `update_checks_forced_disabled()`, which cannot change during a run.
+/// Quality level a bundled speech model is shown as in the tray.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum QualityLevel {
+    Low = 0,
+    Medium = 1,
+    High = 2,
+}
+
+/// Canary 180M Flash is the small, light model; Nemotron Streaming 3.5 the
+/// multilingual one (it also speaks Hindi); Parakeet Unified English the most
+/// accurate for English.
+fn quality_level(model_id: &str) -> Option<QualityLevel> {
+    let id = model_id.to_lowercase();
+    if id.contains("canary-180m") {
+        Some(QualityLevel::Low)
+    } else if id.contains("nemotron") {
+        Some(QualityLevel::Medium)
+    } else if id.contains("parakeet-unified") {
+        Some(QualityLevel::High)
+    } else {
+        None
+    }
+}
+
 fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri::Wry>, String)> {
     let strings = get_tray_translations(Some(inputs.locale.clone()));
 
@@ -530,19 +554,40 @@ fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri
             ],
         )?
     } else {
-        // Build model submenu — label is the active model name
+        // Model submenu. Users never see speech-model names: the three
+        // bundled models read as quality levels, and the label is the active one.
+        let display_name = |id: &str, name: &str| -> String {
+            match quality_level(id) {
+                Some(QualityLevel::Low) => strings.quality_low.clone(),
+                Some(QualityLevel::Medium) => strings.quality_medium.clone(),
+                Some(QualityLevel::High) => strings.quality_high.clone(),
+                None => name.to_string(),
+            }
+        };
         let submenu_label = inputs
             .downloaded_models
             .iter()
             .find(|(id, _)| *id == inputs.selected_model)
-            .map(|(_, name)| name.clone())
+            .map(|(id, name)| {
+                let level = display_name(id, name);
+                if quality_level(id).is_some() && !strings.quality.is_empty() {
+                    strings.quality.replace("{{level}}", &level)
+                } else {
+                    level
+                }
+            })
             .unwrap_or_else(|| strings.model.clone());
 
         let model_submenu = Submenu::with_id(app, "model_submenu", &submenu_label, true)?;
-        for (id, name) in &inputs.downloaded_models {
+        let mut models = inputs.downloaded_models.clone();
+        // Low, Medium, High in that order; any other model after them.
+        models.sort_by_key(|(id, name)| (quality_level(id).map_or(3, |l| l as u8), name.clone()));
+        for (id, name) in &models {
             let is_active = *id == inputs.selected_model;
             let item_id = format!("model_select:{}", id);
-            let item = CheckMenuItem::with_id(app, &item_id, name, true, is_active, None::<&str>)?;
+            let label = display_name(id, name);
+            let item =
+                CheckMenuItem::with_id(app, &item_id, &label, true, is_active, None::<&str>)?;
             model_submenu.append(&item)?;
         }
 
@@ -664,6 +709,28 @@ pub fn copy_last_transcript(app: &AppHandle) {
     }
 
     info!("Copied last transcript to clipboard via tray.");
+}
+
+#[cfg(test)]
+mod quality_tests {
+    use super::*;
+
+    #[test]
+    fn bundled_models_map_to_quality_levels() {
+        assert_eq!(
+            quality_level("Litovation/canary-180m-flash-gguf/canary-180m-flash-Q8_0.gguf"),
+            Some(QualityLevel::Low)
+        );
+        assert_eq!(
+            quality_level("Litovation/nemotron-3.5-asr-streaming-0.6b-gguf/x.gguf"),
+            Some(QualityLevel::Medium)
+        );
+        assert_eq!(
+            quality_level("handy-computer/parakeet-unified-en-0.6b-gguf/x.gguf"),
+            Some(QualityLevel::High)
+        );
+        assert_eq!(quality_level("small"), None);
+    }
 }
 
 #[cfg(test)]

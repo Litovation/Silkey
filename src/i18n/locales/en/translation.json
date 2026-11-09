@@ -11,7 +11,11 @@
     "noSpeech": "No speech heard",
     "selectFirst": "Select some text first",
     "needsAi": "Set up an AI provider in Post Process first",
-    "aiFailed": "The AI didn't answer. Try again"
+    "aiFailed": "The AI didn't answer. Try again",
+    "qualityLow": "Low",
+    "qualityMedium": "Medium",
+    "qualityHigh": "High",
+    "quality": "Quality: {{level}}"
   },
   "sidebar": {
     "general": "Tone",
@@ -943,8 +947,7 @@
     "transcribing": "Transcribing...",
     "processing": "Processing...",
     "bar": {
-      "start": "Start dictation",
-      "hint": "Click or press {{keys}} to talk"
+      "start": "Start dictation ({{keys}})"
     },
     "nudge": {
       "title": "Typing a lot? Say it instead.",

@@ -51,10 +51,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <nav className="flex flex-col gap-0.5">
         <div
-          className={`${itemClasses} bg-surface font-semibold shadow-[0_1px_2px_rgb(0_0_0/0.06)] ring-1 ring-mid-gray/10`}
+          className={`${itemClasses} relative bg-surface font-semibold shadow-[0_1px_2px_rgb(0_0_0/0.06)] ring-1 ring-brand-pink/15 before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-brand-pink`}
           aria-current="page"
         >
-          <Mic width={17} height={17} className="shrink-0 text-logo-primary" />
+          <Mic width={17} height={17} className="shrink-0 text-brand-pink" />
           <span className="truncate">{t("sidebar.general")}</span>
         </div>
         <button
@@ -112,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onOpenSettings("account")}
         >
           <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-logo-primary/15 text-xs font-semibold text-logo-primary"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-pink/12 text-xs font-semibold text-brand-pink"
             aria-hidden="true"
           >
             {email ? initial : <UserRound width={14} height={14} />}

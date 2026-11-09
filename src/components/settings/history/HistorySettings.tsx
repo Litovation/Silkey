@@ -38,7 +38,7 @@ const IconButton: React.FC<{
     disabled={disabled}
     className={`p-1.5 rounded-lg flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:text-text/20 ${
       active
-        ? "text-logo-primary hover:bg-logo-primary/10"
+        ? "text-brand-pink hover:bg-brand-pink/10"
         : "text-text/45 hover:bg-mid-gray/10 hover:text-text"
     }`}
     title={title}
@@ -297,7 +297,7 @@ export const HistorySettings: React.FC = () => {
   } else if (entries.length === 0) {
     content = (
       <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-mid-gray/30 bg-surface/60 px-6 py-10 text-center">
-        <span className="rounded-full bg-logo-primary/10 p-3 text-logo-primary">
+        <span className="rounded-full bg-brand-pink/10 p-3 text-brand-pink">
           <Mic width={20} height={20} />
         </span>
         <p className="text-sm font-medium">
@@ -636,7 +636,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
             width={12}
             height={12}
             fill="currentColor"
-            className="absolute end-3 top-4 text-logo-primary group-hover:opacity-0"
+            className="absolute end-3 top-4 text-brand-pink group-hover:opacity-0"
             aria-hidden="true"
           />
         )}

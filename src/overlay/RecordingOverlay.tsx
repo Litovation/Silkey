@@ -363,7 +363,9 @@ const RecordingOverlay: React.FC = () => {
     );
   }
 
-  // ---- Silktone bar: a slim resting pill, a hint on hover, a typing nudge ----
+  // ---- Silktone bar: a slim resting pill and a typing nudge ----
+  // The pill stays put: hovering lights it with a moving purple glow, pressing
+  // it starts dictation. It never grows into a card under the pointer.
   if (state === "idle" || state === "hover" || state === "nudge") {
     const start = () => {
       commands.silktoneBarStartDictation().catch(() => {});
@@ -381,38 +383,16 @@ const RecordingOverlay: React.FC = () => {
       <div
         dir={direction}
         className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
-        onMouseEnter={() => {
-          if (state === "idle") {
-            commands.silktoneBarHover(true).catch(() => {});
-          }
-        }}
-        onMouseLeave={() => {
-          if (state === "hover") fold();
-        }}
       >
-        {state === "idle" && (
+        {state !== "nudge" && (
           <button
             type="button"
             className="sbar-rest"
-            aria-label={t("overlay.bar.start")}
-            onClick={start}
-          />
-        )}
-        {state === "hover" && (
-          <button
-            type="button"
-            className="scard compact sbar-hint"
+            aria-label={t("overlay.bar.start", { keys: keys.join(" + ") })}
+            title={t("overlay.bar.start", { keys: keys.join(" + ") })}
             onClick={start}
           >
-            <div className="sbase">
-              <div className="sbase-l">{kMark("done")}</div>
-              <span className="sbar-label">
-                {t("overlay.bar.hint", { keys: keys.join(" + ") })}
-              </span>
-              <div className="sbase-r">
-                <span className="sbar-mic">{micIcon}</span>
-              </div>
-            </div>
+            <span className="sbar-glow" aria-hidden="true" />
           </button>
         )}
         {state === "nudge" && (
@@ -445,6 +425,7 @@ const RecordingOverlay: React.FC = () => {
               {micIcon}
               {t("overlay.nudge.try")}
             </button>
+            <span className="sbar-timer" aria-hidden="true" />
           </div>
         )}
       </div>
