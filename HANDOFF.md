@@ -13,9 +13,17 @@ fine for test builds, but a 0.1.5 release cannot be published (the workflow
 refuses it, and installed 0.1.6 copies would never update to it). Release it
 as 0.1.7, renaming `src/content/release-notes/0.1.5.md` to match.
 
+Test builds of this branch stay **not for users**: the updater is off in both
+the Windows and the Linux workflow (`SILKTONE_UPDATES_ENABLED: "0"`). Latest
+good builds (2026-11-09): Windows build #47, Linux build #2.
+
 Linux: `claude/silktone-linux` is the same app plus a Linux build workflow
 (`.github/workflows/silktone-linux.yml`, .deb and AppImage, unsigned, updater
-off). Keep it in step with this branch by merging this branch into it.
+off). Keep it in step with this branch by merging this branch into it. It
+builds on Ubuntu 24.04 because the prebuilt ONNX Runtime needs glibc 2.38+
+(22.04 failed to link), so the packages need Ubuntu 24.04+, Debian 13+ or
+Fedora 39+. Supporting older distros means linking ONNX Runtime dynamically
+and shipping `libonnxruntime.so` with the app.
 
 Branches:
 
@@ -498,7 +506,7 @@ window, not on what is behind it). Linux needs a compositor for transparency.
 
 ## Still to build, in suggested order
 
-1. **Test the branch build** (`claude/peaceful-fermi-g3aiab`, build #46 or
+1. **Test the branch build** (`claude/peaceful-fermi-g3aiab`, build #47 or
    later) on a real PC, fix what comes up, then merge to `main` (switch the
    test workflow's updater back on first) and release 0.1.7.
 2. **Accounts: finish testing.** Sign-in works on real builds. Still to try
