@@ -50,6 +50,45 @@ if (-not (Test-Path (Join-Path $ortLib 'onnxruntime.dll'))) {
 }
 $env:ORT_LIB_LOCATION = $ortLib
 $env:ORT_PREFER_DYNAMIC_LINK = '1'
+# Tauri fetches its NSIS installer tools from GitHub releases at the very end
+# of the build, and those downloads can answer 504 for long stretches. Fetch
+# them here instead, with retries and SourceForge (NSIS's official host) as a
+# fallback, into the folder Tauri checks first; the workflow caches it.
+# The names, folder layout and helper hash match tauri-bundler 2.9.4.
+$tauriTools = Join-Path $env:LOCALAPPDATA 'tauri'
+$nsisDir = Join-Path $tauriTools 'NSIS'
+if (-not (Test-Path (Join-Path $nsisDir 'Bin/makensis.exe'))) {
+  New-Item -ItemType Directory -Path $tauriTools -Force | Out-Null
+  $nsisZip = Join-Path $tauriTools 'nsis-3.11.zip'
+  $nsisSources = @(
+    'https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.11/nsis-3.11.zip',
+    'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip'
+  )
+  $nsisDownloaded = $false
+  foreach ($url in $nsisSources) {
+    try {
+      Invoke-WebRequest $url -OutFile $nsisZip -MaximumRetryCount 4 -RetryIntervalSec 20
+      $nsisDownloaded = $true
+      break
+    } catch {
+      Write-Warning "NSIS download from $url failed: $($_.Exception.Message)"
+    }
+  }
+  if (-not $nsisDownloaded) { throw 'Could not download NSIS.' }
+  $extracted = Join-Path $tauriTools 'nsis-3.11'
+  if (Test-Path $extracted) { Remove-Item $extracted -Recurse -Force }
+  Expand-Archive $nsisZip -DestinationPath $tauriTools -Force
+  if (Test-Path $nsisDir) { Remove-Item $nsisDir -Recurse -Force }
+  Rename-Item $extracted 'NSIS'
+  Remove-Item $nsisZip -Force
+}
+$tauriUtils = Join-Path $nsisDir 'Plugins/x86-unicode/additional/nsis_tauri_utils.dll'
+$tauriUtilsSha1 = '75197FEE3C6A814FE035788D1C34EAD39349B860'
+if (-not (Test-Path $tauriUtils) -or (Get-FileHash $tauriUtils -Algorithm SHA1).Hash -ne $tauriUtilsSha1) {
+  New-Item -ItemType Directory -Path (Split-Path $tauriUtils) -Force | Out-Null
+  Invoke-WebRequest 'https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll' -OutFile $tauriUtils -MaximumRetryCount 10 -RetryIntervalSec 30
+}
+
 vcpkg install spirv-headers:x64-windows
 if ($LASTEXITCODE -ne 0) { throw 'SPIRV-Headers installation failed.' }
 $vcpkgRoot = if ($env:VCPKG_INSTALLATION_ROOT) { $env:VCPKG_INSTALLATION_ROOT } elseif ($env:VCPKG_ROOT) { $env:VCPKG_ROOT } else { Split-Path (Get-Command vcpkg).Source }
