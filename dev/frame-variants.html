@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Silktone window shapes</title>
+    <!--
+      Design exploration, not shipped: the real dashboard (dev/mock-preview.html)
+      inside custom-shaped transparent window frames, on a desktop backdrop so
+      the see-through areas show. ?v=ledge|hud|twin|tab|liquid, ?theme=dark.
+    -->
+    <style>
+      :root {
+        --w: 1040px;
+        --h: 680px;
+        --violet: #8b5cf6;
+        --pink: #f650ae;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      /* A desktop wallpaper, so transparency reads as transparency. */
+      body {
+        background:
+          radial-gradient(1200px 600px at 15% 20%, #3b2a6b 0%, transparent 60%),
+          radial-gradient(900px 600px at 85% 80%, #6b2350 0%, transparent 60%),
+          radial-gradient(700px 500px at 70% 10%, #164e4a 0%, transparent 60%),
+          #0d0f1a;
+      }
+      .wallpaper-grid {
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+        background-size: 48px 48px;
+      }
+      .stage {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--w);
+        height: var(--h);
+        transform: translate(-50%, -50%);
+      }
+      .shadow {
+        position: absolute;
+        inset: 0;
+        filter: drop-shadow(0 30px 60px rgb(0 0 0 / 0.55))
+          drop-shadow(0 0 1px rgb(0 0 0 / 0.4));
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: #f6f9f7;
+      }
+      iframe {
+        position: absolute;
+        border: 0;
+        background: transparent;
+      }
+      svg.edge {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        pointer-events: none;
+      }
+      /* Custom title bar: drag strip with our own window buttons. */
+      .titlebar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 0 10px;
+        z-index: 3;
+      }
+      .wbtn {
+        width: 30px;
+        height: 22px;
+        border-radius: 7px;
+        display: grid;
+        place-items: center;
+        color: #4b5563;
+      }
+      .wbtn svg {
+        width: 10px;
+        height: 10px;
+        stroke: currentColor;
+        stroke-width: 1.4;
+        fill: none;
+      }
+      .wbtn.close:hover {
+        background: #e5484d;
+        color: #fff;
+      }
+      .ledge {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 12px;
+        color: #e9e7f5;
+        z-index: 3;
+        letter-spacing: 0.01em;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 10px #34d399;
+      }
+      .chip {
+        padding: 3px 9px;
+        border-radius: 999px;
+        border: 1px solid rgb(139 92 246 / 0.28);
+        background: rgb(139 92 246 / 0.08);
+      }
+      .label {
+        position: fixed;
+        left: 24px;
+        bottom: 18px;
+        color: rgb(255 255 255 / 0.7);
+        font-size: 13px;
+        letter-spacing: 0.02em;
+      }
+      .label b {
+        color: #fff;
+      }
+      @keyframes flow {
+        to {
+          stroke-dashoffset: -400;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wallpaper-grid"></div>
+    <div class="stage" id="stage"></div>
+    <div class="label" id="label"></div>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const variant = params.get("v") || "ledge";
+      const theme = params.get("theme") || "light";
+      const W = 1040;
+      const H = 680;
+      const stage = document.getElementById("stage");
+
+      // Rounded-corner polygon: points [x, y, radius], radius 0 = sharp.
+      const roundedPath = (points) => {
+        const n = points.length;
+        let d = "";
+        for (let i = 0; i < n; i++) {
+          const [x, y, r] = points[i];
+          const [px, py] = points[(i - 1 + n) % n];
+          const [nx, ny] = points[(i + 1) % n];
+          const toPrev = Math.hypot(px - x, py - y);
+          const toNext = Math.hypot(nx - x, ny - y);
+          const rr = Math.min(r, toPrev / 2, toNext / 2);
+          const ax = x + ((px - x) / toPrev) * rr;
+          const ay = y + ((py - y) / toPrev) * rr;
+          const bx = x + ((nx - x) / toNext) * rr;
+          const by = y + ((ny - y) / toNext) * rr;
+          d += `${i === 0 ? "M" : "L"}${ax.toFixed(1)},${ay.toFixed(1)} `;
+          d += rr ? `Q${x},${y} ${bx.toFixed(1)},${by.toFixed(1)} ` : "";
+        }
+        return d + "Z";
+      };
+
+      const variants = {
+        // 1. The owner's idea: a ledge steps down at the bottom right and
+        // carries a live status strip. Smooth curves at every turn.
+        ledge: {
+          name: "1 · Ledge",
+          note: "Your idea refined: a status ledge steps out at the bottom right",
+          paths: [
+            roundedPath([
+              [0, 0, 20],
+              [W, 0, 20],
+              [W, H, 20],
+              [640, H, 18],
+              [600, H - 44, 18],
+              [0, H - 44, 20],
+            ]),
+          ],
+          content: { x: 0, y: 0, w: W, h: H - 44 },
+          ledge: { left: 664, top: H - 34, html: "status" },
+          stroke: "gradient",
+        },
+        // 2. Sci-fi panel: two corners cut at 45°, bracket accents, a tab
+        // notch in the top edge for the title.
+        hud: {
+          name: "2 · HUD",
+          note: "Chamfered corners, a title notch and corner brackets",
+          paths: [
+            roundedPath([
+              [36, 0, 6],
+              [380, 0, 8],
+              [400, 14, 8],
+              [640, 14, 8],
+              [660, 0, 8],
+              [W - 18, 0, 18],
+              [W, 18, 0],
+              [W, H - 36, 6],
+              [W - 36, H, 6],
+              [18, H, 18],
+              [0, H - 18, 0],
+              [0, 36, 6],
+            ]),
+          ],
+          content: { x: 0, y: 0, w: W, h: H },
+          brackets: true,
+          stroke: "gradient",
+        },
+        // 3. Sidebar and content float as two glass panels with clear air
+        // between them.
+        twin: {
+          name: "3 · Twin panels",
+          note: "Sidebar and dashboard as two floating panels with a see-through gap",
+          paths: [
+            roundedPath([
+              [0, 0, 22],
+              [206, 0, 22],
+              [206, H, 22],
+              [0, H, 22],
+            ]),
+            roundedPath([
+              [220, 0, 22],
+              [W, 0, 22],
+              [W, H, 22],
+              [220, H, 22],
+            ]),
+          ],
+          content: { x: 0, y: 0, w: W, h: H },
+          stroke: "soft",
+        },
+        // 4. A folder-like tab rises above the body for the logo, joined by
+        // smooth S-curves.
+        tab: {
+          name: "4 · Tab",
+          note: "A raised tab carries the Silktone mark and status; the body flows out of it",
+          paths: [
+            `M0,22 Q0,0 22,0 L214,0 C246,0 250,40 282,40 L${W - 22},40 Q${W},40 ${W},62 L${W},${H - 22} Q${W},${H} ${W - 22},${H} L22,${H} Q0,${H} 0,${H - 22} Z`,
+          ],
+          content: { x: 0, y: 40, w: W, h: H - 40 },
+          tabChip: true,
+          titleTop: 40,
+          stroke: "gradient",
+        },
+        // 5. Liquid: soft body with a smooth bite at the bottom where the
+        // Silktone pill docks.
+        liquid: {
+          name: "5 · Liquid dock",
+          note: "Soft body with a smooth bite at the bottom where the Silktone pill docks",
+          paths: [
+            `M28,0 L${W - 28},0 Q${W},0 ${W},28 L${W},${H - 28} Q${W},${H} ${W - 28},${H} L${W / 2 + 120},${H} C${W / 2 + 80},${H} ${W / 2 + 70},${H - 30} ${W / 2 + 30},${H - 30} L${W / 2 - 30},${H - 30} C${W / 2 - 70},${H - 30} ${W / 2 - 80},${H} ${W / 2 - 120},${H} L28,${H} Q0,${H} 0,${H - 28} L0,28 Q0,0 28,0 Z`,
+          ],
+          content: { x: 0, y: 0, w: W, h: H },
+          dock: true,
+          stroke: "soft",
+        },
+      };
+
+      const v = variants[variant] || variants.ledge;
+      document.getElementById("label").innerHTML =
+        `<b>${v.name}</b> &nbsp;—&nbsp; ${v.note}`;
+
+      const clipPath = v.paths.join(" ");
+      const shadow = document.createElement("div");
+      shadow.className = "shadow";
+      const clip = document.createElement("div");
+      clip.className = "clip";
+      clip.style.clipPath = `path(evenodd, "${clipPath}")`;
+      if (theme === "dark") clip.style.background = "#0f1813";
+
+      const frame = document.createElement("iframe");
+      const c = v.content;
+      Object.assign(frame.style, {
+        left: c.x + "px",
+        top: c.y + "px",
+        width: c.w + "px",
+        height: c.h + "px",
+      });
+      frame.src = `/dev/mock-preview.html?account=paid&theme=${theme}`;
+      clip.appendChild(frame);
+
+      // Window buttons, drawn by the app.
+      const bar = document.createElement("div");
+      bar.className = "titlebar";
+      if (v.paths.length === 2) bar.style.right = "4px";
+      bar.innerHTML = `
+        <span class="wbtn"><svg viewBox="0 0 10 10"><path d="M1 5h8"/></svg></span>
+        <span class="wbtn"><svg viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" rx="1.5"/></svg></span>
+        <span class="wbtn close"><svg viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6"/></svg></span>`;
+      if (theme === "dark")
+        bar
+          .querySelectorAll(".wbtn")
+          .forEach((b) => (b.style.color = "#cbd5d1"));
+      clip.appendChild(bar);
+
+      shadow.appendChild(clip);
+      stage.appendChild(shadow);
+
+      // Edge: a thin line that follows the shape. "gradient" adds a slow
+      // violet-to-pink light running along part of it.
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("class", "edge");
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      svg.innerHTML = `
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#8b5cf6"/>
+            <stop offset="0.55" stop-color="#c34fd6"/>
+            <stop offset="1" stop-color="#f650ae"/>
+          </linearGradient>
+        </defs>`;
+      for (const d of v.paths) {
+        const base = document.createElementNS(ns, "path");
+        base.setAttribute("d", d);
+        base.setAttribute("fill", "none");
+        base.setAttribute(
+          "stroke",
+          theme === "dark"
+            ? "rgb(255 255 255 / 0.14)"
+            : "rgb(255 255 255 / 0.55)",
+        );
+        base.setAttribute("stroke-width", "1");
+        svg.appendChild(base);
+        if (v.stroke === "gradient") {
+          const glow = document.createElementNS(ns, "path");
+          glow.setAttribute("d", d);
+          glow.setAttribute("fill", "none");
+          glow.setAttribute("stroke", "url(#g)");
+          glow.setAttribute("stroke-width", "1.6");
+          glow.setAttribute("stroke-dasharray", "260 900");
+          glow.setAttribute("stroke-linecap", "round");
+          glow.style.filter = "drop-shadow(0 0 6px rgb(195 79 214 / 0.8))";
+          glow.style.animation = "flow 6s linear infinite";
+          svg.appendChild(glow);
+        }
+      }
+      if (v.brackets) {
+        // Corner brackets in the two rounded corners.
+        const b = (dx, dy) => {
+          const p = document.createElementNS(ns, "path");
+          p.setAttribute("d", dx);
+          p.setAttribute("fill", "none");
+          p.setAttribute("stroke", "url(#g)");
+          p.setAttribute("stroke-width", "2");
+          p.setAttribute("stroke-linecap", "round");
+          svg.appendChild(p);
+        };
+        b(`M${W - 70},-8 L${W - 14},-8 L${W + 8},14 L${W + 8},70`);
+        b(`M-8,${H - 70} L-8,${H - 14} L14,${H + 8} L70,${H + 8}`);
+      }
+      stage.appendChild(svg);
+
+      if (v.titleTop) bar.style.top = v.titleTop + "px";
+      if (v.tabChip) {
+        const chip = document.createElement("div");
+        chip.className = "ledge";
+        chip.style.left = "22px";
+        chip.style.top = "11px";
+        chip.style.color = theme === "dark" ? "#e9e7f5" : "#1f2937";
+        chip.innerHTML = `<svg width="13" height="16" viewBox="284 56 116 140"><path fill="#f650ae" d="M318.743 108.199C330.316 106.676 340.215 101.483 347.409 92.1385C352.03 86.206 354.895 79.096 355.678 71.6165C355.725 71.127 355.82 70.3257 355.811 69.8587C355.659 61.8704 358.484 62.6665 365.27 62.6896L375.163 62.7068L385.283 62.7052C388.417 62.69 394.49 61.6705 394.786 66.3631C394.977 69.3754 394.612 72.9956 394.245 75.9926C392.491 91.2004 386.409 105.585 376.719 117.437C374.624 120.019 369.53 125.523 366.849 127.553C383.939 142.717 393.567 162.147 394.742 184.886C394.936 188.66 395.238 192.303 390.21 192.428C387.98 192.47 385.569 192.437 383.29 192.431H371.272L363.8 192.436C361.942 192.437 358.532 192.766 357.173 191.294C355.108 189.059 356.189 184.312 355.452 181.419C352.926 166.915 343.319 155.102 329.662 149.626C325.23 147.849 323.513 147.852 319.26 146.953C316.48 146.618 313.518 146.685 310.71 146.69L299.903 146.733C297.728 146.745 295.42 146.855 293.264 146.628C291.649 146.458 290.217 144.834 290.099 143.217C289.958 141.269 290.001 139.296 290.002 137.328L290.01 127.216L290 117.333C289.999 115.211 289.582 111.639 290.913 109.944C291.505 109.188 292.246 108.699 293.212 108.551C295.585 108.185 298.072 108.444 300.471 108.382C306.492 108.31 312.756 108.735 318.743 108.199Z"/></svg>
+          <b style="font-weight:600">Silktone</b><span class="dot"></span><span style="opacity:.65">Ready</span>`;
+        stage.appendChild(chip);
+      }
+      if (v.ledge) {
+        // The ledge itself: a faint violet-to-pink wash under the status.
+        const wash = document.createElement("div");
+        Object.assign(wash.style, {
+          position: "absolute",
+          left: "0",
+          top: H - 44 + "px",
+          width: W + "px",
+          height: "44px",
+          background:
+            theme === "dark"
+              ? "linear-gradient(90deg, rgb(139 92 246 / 0.10), rgb(246 80 174 / 0.16))"
+              : "linear-gradient(90deg, rgb(139 92 246 / 0.07), rgb(246 80 174 / 0.12))",
+        });
+        clip.insertBefore(wash, clip.firstChild);
+        const ledge = document.createElement("div");
+        ledge.className = "ledge";
+        ledge.style.left = v.ledge.left + "px";
+        ledge.style.top = v.ledge.top + "px";
+        ledge.style.color = theme === "dark" ? "#e9e7f5" : "#1f2937";
+        ledge.innerHTML = `<span class="dot"></span><span>Ready</span>
+          <span class="chip">Quality: High</span><span class="chip">English</span>
+          <span style="opacity:.6">v0.1.7</span>`;
+        stage.appendChild(ledge);
+      }
+      if (v.dock) {
+        // The Silktone pill sitting in the bite.
+        const pill = document.createElement("div");
+        Object.assign(pill.style, {
+          position: "absolute",
+          left: W / 2 - 44 + "px",
+          top: H - 18 + "px",
+          width: "88px",
+          height: "12px",
+          borderRadius: "999px",
+          background:
+            "linear-gradient(100deg,rgb(139 92 246/.75),rgb(217 70 239/.75),rgb(246 80 174/.7))",
+          boxShadow: "0 0 18px rgb(195 79 214/.7)",
+          border: "1px solid rgb(255 255 255/.4)",
+        });
+        stage.appendChild(pill);
+      }
+    </script>
+  </body>
+</html>
