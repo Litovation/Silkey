@@ -33,6 +33,7 @@
         silktone_bar_refresh: () =>
           setTimeout(() => {
             window.__emit("show-overlay", params.get("state") || "idle");
+            window.__emit("command-feedback", "No speech heard");
             window.__emit("ai-answer", {
               question: "What's 15% of 2,340?",
               answer: "15% of 2,340 is 351.",
