@@ -17,8 +17,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 90
     env:
-      # Test builds update themselves like releases (see settings.rs).
-      SILKTONE_UPDATES_ENABLED: "1"
+      # TEMPORARY (test branch claude/peaceful-fermi-g3aiab): test builds are
+      # made with the updater off, so a tester's copy never replaces itself
+      # with a release. Set back to "1" before this reaches users. Real
+      # releases come from silktone-release.yml, which keeps it on.
+      SILKTONE_UPDATES_ENABLED: "0"
     steps:
       - uses: actions/checkout@v5
       # Bun comes from npm, not GitHub release downloads: those kept failing

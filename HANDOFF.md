@@ -172,6 +172,13 @@ Key files: `src/components/home/`, `src/components/Sidebar.tsx`,
   time saved vs typing at 40 wpm), slimmer CommandGo card, history grouped by
   day with actions on hover and the player on demand; new `surface` colour
   token for cards; sidebar and settings tabs share one active style.
+- **Before this goes to users:** the test build workflow
+  (`.github/workflows/silktone-windows.yml`) is set to
+  `SILKTONE_UPDATES_ENABLED: "0"` on this branch, so test copies never
+  update themselves. Set it back to `"1"` when merging to `main`. The
+  release workflow (`silktone-release.yml`) still has it on. A test copy
+  built with it off cannot update itself; its tester installs the next
+  release by hand once.
 - Not tried on Windows yet: the bar's hover and click on a real desktop, the
   typing nudge's keyboard hook, and the mic check on real microphones.
 
