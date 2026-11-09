@@ -792,11 +792,12 @@
   line-height: 1.4;
   color: var(--s-muted);
 }
-/* Overlay call-to-action buttons (Try it now, Insert): the Silktone green.
-   They never wrap. */
+/* Overlay call-to-action buttons (Try it now, Insert): the light theme's
+   Silktone green in both themes, since the dark theme's mint is too bright
+   behind white text. They never wrap. */
 .sbar-try,
 .sbtn.primary {
-  --sbar-cta: var(--s-accent);
+  --sbar-cta: var(--light-color-logo-primary);
 }
 .sbar-try {
   flex: none;
